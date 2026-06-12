@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CERT Field Board - Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #007AFF, #0051D5);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        }
+        
+        h1 { font-size: 32px; margin-bottom: 10px; }
+        
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card.flash {
+            animation: flashCard 0.5s ease;
+        }
+        
+        @keyframes flashCard {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); background: #e3f2fd; }
+        }
+        
+        .stat-card h3 {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #007AFF;
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .panel h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            color: #333;
+        }
+        
+        .member-item, .report-item, .task-item {
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid #007AFF;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .member-item.available { border-left-color: #34C759; }
+        .member-item.assigned { border-left-color: #007AFF; }
+        .member-item.unavailable { border-left-color: #8E8E93; }
+        .member-item.injured { border-left-color: #FF3B30; }
+        .member-item.needshelp { border-left-color: #FF9500; }
+        
+        .report-item.low { border-left-color: #34C759; }
+        .report-item.medium { border-left-color: #FFCC00; }
+        .report-item.high { border-left-color: #FF9500; }
+        .report-item.lifesafety { border-left-color: #FF3B30; }
+        
+        .item-header {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #333;
+        }
+        
+        .item-meta {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-right: 4px;
+        }
+        
+        .badge.available { background: #34C759; color: white; }
+        .badge.assigned { background: #007AFF; color: white; }
+        .badge.unavailable { background: #8E8E93; color: white; }
+        .badge.new { background: #007AFF; color: white; }
+        .badge.resolved { background: #34C759; color: white; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .connection-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #8E8E93;
+            margin-right: 8px;
+        }
+        
+        .connection-status.connected {
+            background: #34C759;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .last-update {
+            font-size: 13px;
+            color: rgba(255,255,255,0.8);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🚨 CERT Field Board</h1>
+        <div class="last-update">
+            <span class="connection-status" id="connectionStatus"></span>
+            <span id="lastUpdate">Connecting...</span>
+        </div>
+    </header>
+    
+    <div class="status-bar">
+        <div class="stat-card" id="memberCard">
+            <h3>Team Members</h3>
+            <div class="number" id="memberCount">0</div>
+        </div>
+        <div class="stat-card" id="reportCard">
+            <h3>Active Reports</h3>
+            <div class="number" id="reportCount">0</div>
+        </div>
+        <div class="stat-card" id="taskCard">
+            <h3>Open Tasks</h3>
+            <div class="number" id="taskCount">0</div>
+        </div>
+        <div class="stat-card">
+            <h3>Incident Status</h3>
+            <div class="number" style="font-size: 18px;" id="incidentStatus">No Active Incident</div>
+        </div>
+    </div>
+    
+    <div class="content-grid">
+        <div class="panel">
+            <h2>👥 Team Members</h2>
+            <div id="memberList">
+                <div class="empty-state">No members checked in yet</div>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>⚠️ Reports</h2>
+            <div id="reportList">
+                <div class="empty-state">No reports yet</div>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>✓ Tasks</h2>
+            <div id="taskList">
+                <div class="empty-state">No tasks yet</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let ws;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        let previousMemberCount = 0;
+        let previousReportCount = 0;
+        let previousTaskCount = 0;
+        
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            console.log('🔌 Connecting to:', wsUrl);
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('✅ WebSocket connected');
+                document.getElementById('connectionStatus').classList.add('connected');
+                document.getElementById('lastUpdate').textContent = 'Connected - Real-time updates active';
+                reconnectAttempts = 0;
+            };
+            
+            ws.onmessage = (event) => {
+                console.log('📨 RAW MESSAGE RECEIVED');
+                console.log('Data length:', event.data.length);
+                console.log('First 200 chars:', event.data.substring(0, 200));
+                
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('✅ Parsed successfully');
+                    console.log('Member count in data:', data.members?.length || 0);
+                    console.log('Report count in data:', data.reports?.length || 0);
+                    console.log('Task count in data:', data.tasks?.length || 0);
+                    
+                    updateDashboard(data);
+                } catch (error) {
+                    console.error('❌ Parse error:', error);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('❌ WebSocket error:', error);
+                document.getElementById('lastUpdate').textContent = 'Connection error';
+            };
+            
+            ws.onclose = () => {
+                console.log('🔌 WebSocket disconnected');
+                document.getElementById('connectionStatus').classList.remove('connected');
+                document.getElementById('lastUpdate').textContent = 'Disconnected - Reconnecting...';
+                
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    setTimeout(connect, 2000);
+                }
+            };
+        }
+        
+        function flashCard(cardId) {
+            const card = document.getElementById(cardId);
+            card.classList.add('flash');
+            setTimeout(() => card.classList.remove('flash'), 500);
+        }
+        
+        function updateDashboard(data) {
+            console.log('🔄 UPDATE DASHBOARD CALLED');
+            console.log('Data received:', data);
+            
+            const memberCount = data.members?.length || 0;
+            const reportCount = data.reports?.length || 0;
+            const taskCount = data.tasks?.length || 0;
+            
+            console.log('Setting memberCount to:', memberCount);
+            console.log('Setting reportCount to:', reportCount);
+            console.log('Setting taskCount to:', taskCount);
+            
+            // Force update with textContent (not innerHTML)
+            const memberCountEl = document.getElementById('memberCount');
+            const reportCountEl = document.getElementById('reportCount');
+            const taskCountEl = document.getElementById('taskCount');
+            
+            console.log('memberCountEl:', memberCountEl);
+            console.log('Current text:', memberCountEl.textContent);
+            
+            memberCountEl.textContent = String(memberCount);
+            reportCountEl.textContent = String(reportCount);
+            taskCountEl.textContent = String(taskCount);
+            
+            console.log('New text:', memberCountEl.textContent);
+            
+            // Flash cards if counts changed
+            if (memberCount !== previousMemberCount) {
+                console.log('💥 Member count changed!', previousMemberCount, '→', memberCount);
+                flashCard('memberCard');
+                previousMemberCount = memberCount;
+            }
+            if (reportCount !== previousReportCount) {
+                console.log('💥 Report count changed!');
+                flashCard('reportCard');
+                previousReportCount = reportCount;
+            }
+            if (taskCount !== previousTaskCount) {
+                console.log('💥 Task count changed!');
+                flashCard('taskCard');
+                previousTaskCount = taskCount;
+            }
+            
+            if (data.incident && data.incident.isActive) {
+                document.getElementById('incidentStatus').textContent = data.incident.name;
+            }
+            
+            updateMemberList(data.members || []);
+            updateReportList(data.reports || []);
+            updateTaskList(data.tasks || []);
+            
+            const now = new Date().toLocaleTimeString();
+            document.getElementById('lastUpdate').innerHTML = 
+                `<span class="connection-status connected"></span>Updated: ${now}`;
+            
+            console.log('✅ Dashboard update complete');
+        }
+        
+        function updateMemberList(members) {
+            console.log('Updating member list with', members.length, 'members');
+            const container = document.getElementById('memberList');
+            
+            if (members.length === 0) {
+                container.innerHTML = '<div class="empty-state">No members checked in yet</div>';
+                return;
+            }
+            
+            const html = members.map(member => `
+                <div class="member-item ${member.status.toLowerCase().replace(' ', '')}">
+                    <div class="item-header">${member.name}</div>
+                    <div class="item-meta">
+                        <span class="badge ${member.status.toLowerCase().replace(' ', '')}">${member.status}</span>
+                        ${member.role}
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+            console.log('Member list HTML updated');
+        }
+        
+        function updateReportList(reports) {
+            const container = document.getElementById('reportList');
+            
+            if (reports.length === 0) {
+                container.innerHTML = '<div class="empty-state">No reports yet</div>';
+                return;
+            }
+            
+            container.innerHTML = reports.map(report => `
+                <div class="report-item ${report.severity.toLowerCase().replace(' ', '')}">
+                    <div class="item-header">${report.type}</div>
+                    <div class="item-meta">
+                        <span class="badge ${report.status.toLowerCase()}">${report.status}</span>
+                        ${report.severity}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function updateTaskList(tasks) {
+            const container = document.getElementById('taskList');
+            
+            if (tasks.length === 0) {
+                container.innerHTML = '<div class="empty-state">No tasks yet</div>';
+                return;
+            }
+            
+            container.innerHTML = tasks.map(task => `
+                <div class="task-item">
+                    <div class="item-header">${task.title}</div>
+                    <div class="item-meta">
+                        <span class="badge ${task.status.toLowerCase()}">${task.status}</span>
+                        ${task.priority}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Start connection on page load
+        console.log('🚀 Starting connection...');
+        connect();
+        
+        // Also expose updateDashboard globally for debugging
+        window.updateDashboard = updateDashboard;
+        window.testUpdate = () => {
+            console.log('🧪 TEST UPDATE CALLED');
+            updateDashboard({
+                members: [{name: "Test Person " + Date.now(), role: "Test", status: "Available"}],
+                reports: [],
+                tasks: [],
+                lastUpdate: new Date().toISOString()
+            });
+        };
+        console.log('💡 Debug: Type testUpdate() in console to test rendering');
+    </script>
+</body>
+</html>
