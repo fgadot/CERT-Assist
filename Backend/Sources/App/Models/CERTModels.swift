@@ -6,10 +6,13 @@
 import Foundation
 import Vapor
 
+// MARK: - CERT Member
+
 struct CERTMember: Content {
     var id: UUID?
     var name: String
     var role: String
+    var icsPosition: String?
     var status: MemberStatus
     var equipment: [String]
     var location: LocationData?
@@ -23,6 +26,38 @@ struct CERTMember: Content {
         case needsHelp = "Needs Help"
     }
 }
+
+// ICS Positions for reference
+enum ICSPosition: String, Codable, CaseIterable {
+    // Command Staff
+    case incidentCommander = "Incident Commander"
+    case safetyOfficer = "Safety Officer"
+    case publicInformationOfficer = "Public Information Officer"
+    case liaisonOfficer = "Liaison Officer"
+    
+    // Operations Section
+    case operationsChief = "Operations Section Chief"
+    case medicalTriage = "Operations - Medical/Triage"
+    case searchRescue = "Operations - Search & Rescue"
+    case fireSuppression = "Operations - Fire Suppression"
+    case damageAssessment = "Operations - Damage Assessment"
+    
+    // Planning Section
+    case planningChief = "Planning Section Chief"
+    case documentation = "Planning - Documentation"
+    case resourceTracking = "Planning - Resource Tracking"
+    
+    // Logistics Section
+    case logisticsChief = "Logistics Section Chief"
+    case communications = "Logistics - Communications"
+    case supplies = "Logistics - Supplies"
+    case equipment = "Logistics - Equipment"
+    
+    // None
+    case none = "Not Assigned"
+}
+
+// MARK: - Incident Report
 
 struct IncidentReport: Content {
     var id: UUID?
@@ -64,6 +99,8 @@ struct IncidentReport: Content {
     }
 }
 
+// MARK: - Task
+
 struct CERTTask: Content {
     var id: UUID?
     var title: String
@@ -84,12 +121,16 @@ struct CERTTask: Content {
     }
 }
 
+// MARK: - Location
+
 struct LocationData: Codable {
     var latitude: Double
     var longitude: Double
     var address: String?
     var timestamp: Date
 }
+
+// MARK: - Incident
 
 struct Incident: Content {
     var id: UUID?
@@ -98,6 +139,8 @@ struct Incident: Content {
     var endDate: Date?
     var isActive: Bool
 }
+
+// MARK: - Response Models
 
 struct CheckInResponse: Content {
     var success: Bool
