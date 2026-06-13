@@ -61,10 +61,13 @@ Blocked Ports:
 **IPsum Blocklist:**
 - ✅ Blocks ~8,000+ known malicious IP addresses
 - ✅ Filters high-severity threats (level 3+)
-- ✅ Auto-updates from GitHub threat feed
+- ✅ Auto-updates from GitHub threat feed daily at 3:00 AM
 - ✅ Integrated with UFW firewall
+- ✅ Automatic UFW reload after update
 
-**Update Script:** `/usr/local/bin/update-ipsum.sh`
+**Update Script:** `/usr/local/bin/update-ipsum.sh`  
+**Cron Schedule:** `/etc/cron.d/ipsum-update` - Runs daily at 3:00 AM  
+**Log File:** `/var/log/ipsum-update.log`
 
 ```bash
 #!/bin/bash
@@ -111,9 +114,18 @@ sudo ipset list ipsum | grep -c "^[0-9]"
 # View recent blocks
 sudo grep "UFW BLOCK" /var/log/kern.log | tail -20
 
-# Manual update
-sudo /usr/local/bin/update-ipsum.sh
+# Check last update time and results
+sudo tail -20 /var/log/ipsum-update.log
+
+# Manual update (if needed)
+sudo /usr/local/bin/update-ipsum.sh && sudo ufw reload
 ```
+
+**Cron Configuration:** `/etc/cron.d/ipsum-update`
+```cron
+0 3 * * * root /usr/local/bin/update-ipsum.sh && ufw reload >> /var/log/ipsum-update.log 2>&1
+```
+Runs daily at 3:00 AM, updates blocklist, reloads firewall, logs results.
 
 ### Layer 3: Web Server (Nginx)
 
@@ -353,6 +365,9 @@ sudo grep "UFW BLOCK" /var/log/kern.log | tail -50
 
 # Check IPsum blocklist size
 sudo ipset list ipsum | grep -c "^[0-9]"
+
+# Check IPsum last update
+sudo tail -10 /var/log/ipsum-update.log
 
 # Check Docker container
 docker-compose ps

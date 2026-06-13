@@ -390,11 +390,15 @@ docker-compose up --build
 - [x] WebSocket support
 - [x] Rate limiting
 - [x] Security headers
+- [x] UFW firewall enabled (ports 22, 80, 443)
+- [x] IPsum threat intelligence blocking
+- [x] Docker port 8080 isolated (not directly accessible)
+- [x] iptables hardening with default DROP policy
+- [ ] Docker resource limits (CPU/memory caps)
 - [ ] Database persistence (currently in-memory)
 - [ ] Automated backups
 - [ ] Monitoring/alerting
 - [ ] Authentication system
-- [ ] Firewall configuration
 - [ ] Log rotation
 
 ---

@@ -8,6 +8,7 @@
 
 /* Begin PBXFileReference section */
 		0150D2C92FD89590003A00CC /* CERT Assist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CERT Assist.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		01C583782FDCC69A007BE0B1 /* Backend */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Backend; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +33,7 @@
 		0150D2C02FD89590003A00CC = {
 			isa = PBXGroup;
 			children = (
+				01C583782FDCC69A007BE0B1 /* Backend */,
 				0150D2CB2FD89590003A00CC /* CERT Assist */,
 				0150D2CA2FD89590003A00CC /* Products */,
 			);
