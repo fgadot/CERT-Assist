@@ -9,4 +9,5 @@ services:
       - ENVIRONMENT=development
     volumes:
       - ./Public:/app/Public
+      - ./data:/app/data  # Persist database file
     restart: unless-stopped

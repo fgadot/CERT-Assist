@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Default to localhost, but allow override
+SERVER="${CERT_SERVER:-http://localhost:8080}"
+
 # Check if name was provided
 if [ -z "$1" ]; then
 	echo "Usage: test_checkin.sh <name> [role] [ics-position]"
@@ -16,6 +19,8 @@ if [ -z "$1" ]; then
 	echo "  - Logistics - Communications"
 	echo "  - Planning - Documentation"
 	echo "  (and more...)"
+	echo ""
+	echo "Server: $SERVER (set CERT_SERVER env var to change)"
 	exit 1
 fi
 
@@ -27,8 +32,9 @@ echo "🚨 Checking in:"
 echo "   Name: $NAME"
 echo "   Role: $ROLE"
 echo "   ICS Position: $ICS_POSITION"
+echo "   Server: $SERVER"
 
-curl -X POST https://cert.w6fgc.com/api/checkin \
+curl -X POST "$SERVER/api/checkin" \
   -H "Content-Type: application/json" \
   -d "{
 	\"name\": \"$NAME\",
@@ -40,4 +46,8 @@ curl -X POST https://cert.w6fgc.com/api/checkin \
   }"
 
 echo ""
-echo "✅ Check the dashboard: https://cert.w6fgc.com/dashboard"
+if [[ "$SERVER" == *"localhost"* ]]; then
+	echo "✅ Check the dashboard: http://localhost:8080/dashboard"
+else
+	echo "✅ Check the dashboard: $SERVER/dashboard"
+fi

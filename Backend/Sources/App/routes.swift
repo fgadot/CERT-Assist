@@ -10,7 +10,47 @@ actor DataStore {
     var members: [UUID: CERTMember] = [:]
     var reports: [UUID: IncidentReport] = [:]
     var tasks: [UUID: CERTTask] = [:]
+    var subTeams: [UUID: SubTeam] = [:]  // ← NEW: Store sub-teams
     var connectedWebSockets: [WebSocket] = []
+    
+    // Audit log file
+    private let logFileURL: URL
+    
+    init() {
+        // Create logs directory if it doesn't exist
+        let logsDir = URL(fileURLWithPath: "/app/logs")
+        try? FileManager.default.createDirectory(at: logsDir, withIntermediateDirectories: true)
+        
+        // Create log file with timestamp
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateString = dateFormatter.string(from: Date())
+        logFileURL = logsDir.appendingPathComponent("cert-audit-\(dateString).log")
+        
+        // Create file if it doesn't exist
+        if !FileManager.default.fileExists(atPath: logFileURL.path) {
+            FileManager.default.createFile(atPath: logFileURL.path, contents: nil)
+        }
+        
+        log("🚀 DataStore initialized - Audit logging started")
+    }
+    
+    private func log(_ message: String) {
+        let timestamp = ISO8601DateFormatter().string(from: Date())
+        let logEntry = "[\(timestamp)] \(message)\n"
+        
+        // Print to console
+        print(logEntry, terminator: "")
+        
+        // Write to file
+        if let data = logEntry.data(using: .utf8) {
+            if let fileHandle = try? FileHandle(forWritingTo: logFileURL) {
+                fileHandle.seekToEndOfFile()
+                fileHandle.write(data)
+                fileHandle.closeFile()
+            }
+        }
+    }
     
     func addWebSocket(_ ws: WebSocket) {
         connectedWebSockets.append(ws)
@@ -37,6 +77,7 @@ actor DataStore {
     
     func addMember(_ member: CERTMember) async {
         members[member.id!] = member
+        log("✅ MEMBER CHECK-IN: \(member.name) (\(member.role)) - Status: \(member.status.rawValue) - Equipment: \(member.equipment.joined(separator: ", "))")
         await broadcastUpdate()
     }
     
@@ -44,8 +85,30 @@ actor DataStore {
         return Array(members.values)
     }
     
+    func updateMember(_ member: CERTMember) async {
+        let oldMember = members[member.id!]
+        members[member.id!] = member
+        
+        if let old = oldMember {
+            if old.status != member.status {
+                log("🔄 MEMBER STATUS CHANGE: \(member.name) - \(old.status.rawValue) → \(member.status.rawValue)")
+            }
+            if old.subTeamID != member.subTeamID {
+                let teamInfo = member.subTeamID != nil ? "assigned to sub-team" : "removed from sub-team"
+                log("🔄 MEMBER TEAM CHANGE: \(member.name) - \(teamInfo)")
+            }
+        }
+        
+        await broadcastUpdate()
+    }
+    
     func addReport(_ report: IncidentReport) async {
         reports[report.id!] = report
+        
+        let reporterName = members[report.reportedBy]?.name ?? "Unknown"
+        let teamInfo = report.subTeamID != nil ? " (Sub-Team Report)" : ""
+        log("📋 NEW REPORT: \(report.type.rawValue) - Severity: \(report.severity.rawValue) - Reported by: \(reporterName)\(teamInfo) - Location: \(report.location.address ?? "N/A")")
+        
         await broadcastUpdate()
     }
     
@@ -53,8 +116,28 @@ actor DataStore {
         return Array(reports.values)
     }
     
+    func updateReport(_ report: IncidentReport) async {
+        let oldReport = reports[report.id!]
+        reports[report.id!] = report
+        
+        if let old = oldReport {
+            if old.severity != report.severity {
+                log("🔄 REPORT SEVERITY OVERRIDE: \(report.type.rawValue) - \(old.severity.rawValue) → \(report.severity.rawValue)")
+            }
+            if old.status != report.status {
+                log("🔄 REPORT STATUS CHANGE: \(report.type.rawValue) - \(old.status.rawValue) → \(report.status.rawValue)")
+            }
+        }
+        
+        await broadcastUpdate()
+    }
+    
     func addTask(_ task: CERTTask) async {
         tasks[task.id!] = task
+        
+        let teamInfo = task.assignedSubTeamID != nil ? " → Assigned to sub-team" : ""
+        log("📝 NEW TASK: \(task.title) - Priority: \(task.priority)\(teamInfo)")
+        
         await broadcastUpdate()
     }
     
@@ -62,7 +145,89 @@ actor DataStore {
         return Array(tasks.values)
     }
     
+    func updateTask(_ task: CERTTask) async {
+        tasks[task.id!] = task
+        await broadcastUpdate()
+    }
+    
+    // ← NEW: Sub-team methods
+    func createSubTeam(_ subTeam: SubTeam) async {
+        subTeams[subTeam.id!] = subTeam
+        
+        let memberNames = subTeam.memberIDs.compactMap { members[$0]?.name }
+        log("🎨 SUB-TEAM CREATED: \(subTeam.color.rawValue) Team - Members: \(memberNames.joined(separator: ", "))")
+        
+        // Update members with subTeamID
+        for memberID in subTeam.memberIDs {
+            if var member = members[memberID] {
+                let oldStatus = member.status
+                member.subTeamID = subTeam.id
+                member.status = .assigned
+                members[memberID] = member
+                log("  ↳ Assigned: \(member.name) (\(oldStatus.rawValue) → Assigned)")
+            }
+        }
+        
+        await broadcastUpdate()
+    }
+    
+    func getAllSubTeams() -> [SubTeam] {
+        return Array(subTeams.values)
+    }
+    
+    func updateSubTeam(_ subTeam: SubTeam) async {
+        // Remove old members from this sub-team
+        if let oldSubTeam = subTeams[subTeam.id!] {
+            log("🔄 SUB-TEAM UPDATE: \(subTeam.color.rawValue) Team - Reassigning members")
+            
+            for oldMemberID in oldSubTeam.memberIDs {
+                if var member = members[oldMemberID] {
+                    member.subTeamID = nil
+                    member.status = .available
+                    members[oldMemberID] = member
+                    log("  ↳ Unassigned: \(member.name)")
+                }
+            }
+        }
+        
+        // Update sub-team
+        subTeams[subTeam.id!] = subTeam
+        
+        // Assign new members
+        for memberID in subTeam.memberIDs {
+            if var member = members[memberID] {
+                member.subTeamID = subTeam.id
+                member.status = .assigned
+                members[memberID] = member
+                log("  ↳ Assigned: \(member.name)")
+            }
+        }
+        
+        await broadcastUpdate()
+    }
+    
+    func deleteSubTeam(_ id: UUID) async {
+        guard let subTeam = subTeams[id] else { return }
+        
+        let memberNames = subTeam.memberIDs.compactMap { members[$0]?.name }
+        log("🗑️ SUB-TEAM DELETED: \(subTeam.color.rawValue) Team - Members unassigned: \(memberNames.joined(separator: ", "))")
+        
+        // Unassign all members
+        for memberID in subTeam.memberIDs {
+            if var member = members[memberID] {
+                member.subTeamID = nil
+                member.status = .available
+                members[memberID] = member
+            }
+        }
+        
+        subTeams.removeValue(forKey: id)
+        await broadcastUpdate()
+    }
+    
     func setIncident(_ incident: Incident) async {
+        let action = currentIncident == nil ? "STARTED" : "UPDATED"
+        log("🚨 INCIDENT \(action): \(incident.name) - Active: \(incident.isActive)")
         currentIncident = incident
         await broadcastUpdate()
     }
@@ -73,6 +238,7 @@ actor DataStore {
             members: Array(members.values),
             reports: Array(reports.values),
             tasks: Array(tasks.values),
+            subTeams: Array(subTeams.values),  // ← NEW: Include sub-teams
             lastUpdate: Date()
         )
     }
@@ -219,6 +385,73 @@ func routes(_ app: Application) throws {
     
     api.get("dashboard") { req async throws -> DashboardData in
         return await dataStore.getDashboardData()
+    }
+    
+    // ← NEW: Sub-team endpoints
+    
+    api.post("subteams") { req async throws -> SubTeam in
+        var subTeam = try req.content.decode(SubTeam.self)
+        
+        if subTeam.id == nil {
+            subTeam.id = UUID()
+        }
+        
+        // Always set timestamps on backend (ignore any sent from client)
+        let now = Date()
+        subTeam.createdAt = now
+        subTeam.lastUpdated = now
+        
+        await dataStore.createSubTeam(subTeam)
+        
+        return subTeam
+    }
+    
+    api.get("subteams") { req async throws -> [SubTeam] in
+        return await dataStore.getAllSubTeams()
+    }
+    
+    api.put("subteams", ":id") { req async throws -> SubTeam in
+        let id = try req.parameters.require("id", as: UUID.self)
+        var subTeam = try req.content.decode(SubTeam.self)
+        subTeam.id = id
+        
+        await dataStore.updateSubTeam(subTeam)
+        
+        return subTeam
+    }
+    
+    api.delete("subteams", ":id") { req async throws -> HTTPStatus in
+        let id = try req.parameters.require("id", as: UUID.self)
+        
+        // Get subteam info before deleting for audit log
+        let subTeams = await dataStore.getAllSubTeams()
+        let subTeam = subTeams.first { $0.id == id }
+        
+        await dataStore.deleteSubTeam(id)
+        
+        return .ok
+    }
+    
+    // Update report severity (team leader can override)
+    api.patch("reports", ":id", "severity") { req async throws -> IncidentReport in
+        let id = try req.parameters.require("id", as: UUID.self)
+        
+        struct SeverityUpdate: Content {
+            var severity: IncidentReport.Severity
+        }
+        
+        let update = try req.content.decode(SeverityUpdate.self)
+        
+        guard var report = await dataStore.getAllReports().first(where: { $0.id == id }) else {
+            throw Abort(.notFound, reason: "Report not found")
+        }
+        
+        report.severity = update.severity
+        report.lastUpdated = Date()
+        
+        await dataStore.updateReport(report)
+        
+        return report
     }
     
     app.webSocket("ws") { req, ws in

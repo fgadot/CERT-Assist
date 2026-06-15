@@ -163,6 +163,212 @@
             font-size: 13px;
             color: rgba(255,255,255,0.8);
         }
+        
+        /* Sub-Team Styles */
+        .team-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            margin-right: 6px;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .team-badge.red { background: #dc3545; }
+        .team-badge.blue { background: #0d6efd; }
+        .team-badge.green { background: #198754; }
+        .team-badge.yellow { background: #ffc107; color: #333; }
+        .team-badge.purple { background: #6f42c1; }
+        .team-badge.orange { background: #fd7e14; }
+        .team-badge.teal { background: #20c997; }
+        .team-badge.pink { background: #d63384; }
+        
+        .subteam-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .subteam-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #007AFF;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0051D5;
+        }
+        
+        .btn-danger {
+            background: #FF3B30;
+            color: white;
+            font-size: 12px;
+            padding: 4px 8px;
+        }
+        
+        .subteam-item {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #007AFF;
+        }
+        
+        .subteam-item h4 {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .member-count {
+            background: #007AFF;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        
+        .member-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        
+        .member-pill {
+            background: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #333;
+        }
+        
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+        
+        .severity-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .severity-badge.low { background: #d4edda; color: #155724; }
+        .severity-badge.medium { background: #fff3cd; color: #856404; }
+        .severity-badge.high { background: #f8d7da; color: #721c24; }
+        .severity-badge.lifesafety { background: #f5c6cb; color: #721c24; font-weight: 800; }
     </style>
 </head>
 <body>
@@ -187,9 +393,20 @@
             <h3>Open Tasks</h3>
             <div class="number" id="taskCount">0</div>
         </div>
-        <div class="stat-card">
-            <h3>Incident Status</h3>
-            <div class="number" style="font-size: 18px;" id="incidentStatus">No Active Incident</div>
+        <div class="stat-card" id="subTeamCard">
+            <h3>Sub-Teams</h3>
+            <div class="number" id="subTeamCount">0</div>
+        </div>
+    </div>
+    
+    <!-- Sub-Team Management Panel -->
+    <div class="subteam-panel">
+        <div class="subteam-header">
+            <h2>🎨 Sub-Teams</h2>
+            <button class="btn btn-primary" onclick="openCreateSubTeamModal()">+ Create Sub-Team</button>
+        </div>
+        <div id="subTeamList">
+            <div class="empty-state">No sub-teams created yet</div>
         </div>
     </div>
     
@@ -216,6 +433,42 @@
         </div>
     </div>
     
+    <!-- Create Sub-Team Modal -->
+    <div class="modal" id="createSubTeamModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Sub-Team</h2>
+                <button class="close-btn" onclick="closeCreateSubTeamModal()">&times;</button>
+            </div>
+            
+            <form id="createSubTeamForm" onsubmit="createSubTeam(event)">
+                <div class="form-group">
+                    <label>Team Color</label>
+                    <select id="teamColor" required>
+                        <option value="">Select a color...</option>
+                        <option value="Red">🔴 Red Team</option>
+                        <option value="Blue">🔵 Blue Team</option>
+                        <option value="Green">🟢 Green Team</option>
+                        <option value="Yellow">🟡 Yellow Team</option>
+                        <option value="Purple">🟣 Purple Team</option>
+                        <option value="Orange">🟠 Orange Team</option>
+                        <option value="Teal">🔷 Teal Team</option>
+                        <option value="Pink">🩷 Pink Team</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Select Members (minimum 2)</label>
+                    <div class="checkbox-group" id="memberCheckboxList">
+                        <div class="empty-state">No available members</div>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Sub-Team</button>
+            </form>
+        </div>
+    </div>
+    
     <script>
         let ws;
         let reconnectAttempts = 0;
@@ -223,6 +476,8 @@
         let previousMemberCount = 0;
         let previousReportCount = 0;
         let previousTaskCount = 0;
+        let previousSubTeamCount = 0;
+        let currentData = null;
         
         function connect() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -283,18 +538,23 @@
             console.log('🔄 UPDATE DASHBOARD CALLED');
             console.log('Data received:', data);
             
+            currentData = data; // Store for modal use
+            
             const memberCount = data.members?.length || 0;
             const reportCount = data.reports?.length || 0;
             const taskCount = data.tasks?.length || 0;
+            const subTeamCount = data.subTeams?.length || 0;
             
             console.log('Setting memberCount to:', memberCount);
             console.log('Setting reportCount to:', reportCount);
             console.log('Setting taskCount to:', taskCount);
+            console.log('Setting subTeamCount to:', subTeamCount);
             
             // Force update with textContent (not innerHTML)
             const memberCountEl = document.getElementById('memberCount');
             const reportCountEl = document.getElementById('reportCount');
             const taskCountEl = document.getElementById('taskCount');
+            const subTeamCountEl = document.getElementById('subTeamCount');
             
             console.log('memberCountEl:', memberCountEl);
             console.log('Current text:', memberCountEl.textContent);
@@ -302,6 +562,7 @@
             memberCountEl.textContent = String(memberCount);
             reportCountEl.textContent = String(reportCount);
             taskCountEl.textContent = String(taskCount);
+            if (subTeamCountEl) subTeamCountEl.textContent = String(subTeamCount);
             
             console.log('New text:', memberCountEl.textContent);
             
@@ -321,14 +582,20 @@
                 flashCard('taskCard');
                 previousTaskCount = taskCount;
             }
+            if (subTeamCountEl && subTeamCount !== previousSubTeamCount) {
+                console.log('💥 Sub-team count changed!');
+                flashCard('subTeamCard');
+                previousSubTeamCount = subTeamCount;
+            }
             
             if (data.incident && data.incident.isActive) {
                 document.getElementById('incidentStatus').textContent = data.incident.name;
             }
             
-            updateMemberList(data.members || []);
-            updateReportList(data.reports || []);
-            updateTaskList(data.tasks || []);
+            updateMemberList(data.members || [], data.subTeams || []);
+            updateReportList(data.reports || [], data.subTeams || []);
+            updateTaskList(data.tasks || [], data.subTeams || []);
+            updateSubTeamList(data.subTeams || [], data.members || []);
             
             const now = new Date().toLocaleTimeString();
             document.getElementById('lastUpdate').innerHTML = 
@@ -337,7 +604,7 @@
             console.log('✅ Dashboard update complete');
         }
         
-        function updateMemberList(members) {
+        function updateMemberList(members, subTeams) {
             console.log('Updating member list with', members.length, 'members');
             const container = document.getElementById('memberList');
             
@@ -346,21 +613,29 @@
                 return;
             }
             
-            const html = members.map(member => `
+            const html = members.map(member => {
+                const subTeam = subTeams ? subTeams.find(st => st.id === member.subTeamID) : null;
+                const teamBadge = subTeam ? 
+                    `<span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color}</span>` : '';
+                
+                return `
                 <div class="member-item ${member.status.toLowerCase().replace(' ', '')}">
-                    <div class="item-header">${member.name}</div>
+                    <div class="item-header">
+                        ${teamBadge}${member.name}
+                    </div>
                     <div class="item-meta">
                         <span class="badge ${member.status.toLowerCase().replace(' ', '')}">${member.status}</span>
                         ${member.role}
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
             
             container.innerHTML = html;
             console.log('Member list HTML updated');
         }
         
-        function updateReportList(reports) {
+        function updateReportList(reports, subTeams) {
             const container = document.getElementById('reportList');
             
             if (reports.length === 0) {
@@ -368,18 +643,26 @@
                 return;
             }
             
-            container.innerHTML = reports.map(report => `
+            container.innerHTML = reports.map(report => {
+                const subTeam = subTeams ? subTeams.find(st => st.id === report.subTeamID) : null;
+                const teamBadge = subTeam ? 
+                    `<span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color}</span>` : '';
+                
+                return `
                 <div class="report-item ${report.severity.toLowerCase().replace(' ', '')}">
-                    <div class="item-header">${report.type}</div>
+                    <div class="item-header">
+                        ${teamBadge}${report.type}
+                    </div>
                     <div class="item-meta">
                         <span class="badge ${report.status.toLowerCase()}">${report.status}</span>
-                        ${report.severity}
+                        <span class="severity-badge ${report.severity.toLowerCase().replace(' ', '')}">${report.severity}</span>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
         
-        function updateTaskList(tasks) {
+        function updateTaskList(tasks, subTeams) {
             const container = document.getElementById('taskList');
             
             if (tasks.length === 0) {
@@ -387,15 +670,175 @@
                 return;
             }
             
-            container.innerHTML = tasks.map(task => `
+            container.innerHTML = tasks.map(task => {
+                const subTeam = subTeams ? subTeams.find(st => st.id === task.assignedSubTeamID) : null;
+                const teamBadge = subTeam ? 
+                    `<span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color}</span>` : '';
+                
+                return `
                 <div class="task-item">
-                    <div class="item-header">${task.title}</div>
+                    <div class="item-header">
+                        ${teamBadge}${task.title}
+                    </div>
                     <div class="item-meta">
                         <span class="badge ${task.status.toLowerCase()}">${task.status}</span>
                         ${task.priority}
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
+        }
+        
+        // Sub-Team Management Functions
+        function updateSubTeamList(subTeams, members) {
+            const container = document.getElementById('subTeamList');
+            
+            if (!subTeams || subTeams.length === 0) {
+                container.innerHTML = '<div class="empty-state">No sub-teams created yet</div>';
+                return;
+            }
+            
+            container.innerHTML = subTeams.map(subTeam => {
+                const teamMembers = members.filter(m => m.subTeamID === subTeam.id);
+                const memberNames = teamMembers.map(m => m.name);
+                
+                return `
+                <div class="subteam-item" style="border-left-color: ${getColorHex(subTeam.color)}">
+                    <h4>
+                        <div>
+                            <span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color} Team</span>
+                            <span class="member-count">${teamMembers.length}</span>
+                        </div>
+                        <button class="btn btn-danger" onclick="deleteSubTeam('${subTeam.id}')">Delete</button>
+                    </h4>
+                    <div class="member-pills">
+                        ${memberNames.map(name => `<span class="member-pill">${name}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+            }).join('');
+        }
+        
+        function getColorHex(colorName) {
+            const colors = {
+                'Red': '#dc3545',
+                'Blue': '#0d6efd',
+                'Green': '#198754',
+                'Yellow': '#ffc107',
+                'Purple': '#6f42c1',
+                'Orange': '#fd7e14',
+                'Teal': '#20c997',
+                'Pink': '#d63384'
+            };
+            return colors[colorName] || '#007AFF';
+        }
+        
+        function openCreateSubTeamModal() {
+            if (!currentData || !currentData.members) {
+                alert('No members available. Please wait for data to load.');
+                return;
+            }
+            
+            // Get members who are available OR already assigned (can be reassigned)
+            // Exclude only those who are Unavailable, Injured, or Needs Help
+            const eligibleMembers = currentData.members.filter(m => {
+                const status = m.status.toLowerCase();
+                return status === 'available' || status === 'assigned';
+            });
+            
+            const checkboxList = document.getElementById('memberCheckboxList');
+            
+            if (eligibleMembers.length < 2) {
+                checkboxList.innerHTML = '<div class="empty-state">Not enough members (need at least 2)</div>';
+            } else {
+                checkboxList.innerHTML = eligibleMembers.map(member => {
+                    const currentTeam = currentData.subTeams.find(st => st.id === member.subTeamID);
+                    const teamLabel = currentTeam ? ` - Currently on ${currentTeam.color} Team` : '';
+                    const style = currentTeam ? 'style="color: #666; font-style: italic;"' : '';
+                    
+                    return `
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="member_${member.id}" value="${member.id}">
+                            <label for="member_${member.id}" ${style}>${member.name} - ${member.role}${teamLabel}</label>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            document.getElementById('createSubTeamModal').classList.add('show');
+        }
+        
+        function closeCreateSubTeamModal() {
+            document.getElementById('createSubTeamModal').classList.remove('show');
+            document.getElementById('createSubTeamForm').reset();
+        }
+        
+        async function createSubTeam(event) {
+            event.preventDefault();
+            
+            const color = document.getElementById('teamColor').value;
+            const checkboxes = document.querySelectorAll('#memberCheckboxList input[type="checkbox"]:checked');
+            const memberIDs = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (memberIDs.length < 2) {
+                alert('Please select at least 2 members for the sub-team');
+                return;
+            }
+            
+            const subTeam = {
+                color: color,
+                memberIDs: memberIDs
+                // Don't send createdAt or lastUpdated - let backend set them
+            };
+            
+            console.log('Creating sub-team:', subTeam);
+            
+            try {
+                const response = await fetch('/api/subteams', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(subTeam)
+                });
+                
+                console.log('Response status:', response.status);
+                const responseText = await response.text();
+                console.log('Response body:', responseText);
+                
+                if (response.ok) {
+                    console.log('✅ Sub-team created successfully');
+                    closeCreateSubTeamModal();
+                } else {
+                    console.error('❌ Failed to create sub-team:', responseText);
+                    alert('Failed to create sub-team: ' + responseText);
+                }
+            } catch (error) {
+                console.error('❌ Error creating sub-team:', error);
+                alert('Error creating sub-team: ' + error.message);
+            }
+        }
+        
+        async function deleteSubTeam(id) {
+            if (!confirm('Are you sure you want to delete this sub-team? Members will be unassigned.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/subteams/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    console.log('✅ Sub-team deleted successfully');
+                } else {
+                    console.error('❌ Failed to delete sub-team');
+                    alert('Failed to delete sub-team');
+                }
+            } catch (error) {
+                console.error('❌ Error deleting sub-team:', error);
+                alert('Error deleting sub-team');
+            }
         }
         
         // Start connection on page load

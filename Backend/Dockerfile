@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y \
 
 # Create non-root user
 RUN useradd -m -u 1000 -s /bin/bash vapor && \
-    mkdir -p /app && \
+    mkdir -p /app /app/logs && \
     chown -R vapor:vapor /app
 
 WORKDIR /app
