@@ -157,7 +157,41 @@ actor DataStore {
         let memberNames = subTeam.memberIDs.compactMap { members[$0]?.name }
         log("🎨 SUB-TEAM CREATED: \(subTeam.color.rawValue) Team - Members: \(memberNames.joined(separator: ", "))")
         
-        // Update members with subTeamID
+        // First, remove members from their old sub-teams (if any)
+        for (oldTeamID, oldTeam) in subTeams {
+            if oldTeamID == subTeam.id { continue } // Skip the team we're creating
+            
+            let membersToRemove = oldTeam.memberIDs.filter { subTeam.memberIDs.contains($0) }
+            if !membersToRemove.isEmpty {
+                var updatedTeam = oldTeam
+                updatedTeam.memberIDs = oldTeam.memberIDs.filter { !membersToRemove.contains($0) }
+                
+                let removedNames = membersToRemove.compactMap { members[$0]?.name }
+                log("  ↳ Removed from \(oldTeam.color.rawValue) Team: \(removedNames.joined(separator: ", "))")
+                
+                // If old team now has less than 2 members, disband it
+                if updatedTeam.memberIDs.count < 2 {
+                    log("  ↳ \(oldTeam.color.rawValue) Team disbanded (less than 2 members)")
+                    
+                    // Free remaining member(s)
+                    for remainingMemberID in updatedTeam.memberIDs {
+                        if var member = members[remainingMemberID] {
+                            member.subTeamID = nil
+                            member.status = .available
+                            members[remainingMemberID] = member
+                            log("  ↳ \(member.name) freed from disbanded team")
+                        }
+                    }
+                    
+                    subTeams.removeValue(forKey: oldTeamID)
+                } else {
+                    // Update team with new member list
+                    subTeams[oldTeamID] = updatedTeam
+                }
+            }
+        }
+        
+        // Now assign members to new team
         for memberID in subTeam.memberIDs {
             if var member = members[memberID] {
                 let oldStatus = member.status
@@ -222,6 +256,43 @@ actor DataStore {
         }
         
         subTeams.removeValue(forKey: id)
+        await broadcastUpdate()
+    }
+    
+    func freeMember(_ memberID: UUID) async {
+        guard var member = members[memberID] else { return }
+        
+        let oldTeamID = member.subTeamID
+        
+        // Remove member from their sub-team
+        member.subTeamID = nil
+        member.status = .available
+        members[memberID] = member
+        
+        log("🆓 MEMBER FREED: \(member.name) - Set to Available")
+        
+        // Check if old sub-team now has less than 2 members
+        if let teamID = oldTeamID, var team = subTeams[teamID] {
+            team.memberIDs.removeAll { $0 == memberID }
+            
+            if team.memberIDs.count < 2 {
+                log("  ↳ \(team.color.rawValue) Team disbanded (less than 2 members)")
+                // Free remaining member(s)
+                for remainingID in team.memberIDs {
+                    if var remainingMember = members[remainingID] {
+                        remainingMember.subTeamID = nil
+                        remainingMember.status = .available
+                        members[remainingID] = remainingMember
+                        log("  ↳ \(remainingMember.name) freed from disbanded team")
+                    }
+                }
+                subTeams.removeValue(forKey: teamID)
+            } else {
+                // Update team with new member list
+                subTeams[teamID] = team
+            }
+        }
+        
         await broadcastUpdate()
     }
     
@@ -422,13 +493,14 @@ func routes(_ app: Application) throws {
     
     api.delete("subteams", ":id") { req async throws -> HTTPStatus in
         let id = try req.parameters.require("id", as: UUID.self)
-        
-        // Get subteam info before deleting for audit log
-        let subTeams = await dataStore.getAllSubTeams()
-        let subTeam = subTeams.first { $0.id == id }
-        
         await dataStore.deleteSubTeam(id)
-        
+        return .ok
+    }
+    
+    // Free a member from their sub-team
+    api.post("members", ":id", "free") { req async throws -> HTTPStatus in
+        let id = try req.parameters.require("id", as: UUID.self)
+        await dataStore.freeMember(id)
         return .ok
     }
     
