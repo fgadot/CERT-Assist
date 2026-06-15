@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<TITLE>CERT DASHBOARD</TITLE>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CERT Field Board - Dashboard</title>
@@ -394,6 +395,35 @@
         .severity-badge.medium { background: #fff3cd; color: #856404; }
         .severity-badge.high { background: #f8d7da; color: #721c24; }
         .severity-badge.lifesafety { background: #f5c6cb; color: #721c24; font-weight: 800; }
+
+        .badge.open { background: #FF3B30; color: white; }
+        .badge.completed { background: #34C759; color: white; }
+        .badge.cancelled { background: #8E8E93; color: white; }
+
+        .task-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-sm.edit   { background: #007AFF; color: white; }
+        .btn-sm.cancel { background: #FF9500; color: white; }
+        .btn-sm.done   { background: #34C759; color: white; }
+        .btn-sm.reopen { background: #8E8E93; color: white; }
+
+        .btn-sm:hover { opacity: 0.85; }
+
+        .task-item.cancelled { opacity: 0.6; border-left-color: #8E8E93; }
     </style>
 </head>
 <body>
@@ -428,7 +458,10 @@
     <div class="subteam-panel">
         <div class="subteam-header">
             <h2>🎨 Teams</h2>
-            <button class="btn btn-primary" onclick="openCreateSubTeamModal()">+ Create Team</button>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="openCreateTaskModal()">+ Create Task</button>
+                <button class="btn btn-primary" onclick="openCreateSubTeamModal()">+ Create Team</button>
+            </div>
         </div>
         <div id="subTeamList">
             <div class="empty-state">No teams created yet</div>
@@ -497,6 +530,93 @@
         </div>
     </div>
     
+    <!-- Create Task Modal -->
+    <div class="modal" id="createTaskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Task</h2>
+                <button class="close-btn" onclick="closeCreateTaskModal()">&times;</button>
+            </div>
+            
+            <form id="createTaskForm" onsubmit="createTask(event)">
+                <div class="form-group">
+                    <label>Task Title</label>
+                    <input type="text" id="taskTitle" required placeholder="e.g., Check Oak Street for damage" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                </div>
+                
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="taskDescription" rows="3" placeholder="Details about what needs to be done..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; resize: vertical;"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="taskPriority" required>
+                        <option value="Low">Low</option>
+                        <option value="Medium" selected>Medium</option>
+                        <option value="High">High</option>
+                        <option value="Critical">Critical</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Assign to Team</label>
+                    <select id="taskTeam">
+                        <option value="">Unassigned</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Task</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Task Modal -->
+    <div class="modal" id="editTaskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Task</h2>
+                <button class="close-btn" onclick="closeEditTaskModal()">&times;</button>
+            </div>
+
+            <form id="editTaskForm" onsubmit="saveEditTask(event)">
+                <input type="hidden" id="editTaskId">
+
+                <div class="form-group">
+                    <label>Task Title</label>
+                    <input type="text" id="editTaskTitle" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="editTaskDescription" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; resize: vertical;"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Priority</label>
+                    <select id="editTaskPriority" required>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                        <option value="Critical">Critical</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Assign to Team</label>
+                    <select id="editTaskTeam">
+                        <option value="">Unassigned</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+                    <button type="button" class="btn" style="flex: 1; background: #f5f5f5; color: #333;" onclick="closeEditTaskModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let ws;
         let reconnectAttempts = 0;
@@ -570,7 +690,7 @@
             
             const memberCount = data.members?.length || 0;
             const reportCount = data.reports?.length || 0;
-            const taskCount = data.tasks?.length || 0;
+            const taskCount = (data.tasks || []).filter(t => t.status === 'Open' || t.status === 'Assigned').length;
             const subTeamCount = data.subTeams?.length || 0;
             
             console.log('Setting memberCount to:', memberCount);
@@ -692,28 +812,38 @@
         
         function updateTaskList(tasks, subTeams) {
             const container = document.getElementById('taskList');
-            
+
             if (tasks.length === 0) {
                 container.innerHTML = '<div class="empty-state">No tasks yet</div>';
                 return;
             }
-            
+
             container.innerHTML = tasks.map(task => {
                 const subTeam = subTeams ? subTeams.find(st => st.id === task.assignedSubTeamID) : null;
-                const teamBadge = subTeam ? 
+                const teamBadge = subTeam ?
                     `<span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color}</span>` : '';
-                
+                const isCancelled = task.status === 'Cancelled';
+                const isFinished = task.status === 'Completed' || isCancelled;
+
+                const actions = isFinished ? `
+                    <div class="task-actions">
+                        <button class="btn-sm reopen" onclick="reopenTask('${task.id}', event)">↩ Re-open</button>
+                    </div>` : `
+                    <div class="task-actions">
+                        <button class="btn-sm edit"   onclick="openEditTaskModal('${task.id}', event)">✏ Edit</button>
+                        <button class="btn-sm done"   onclick="completeTask('${task.id}', event)">✓ Complete</button>
+                        <button class="btn-sm cancel" onclick="cancelTask('${task.id}', event)">✕ Cancel</button>
+                    </div>`;
+
                 return `
-                <div class="task-item">
-                    <div class="item-header">
-                        ${teamBadge}${task.title}
-                    </div>
+                <div class="task-item${isCancelled ? ' cancelled' : ''}">
+                    <div class="item-header">${teamBadge}${task.title}</div>
                     <div class="item-meta">
                         <span class="badge ${task.status.toLowerCase()}">${task.status}</span>
                         ${task.priority}
                     </div>
-                </div>
-            `;
+                    ${actions}
+                </div>`;
             }).join('');
         }
         
@@ -728,6 +858,7 @@
             
             container.innerHTML = subTeams.map(subTeam => {
                 const teamMembers = members.filter(m => m.subTeamID === subTeam.id);
+                const teamTasks = (currentData.tasks || []).filter(t => t.assignedSubTeamID === subTeam.id);
                 
                 // Create member pills with free buttons
                 const memberPills = teamMembers.map(m => `
@@ -739,12 +870,37 @@
                     </span>
                 `).join('');
                 
+                // Create task list for this team
+                const taskList = teamTasks.length > 0 ? `
+                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #ddd;">
+                        <div style="font-weight: 600; font-size: 13px; color: #666; margin-bottom: 8px;">
+                            📋 Assigned Tasks (${teamTasks.length})
+                        </div>
+                        ${teamTasks.map(task => `
+                            <div style="background: white; padding: 8px; border-radius: 6px; margin-bottom: 6px; border-left: 3px solid ${getPriorityColor(task.priority)};">
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 2px;">${task.title}</div>
+                                        <div style="font-size: 11px; color: #666;">
+                                            <span class="badge ${task.status.toLowerCase()}">${task.status}</span>
+                                            <span style="background: ${getPriorityColor(task.priority)}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 4px;">${task.priority}</span>
+                                        </div>
+                                    </div>
+                                    <button class="btn-sm done"   onclick="completeTask('${task.id}', event)">✓ Complete</button>
+                                    <button class="btn-sm cancel" onclick="cancelTask('${task.id}', event)">✕ Cancel</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : '';
+                
                 return `
                 <div class="subteam-item" style="border-left-color: ${getColorHex(subTeam.color)}">
                     <h4>
                         <div>
                             <span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color} Team</span>
                             <span class="member-count">${teamMembers.length}</span>
+                            ${teamTasks.length > 0 ? `<span style="background: #FF9500; color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; margin-left: 6px;">${teamTasks.filter(t => t.status !== 'Completed').length}</span>` : ''}
                         </div>
                         <div style="display: flex; gap: 8px;">
                             <button class="btn btn-primary" style="font-size: 12px; padding: 4px 8px;" onclick="addMemberToTeam('${subTeam.id}', '${subTeam.color}', event)">+ Add Member</button>
@@ -754,9 +910,20 @@
                     <div class="member-pills">
                         ${memberPills}
                     </div>
+                    ${taskList}
                 </div>
             `;
             }).join('');
+        }
+        
+        function getPriorityColor(priority) {
+            const colors = {
+                'Low': '#34C759',
+                'Medium': '#FFCC00',
+                'High': '#FF9500',
+                'Critical': '#FF3B30'
+            };
+            return colors[priority] || '#007AFF';
         }
         
         function getColorHex(colorName) {
@@ -996,6 +1163,210 @@
             }
         }
         
+        // Task Management Functions
+        function openCreateTaskModal() {
+            if (!currentData) {
+                alert('Data not loaded yet. Please wait.');
+                return;
+            }
+            
+            // Populate team dropdown
+            const teamSelect = document.getElementById('taskTeam');
+            const teams = currentData.subTeams || [];
+            
+            teamSelect.innerHTML = '<option value="">Unassigned</option>' + 
+                teams.map(team => `<option value="${team.id}">${team.color} Team</option>`).join('');
+            
+            document.getElementById('createTaskModal').classList.add('show');
+        }
+        
+        function closeCreateTaskModal() {
+            document.getElementById('createTaskModal').classList.remove('show');
+            document.getElementById('createTaskForm').reset();
+        }
+        
+        async function createTask(event) {
+            event.preventDefault();
+            
+            const title = document.getElementById('taskTitle').value;
+            const description = document.getElementById('taskDescription').value;
+            const priority = document.getElementById('taskPriority').value;
+            const teamId = document.getElementById('taskTeam').value;
+            
+            const task = {
+                title: title,
+                description: description,
+                priority: priority,
+                status: 'Open',
+                assignedSubTeamID: teamId || null,
+                assignedTo: [],
+                notes: ''
+                // Don't send createdAt - backend sets it automatically
+            };
+            
+            console.log('Creating task:', task);
+            
+            try {
+                const response = await fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(task)
+                });
+                
+                if (response.ok) {
+                    console.log('✅ Task created successfully');
+                    closeCreateTaskModal();
+                } else {
+                    const errorText = await response.text();
+                    console.error('❌ Failed to create task:', errorText);
+                    alert('Failed to create task: ' + errorText);
+                }
+            } catch (error) {
+                console.error('❌ Error creating task:', error);
+                alert('Error creating task: ' + error.message);
+            }
+        }
+        
+        async function completeTask(taskId, event) {
+            event.stopPropagation();
+            
+            if (!confirm('Mark this task as completed?')) {
+                return;
+            }
+            
+            // Find the task
+            const task = currentData.tasks.find(t => t.id === taskId);
+            if (!task) {
+                alert('Task not found');
+                return;
+            }
+            
+            // Update task status (completedAt is set server-side to avoid date format issues)
+            const updatedTask = {
+                ...task,
+                status: 'Completed'
+            };
+            
+            try {
+                const response = await fetch(`/api/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedTask)
+                });
+                
+                if (response.ok) {
+                    console.log('✅ Task completed');
+                } else {
+                    const errorText = await response.text();
+                    console.error('❌ Failed to complete task:', errorText);
+                    alert('Failed to complete task');
+                }
+            } catch (error) {
+                console.error('❌ Error completing task:', error);
+                alert('Error completing task: ' + error.message);
+            }
+        }
+        
+        // ── Edit Task ──────────────────────────────────────────────────────────
+
+        function openEditTaskModal(taskId, event) {
+            if (event) event.stopPropagation();
+            const task = currentData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            document.getElementById('editTaskId').value = taskId;
+            document.getElementById('editTaskTitle').value = task.title;
+            document.getElementById('editTaskDescription').value = task.description || '';
+            document.getElementById('editTaskPriority').value = task.priority;
+
+            const teamSelect = document.getElementById('editTaskTeam');
+            const teams = currentData.subTeams || [];
+            teamSelect.innerHTML = '<option value="">Unassigned</option>' +
+                teams.map(t => `<option value="${t.id}"${t.id === task.assignedSubTeamID ? ' selected' : ''}>${t.color} Team</option>`).join('');
+
+            document.getElementById('editTaskModal').classList.add('show');
+        }
+
+        function closeEditTaskModal() {
+            document.getElementById('editTaskModal').classList.remove('show');
+            document.getElementById('editTaskForm').reset();
+        }
+
+        async function saveEditTask(event) {
+            event.preventDefault();
+            const taskId = document.getElementById('editTaskId').value;
+            const task = currentData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const teamId = document.getElementById('editTaskTeam').value;
+            const updated = {
+                ...task,
+                title: document.getElementById('editTaskTitle').value,
+                description: document.getElementById('editTaskDescription').value,
+                priority: document.getElementById('editTaskPriority').value,
+                assignedSubTeamID: teamId || null,
+                status: teamId ? 'Assigned' : (task.status === 'Assigned' ? 'Open' : task.status)
+            };
+
+            try {
+                const response = await fetch(`/api/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updated)
+                });
+                if (response.ok) {
+                    closeEditTaskModal();
+                } else {
+                    alert('Failed to save task: ' + await response.text());
+                }
+            } catch (err) {
+                alert('Error saving task: ' + err.message);
+            }
+        }
+
+        // ── Cancel / Reopen Task ───────────────────────────────────────────────
+
+        async function cancelTask(taskId, event) {
+            if (event) event.stopPropagation();
+            if (!confirm('Cancel this task?')) return;
+
+            const task = currentData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            try {
+                const response = await fetch(`/api/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...task, status: 'Cancelled' })
+                });
+                if (!response.ok) alert('Failed to cancel task');
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function reopenTask(taskId, event) {
+            if (event) event.stopPropagation();
+            const task = currentData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const newStatus = task.assignedSubTeamID ? 'Assigned' : 'Open';
+            try {
+                const response = await fetch(`/api/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...task, status: newStatus, completedAt: null })
+                });
+                if (!response.ok) alert('Failed to re-open task');
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
         async function deleteSubTeam(id) {
             if (!confirm('Are you sure you want to delete this team? Members will be unassigned.')) {
                 return;

@@ -433,6 +433,9 @@ func routes(_ app: Application) throws {
             task.id = UUID()
         }
         
+        // Always set createdAt on backend
+        task.createdAt = Date()
+        
         await dataStore.addTask(task)
         
         return task
@@ -440,6 +443,17 @@ func routes(_ app: Application) throws {
     
     api.get("tasks") { req async throws -> [CERTTask] in
         return await dataStore.getAllTasks()
+    }
+    
+    api.put("tasks", ":id") { req async throws -> CERTTask in
+        let id = try req.parameters.require("id", as: UUID.self)
+        var task = try req.content.decode(CERTTask.self)
+        task.id = id
+        if task.status == .completed && task.completedAt == nil {
+            task.completedAt = Date()
+        }
+        await dataStore.updateTask(task)
+        return task
     }
     
     api.post("incident") { req async throws -> Incident in

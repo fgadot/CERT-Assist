@@ -148,7 +148,7 @@ struct CERTTask: Content {
     var priority: String
     var location: LocationData?
     var relatedReportID: UUID?
-    var createdAt: Date
+    var createdAt: Date?  // Make optional so frontend doesn't need to send
     var completedAt: Date?
     var notes: String
     
@@ -156,6 +156,7 @@ struct CERTTask: Content {
         case open = "Open"
         case assigned = "Assigned"
         case completed = "Completed"
+        case cancelled = "Cancelled"
     }
 }
 

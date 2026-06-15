@@ -257,20 +257,26 @@ enum TaskStatus: String, Codable, CaseIterable {
     case open = "Open"
     case assigned = "Assigned"
     case completed = "Completed"
-    
+    case cancelled = "Cancelled"
+
+    // Used for the status picker — excludes cancelled (set via Cancel button)
+    static let activeStatuses: [TaskStatus] = [.open, .assigned, .completed]
+
     var icon: String {
         switch self {
         case .open: return "circle"
         case .assigned: return "arrow.forward.circle"
         case .completed: return "checkmark.circle.fill"
+        case .cancelled: return "xmark.circle.fill"
         }
     }
-    
+
     var color: String {
         switch self {
         case .open: return "red"
         case .assigned: return "orange"
         case .completed: return "green"
+        case .cancelled: return "gray"
         }
     }
 }

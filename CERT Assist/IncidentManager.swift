@@ -51,6 +51,10 @@ class IncidentManager {
     var completedTasks: [Task] {
         tasks.filter { $0.status == .completed }
     }
+
+    var cancelledTasks: [Task] {
+        tasks.filter { $0.status == .cancelled }
+    }
     
     // MARK: - Init
     
@@ -168,7 +172,19 @@ class IncidentManager {
         updatedTask.completedAt = Date()
         updateTask(updatedTask)
     }
-    
+
+    func cancelTask(_ task: Task) {
+        var updatedTask = task
+        updatedTask.status = .cancelled
+        updateTask(updatedTask)
+    }
+
+    func reopenTask(_ task: Task) {
+        var updatedTask = task
+        updatedTask.status = updatedTask.assignedTo.isEmpty ? .open : .assigned
+        updateTask(updatedTask)
+    }
+
     func deleteTask(_ task: Task) {
         tasks.removeAll { $0.id == task.id }
         saveData()
