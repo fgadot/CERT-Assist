@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CERT County EOC Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #7b0000, #c0392b);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+
+        header h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+        header p  { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+
+        .conn-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        .dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #555;
+        }
+        .dot.live { background: #34C759; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+        /* ── Stats bar ────────────────────────────────────────────────── */
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            padding: 16px 30px;
+            background: #16213e;
+            border-bottom: 1px solid #0f3460;
+            flex-wrap: wrap;
+        }
+        .stat {
+            text-align: center;
+            min-width: 100px;
+        }
+        .stat-label { font-size: 11px; text-transform: uppercase; color: #888; letter-spacing: 0.5px; }
+        .stat-value { font-size: 32px; font-weight: 700; color: #e0e0e0; line-height: 1.1; }
+        .stat-value.danger { color: #FF3B30; }
+        .stat-value.warn   { color: #FF9500; }
+
+        /* ── Team grid ────────────────────────────────────────────────── */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+            padding: 24px 30px;
+        }
+
+        .team-card {
+            background: #16213e;
+            border-radius: 12px;
+            border-left: 5px solid #555;
+            padding: 18px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            position: relative;
+            overflow: hidden;
+        }
+        .team-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+
+        /* Urgency border colors */
+        .team-card.urgency-lifesafety { border-left-color: #FF3B30; }
+        .team-card.urgency-high       { border-left-color: #FF9500; }
+        .team-card.urgency-medium     { border-left-color: #ffc107; }
+        .team-card.urgency-low        { border-left-color: #34C759; }
+        .team-card.urgency-none       { border-left-color: #555; }
+        .team-card.stale              { opacity: 0.55; border-left-color: #555; }
+
+        /* Pulsing red glow for life safety */
+        .team-card.urgency-lifesafety {
+            animation: urgencyPulse 2s ease-in-out infinite;
+        }
+        @keyframes urgencyPulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(255,59,48,0); }
+            50%     { box-shadow: 0 0 20px 4px rgba(255,59,48,0.35); }
+        }
+
+        .team-name { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+        .team-location { font-size: 13px; color: #888; margin-bottom: 14px; }
+
+        .team-meta {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: #aaa;
+        }
+        .team-meta strong { color: #e0e0e0; }
+
+        /* Severity pills row */
+        .sev-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .sev-pill {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .sev-pill.ls  { background: #FF3B30; color: white; }
+        .sev-pill.hi  { background: #FF9500; color: white; }
+        .sev-pill.med { background: #ffc107; color: #333; }
+        .sev-pill.low { background: #34C759; color: white; }
+        .sev-pill.zero { opacity: 0.3; }
+
+        .unacked-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #FF3B30;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .unacked-badge.none { display: none; }
+
+        .stale-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #555;
+            color: #ccc;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .last-contact { font-size: 12px; color: #666; margin-top: 10px; }
+
+        .btn-detail {
+            display: block;
+            width: 100%;
+            margin-top: 14px;
+            padding: 8px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: #ccc;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.15s;
+        }
+        .btn-detail:hover { background: rgba(255,255,255,0.15); }
+
+        .empty-county {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 20px;
+            color: #555;
+        }
+        .empty-county h2 { font-size: 24px; margin-bottom: 10px; }
+        .empty-county p  { font-size: 15px; }
+
+        /* ── Team Detail Modal ──────────────────────────────────────── */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal.show { display: flex; }
+
+        .modal-box {
+            background: #16213e;
+            border-radius: 14px;
+            width: 100%;
+            max-width: 780px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+        }
+
+        .modal-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: #16213e;
+            z-index: 10;
+        }
+        .modal-header h2 { font-size: 20px; color: #fff; }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 26px;
+            cursor: pointer;
+            color: #888;
+            line-height: 1;
+        }
+        .close-btn:hover { color: #fff; }
+
+        .modal-body { padding: 20px 24px; }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #888;
+            margin: 20px 0 10px;
+        }
+        .section-title:first-child { margin-top: 0; }
+
+        /* Report items in modal */
+        .report-row {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            border-left: 4px solid #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .report-row.ls  { border-left-color: #FF3B30; }
+        .report-row.hi  { border-left-color: #FF9500; }
+        .report-row.med { border-left-color: #ffc107; }
+        .report-row.low { border-left-color: #34C759; }
+
+        .report-info { flex: 1; min-width: 0; }
+        .report-type { font-weight: 700; color: #fff; font-size: 15px; }
+        .report-detail { font-size: 12px; color: #888; margin-top: 3px; }
+
+        .sev-tag {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .sev-tag.ls  { background: #FF3B30; color: white; }
+        .sev-tag.hi  { background: #FF9500; color: white; }
+        .sev-tag.med { background: #ffc107; color: #333; }
+        .sev-tag.low { background: #34C759; color: white; }
+
+        .ack-btn {
+            padding: 6px 14px;
+            background: #c0392b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.15s;
+        }
+        .ack-btn:hover { background: #a93226; }
+        .ack-btn:disabled { background: #3a3a4a; color: #666; cursor: default; }
+
+        .acked-tag {
+            font-size: 12px;
+            color: #34C759;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Member rows in modal */
+        .member-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: #0f3460;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+        }
+        .status-dot.available   { background: #34C759; }
+        .status-dot.assigned    { background: #007AFF; }
+        .status-dot.unavailable { background: #555; }
+        .status-dot.injured     { background: #FF3B30; }
+        .status-dot.needshelp   { background: #FF9500; }
+
+        .member-name { flex: 1; color: #e0e0e0; }
+        .member-role { font-size: 12px; color: #888; }
+
+        /* Send message section */
+        .msg-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .msg-input {
+            flex: 1;
+            padding: 10px 14px;
+            background: #0f3460;
+            border: 1px solid #1a4a8a;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .msg-input:focus { outline: none; border-color: #007AFF; }
+        .msg-input::placeholder { color: #555; }
+
+        .msg-send-btn {
+            padding: 10px 18px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .msg-send-btn:hover { background: #0051D5; }
+
+        .loading-state { text-align: center; padding: 40px; color: #555; font-size: 16px; }
+        .error-state   { text-align: center; padding: 40px; color: #FF3B30; font-size: 15px; }
+        .empty-section { font-size: 14px; color: #555; font-style: italic; padding: 8px 0; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <h1>🗺 CERT County EOC Dashboard</h1>
+        <p>Emergency Operations Center — Real-Time Team Overview</p>
+    </div>
+    <div class="conn-row">
+        <span class="dot" id="dot"></span>
+        <span id="connLabel">Connecting…</span>
+    </div>
+</header>
+
+<div class="stats-bar">
+    <div class="stat">
+        <div class="stat-label">Teams</div>
+        <div class="stat-value" id="statTeams">0</div>
+    </div>
+    <div class="stat">
+        <div class="stat-label">Total Members</div>
+        <div class="stat-value" id="statMembers">0</div>
+    </div>
+    <div class="stat">
+        <div class="stat-label">Life Safety</div>
+        <div class="stat-value danger" id="statLS">0</div>
+    </div>
+    <div class="stat">
+        <div class="stat-label">High Priority</div>
+        <div class="stat-value warn" id="statHigh">0</div>
+    </div>
+    <div class="stat">
+        <div class="stat-label">Unacknowledged</div>
+        <div class="stat-value danger" id="statUnacked">0</div>
+    </div>
+    <div class="stat">
+        <div class="stat-label">Last Update</div>
+        <div class="stat-value" id="statTime" style="font-size:18px;">—</div>
+    </div>
+</div>
+
+<div class="team-grid" id="teamGrid">
+    <div class="empty-county">
+        <h2>Waiting for teams…</h2>
+        <p>Team servers will appear here as they check in.</p>
+    </div>
+</div>
+
+<!-- PIN Authentication Modal -->
+<div class="modal" id="pinModal">
+    <div class="modal-box" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>🔐 County EOC Access PIN</h2>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom: 16px; color: #aaa;">Enter the county PIN to access this dashboard.</p>
+            <input type="password" id="pinInput" placeholder="Enter PIN"
+                   style="width: 100%; padding: 12px 14px; background: #0f3460; border: 1px solid #1a4a8a; border-radius: 8px; color: #e0e0e0; font-size: 16px; font-family: inherit;"
+                   onkeydown="if(event.key==='Enter') submitPin()">
+            <p id="pinError" style="color: #FF3B30; font-size: 13px; margin: 10px 0 0; min-height: 18px;"></p>
+            <button onclick="submitPin()"
+                    style="width: 100%; margin-top: 16px; padding: 12px; background: #007AFF; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer;">
+                Access Dashboard
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Team Detail Modal -->
+<div class="modal" id="detailModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h2 id="modalTitle">Team Details</h2>
+            <button class="close-btn" onclick="closeDetail()">×</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <div class="loading-state">Loading…</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let ws;
+    let reconnectAttempts = 0;
+    const maxReconnect = 5;
+    let currentData = null;
+    let selectedTeamID = null;
+    let ackedReports = new Set();
+
+    // ── Auth helpers ─────────────────────────────────────────────────────────────
+    function getCountyPin() {
+        return sessionStorage.getItem('county_pin') || '';
+    }
+
+    async function countyApiCall(method, url, body) {
+        const opts = {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CERT-Token': getCountyPin()
+            }
+        };
+        if (body !== undefined) opts.body = JSON.stringify(body);
+        return fetch(url, opts);
+    }
+
+    async function checkAuthAndConnect() {
+        try {
+            const res = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CERT-Token': getCountyPin() }
+            });
+            if (res.status === 401) {
+                showPinModal();
+            } else {
+                connect();
+            }
+        } catch {
+            connect();
+        }
+    }
+
+    function showPinModal() {
+        document.getElementById('pinModal').classList.add('show');
+        setTimeout(() => document.getElementById('pinInput').focus(), 50);
+    }
+
+    function hidePinModal() {
+        document.getElementById('pinModal').classList.remove('show');
+    }
+
+    async function submitPin() {
+        const pin = document.getElementById('pinInput').value;
+        try {
+            const res = await fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CERT-Token': pin }
+            });
+            if (res.ok) {
+                sessionStorage.setItem('county_pin', pin);
+                hidePinModal();
+                connect();
+            } else {
+                document.getElementById('pinError').textContent = 'Incorrect PIN.';
+            }
+        } catch {
+            document.getElementById('pinError').textContent = 'Cannot reach server.';
+        }
+    }
+
+    // ── SSRF guard ───────────────────────────────────────────────────────────────
+    function isSafeEndpoint(url) {
+        try {
+            const parsed = new URL(url);
+            return parsed.protocol === 'https:' && parsed.hostname.length > 0;
+        } catch {
+            return false;
+        }
+    }
+
+    // ── WebSocket ────────────────────────────────────────────────────────────────
+    function connect() {
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${proto}//${location.host}/ws`);
+
+        ws.onopen = () => {
+            document.getElementById('dot').classList.add('live');
+            document.getElementById('connLabel').textContent = 'Live';
+            reconnectAttempts = 0;
+        };
+
+        ws.onmessage = (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                currentData = data;
+                renderDashboard(data);
+            } catch {}
+        };
+
+        ws.onclose = () => {
+            document.getElementById('dot').classList.remove('live');
+            document.getElementById('connLabel').textContent = 'Disconnected — reconnecting…';
+            if (reconnectAttempts < maxReconnect) {
+                reconnectAttempts++;
+                setTimeout(connect, 3000);
+            }
+        };
+
+        ws.onerror = () => {
+            document.getElementById('connLabel').textContent = 'Connection error';
+        };
+    }
+
+    // ── Render county overview ───────────────────────────────────────────────────
+    function renderDashboard(data) {
+        const teams = data.teams || [];
+
+        // Stats bar
+        const totalMembers   = teams.reduce((s, t) => s + t.member_count, 0);
+        const totalLS        = teams.reduce((s, t) => s + t.report_counts.life_safety, 0);
+        const totalHigh      = teams.reduce((s, t) => s + t.report_counts.high, 0);
+        const totalUnacked   = teams.reduce((s, t) => s + t.unacknowledged_priority, 0);
+
+        document.getElementById('statTeams').textContent   = teams.length;
+        document.getElementById('statMembers').textContent = totalMembers;
+        document.getElementById('statLS').textContent      = totalLS;
+        document.getElementById('statHigh').textContent    = totalHigh;
+        document.getElementById('statUnacked').textContent = totalUnacked;
+        document.getElementById('statTime').textContent    = new Date().toLocaleTimeString();
+
+        const grid = document.getElementById('teamGrid');
+
+        if (teams.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-county">
+                    <h2>Waiting for teams…</h2>
+                    <p>Team servers will appear here as they check in with the county.</p>
+                </div>`;
+            return;
+        }
+
+        grid.innerHTML = teams.map(team => renderTeamCard(team, data)).join('');
+    }
+
+    function urgencyClass(team) {
+        if (team.report_counts.life_safety > 0) return 'urgency-lifesafety';
+        if (team.unacknowledged_priority > 0)   return 'urgency-high';
+        if (team.report_counts.high > 0)         return 'urgency-medium';
+        if (team.report_counts.medium > 0 || team.report_counts.low > 0) return 'urgency-low';
+        return 'urgency-none';
+    }
+
+    function isStale(team) {
+        const last = new Date(team.last_contact);
+        return (Date.now() - last.getTime()) > 5 * 60 * 1000; // 5 minutes
+    }
+
+    function timeAgo(isoStr) {
+        const diff = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
+        if (diff < 60)   return `${diff}s ago`;
+        if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+        return `${Math.floor(diff/3600)}h ago`;
+    }
+
+    function renderTeamCard(team, data) {
+        const urg   = urgencyClass(team);
+        const stale = isStale(team);
+        const pending = (data.pending_message_counts || {})[team.team_id] || 0;
+
+        const rc = team.report_counts;
+        const sevPills = `
+            <span class="sev-pill ls ${rc.life_safety === 0 ? 'zero' : ''}">LS: ${rc.life_safety}</span>
+            <span class="sev-pill hi ${rc.high === 0 ? 'zero' : ''}">H: ${rc.high}</span>
+            <span class="sev-pill med ${rc.medium === 0 ? 'zero' : ''}">M: ${rc.medium}</span>
+            <span class="sev-pill low ${rc.low === 0 ? 'zero' : ''}">L: ${rc.low}</span>
+        `;
+
+        const unackedBadge = team.unacknowledged_priority > 0
+            ? `<span class="unacked-badge">⚠ ${team.unacknowledged_priority} unacked</span>`
+            : '';
+
+        const pendingBadge = pending > 0
+            ? `<span style="font-size:12px;color:#ffc107;margin-left:8px;">⏳ ${pending} pending confirm</span>`
+            : '';
+
+        const staleBadge = stale ? `<div class="stale-badge">OFFLINE</div>` : '';
+
+        return `
+            <div class="team-card ${urg} ${stale ? 'stale' : ''}" onclick="openDetail('${team.team_id}')">
+                ${staleBadge}
+                <div class="team-name">${esc(team.team_name)}</div>
+                <div class="team-location">${esc(team.location || 'Location not set')}</div>
+                <div class="team-meta">
+                    <span>👥 <strong>${team.active_member_count}</strong>/${team.member_count} active</span>
+                    <span>✓ <strong>${team.open_task_count}</strong> open tasks</span>
+                </div>
+                <div class="sev-row">${sevPills}</div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    ${unackedBadge}${pendingBadge}
+                </div>
+                <div class="last-contact">Last contact: ${timeAgo(team.last_contact)}</div>
+                <button class="btn-detail" onclick="event.stopPropagation();openDetail('${team.team_id}')">
+                    View Details & Acknowledge →
+                </button>
+            </div>`;
+    }
+
+    // ── Team Detail Modal ────────────────────────────────────────────────────────
+    async function openDetail(teamId) {
+        selectedTeamID = teamId;
+        const team = (currentData?.teams || []).find(t => t.team_id === teamId);
+        if (!team) return;
+
+        document.getElementById('modalTitle').textContent = `${team.team_name} — Details`;
+        document.getElementById('modalBody').innerHTML = '<div class="loading-state">Loading team data…</div>';
+        document.getElementById('detailModal').classList.add('show');
+
+        if (!team.endpoint) {
+            document.getElementById('modalBody').innerHTML =
+                '<div class="error-state">Team endpoint not configured. Cannot fetch live data.</div>';
+            return;
+        }
+
+        if (!isSafeEndpoint(team.endpoint)) {
+            document.getElementById('modalBody').innerHTML =
+                '<div class="error-state">Team endpoint is not a valid https:// URL.</div>';
+            return;
+        }
+
+        try {
+            const res = await fetch(`${team.endpoint}/api/dashboard`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const teamData = await res.json();
+            renderTeamDetail(team, teamData);
+        } catch (e) {
+            document.getElementById('modalBody').innerHTML =
+                `<div class="error-state">Could not reach team server.<br><small>${esc(e.message)}</small></div>`;
+        }
+    }
+
+    function closeDetail() {
+        document.getElementById('detailModal').classList.remove('show');
+        selectedTeamID = null;
+    }
+
+    function renderTeamDetail(teamSummary, teamData) {
+        const members = teamData.members || [];
+        const reports = teamData.reports || [];
+        const tasks   = teamData.tasks   || [];
+        const teamId  = teamSummary.team_id;
+
+        // ── Reports ──
+        const priorityReports = reports.filter(r =>
+            r.severity === 'Life Safety' || r.severity === 'High'
+        );
+        const otherReports = reports.filter(r =>
+            r.severity !== 'Life Safety' && r.severity !== 'High'
+        );
+
+        const sevClass = s => ({ 'Life Safety': 'ls', 'High': 'hi', 'Medium': 'med', 'Low': 'low' }[s] || 'low');
+
+        const reportHtml = (r) => {
+            const alreadyAcked = r.acknowledged_by_county || ackedReports.has(r.id);
+            const actions = alreadyAcked
+                ? `<span class="acked-tag">✓ Acked</span>`
+                : `<button class="ack-btn" onclick="acknowledgeReport('${teamId}','${r.id}',this)">Acknowledge</button>`;
+
+            return `
+                <div class="report-row ${sevClass(r.severity)}">
+                    <div class="report-info">
+                        <div class="report-type">${esc(r.type)}</div>
+                        <div class="report-detail">${esc(r.notes || '—')} · ${esc(r.location?.address || 'No address')} · ${timeAgo(r.reported_at)}</div>
+                    </div>
+                    <span class="sev-tag ${sevClass(r.severity)}">${esc(r.severity)}</span>
+                    ${actions}
+                </div>`;
+        };
+
+        // ── Members ──
+        const memberHtml = members.length === 0
+            ? '<p class="empty-section">No members checked in.</p>'
+            : members.map(m => {
+                const sc = m.status.toLowerCase().replace(' ', '');
+                return `
+                    <div class="member-row">
+                        <span class="status-dot ${sc}"></span>
+                        <span class="member-name">${esc(m.name)}</span>
+                        <span class="member-role">${esc(m.role)} · ${esc(m.status)}</span>
+                    </div>`;
+            }).join('');
+
+        // ── Tasks ──
+        const openTasks = tasks.filter(t => t.status === 'Open' || t.status === 'Assigned');
+        const taskHtml = openTasks.length === 0
+            ? '<p class="empty-section">No open tasks.</p>'
+            : openTasks.map(t => `
+                <div class="member-row">
+                    <span style="font-size:13px;flex:1;color:#e0e0e0;">${esc(t.title)}</span>
+                    <span style="font-size:12px;color:#888;">${esc(t.priority)} · ${esc(t.status)}</span>
+                </div>`).join('');
+
+        document.getElementById('modalBody').innerHTML = `
+            <div class="section-title">⚠ Priority Reports (Needs Acknowledgment)</div>
+            ${priorityReports.length === 0
+                ? '<p class="empty-section">No high-priority reports.</p>'
+                : priorityReports.map(reportHtml).join('')}
+
+            ${otherReports.length > 0 ? `
+            <div class="section-title">📋 Other Reports</div>
+            ${otherReports.map(reportHtml).join('')}` : ''}
+
+            <div class="section-title">✓ Open Tasks (${openTasks.length})</div>
+            ${taskHtml}
+
+            <div class="section-title">👥 Members (${members.length})</div>
+            ${memberHtml}
+
+            <div class="section-title">💬 Send Message to Team</div>
+            <div class="msg-form">
+                <input class="msg-input" id="msgText" placeholder="Type a message to send to this team…" maxlength="280">
+                <button class="msg-send-btn" onclick="sendMessage('${teamId}')">Send</button>
+            </div>
+        `;
+    }
+
+    // ── Acknowledge a report ─────────────────────────────────────────────────────
+    async function acknowledgeReport(teamId, reportId, btn) {
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+
+        try {
+            const res = await countyApiCall('POST', `/api/teams/${teamId}/acknowledge/${reportId}`, { note: 'Acknowledged by County EOC' });
+
+            if (res.ok) {
+                ackedReports.add(reportId);
+                btn.parentElement.innerHTML = '<span class="acked-tag">✓ Sent to team</span>';
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Retry';
+                alert('Failed to send acknowledgment.');
+            }
+        } catch (e) {
+            btn.disabled = false;
+            btn.textContent = 'Retry';
+            alert('Network error: ' + e.message);
+        }
+    }
+
+    // ── Send message to team ─────────────────────────────────────────────────────
+    async function sendMessage(teamId) {
+        const text = document.getElementById('msgText').value.trim();
+        if (!text) { alert('Please enter a message.'); return; }
+
+        try {
+            const res = await countyApiCall('POST', `/api/teams/${teamId}/message`, { type: 'info', text });
+            if (res.ok) {
+                document.getElementById('msgText').value = '';
+                alert('Message sent. Team will receive it within 30 seconds.');
+            } else {
+                alert('Failed to send message.');
+            }
+        } catch (e) {
+            alert('Network error: ' + e.message);
+        }
+    }
+
+    // ── Utilities ────────────────────────────────────────────────────────────────
+    function esc(s) {
+        return String(s ?? '')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('detailModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDetail();
+    });
+
+    checkAuthAndConnect();
+</script>
+</body>
+</html>

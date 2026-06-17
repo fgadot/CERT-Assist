@@ -1,7 +1,7 @@
 # Current Security Status - cert.w6fgc.com
 
-**Last Updated:** June 13, 2026  
-**Status:** ✅ **PRODUCTION-GRADE HARDENED**
+**Last Updated:** June 17, 2026  
+**Status:** ✅ **PRODUCTION-GRADE HARDENED + AUTH IMPLEMENTED**
 
 ---
 
@@ -221,9 +221,9 @@ services:
 | **Direct Docker Access** | 🟢 STRONG | Port 8080 blocked by iptables |
 | **Known Exploits** | 🟢 STRONG | IPsum blocks known malicious IPs |
 | **Zero-day Exploits** | 🟡 MODERATE | No WAF, but minimal attack surface |
-| **Data Injection** | 🔴 WEAK | No authentication yet |
+| **Data Injection** | 🟢 STRONG | PIN auth on all writes; XSS-escaped dashboard |
 
-**Overall Attack Resistance: 🟢 STRONG (7.5/10)**
+**Overall Attack Resistance: 🟢 STRONG (8.5/10)**
 
 **For CERT use case: ✅ EXCELLENT** - Way more secure than needed for internal team coordination.
 
@@ -255,10 +255,11 @@ services:
    - **Exploit:** Malicious requests that allocate lots of memory
    - **Fix:** Add resource limits to docker-compose.yml (5 min)
 
-2. **No Authentication**
-   - **Risk:** Anyone can submit fake reports, create tasks
-   - **Exploit:** Vandalism, data pollution
-   - **Fix:** Add basic auth or PIN code (1-2 days development)
+2. ~~**No Authentication**~~ ✅ **FIXED (June 17, 2026)**
+   - PIN authentication implemented via `X-CERT-Token` header
+   - `TEAM_PIN` env var on team server; `COUNTY_PIN` on county server
+   - Dashboard PIN modal; member portal PIN field
+   - All write endpoints protected; GET and WebSocket open
 
 ### Medium Priority
 
@@ -273,10 +274,10 @@ services:
    - **Exploit:** Force restart via resource exhaustion
    - **Fix:** Add SQLite or PostgreSQL (2-3 days)
 
-5. **No Input Validation (yet)**
-   - **Risk:** XSS, SQL injection (if database added)
-   - **Exploit:** Malicious report content
-   - **Fix:** Sanitize all user inputs
+5. ~~**No Input Validation**~~ ✅ **FIXED (June 17, 2026)**
+   - XSS: `esc()` HTML-escaping applied to all user-sourced innerHTML in dashboard
+   - SSRF: County dashboard validates team endpoints (`https://` prefix required)
+   - Injection: `teamId` validated as `^[a-zA-Z0-9\-_]{1,64}$` in county routes
 
 ### Low Priority
 
@@ -319,14 +320,7 @@ services:
 
 ### Short-term (Before Real Deployment)
 
-3. **Add Authentication**
-   - Simple PIN code for dashboard access
-   - API key for iOS app
-   - Team leader credentials
-   
-   **Why:** Prevents vandalism/data pollution  
-   **Time:** 1-2 days development  
-   **Risk if skipped:** High (for production use)
+3. ~~**Add Authentication**~~ ✅ **DONE** — PIN auth implemented (June 17, 2026)
 
 4. **Add Database Persistence**
    - SQLite for local laptop deployment
@@ -499,7 +493,7 @@ du -sh /var/log/*
 
 ---
 
-**Last reviewed:** June 13, 2026  
+**Last reviewed:** June 17, 2026  
 **Next review:** Add to monthly security maintenance schedule
 
 Frank Gadot - W6FGC

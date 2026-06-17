@@ -1,0 +1,16 @@
+services:
+  county:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8090:8080"
+    volumes:
+      - ./Public:/app/Public
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      # ── Authentication ─────────────────────────────────────────────────────────
+      # Set COUNTY_PIN to require a shared PIN for all write operations (acks, messages).
+      # Leave blank or omit to run without authentication.
+      - COUNTY_PIN=

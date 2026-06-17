@@ -2,383 +2,224 @@
 
 Emergency response coordination system for Community Emergency Response Teams (CERT).
 
-## Project Status
-- **Created**: June 9, 2026
-- **Server**: cert.w6fgc.com (cert.w6fgc.com/dashboard)
-- **Platform**: Docker backend + Web dashboard + Mobile apps (iPhone first, Android later)
+- **Created:** June 9, 2026
+- **Last Updated:** June 17, 2026
+- **Servers:** team.cert.w6fgc.com (team), county.cert.w6fgc.com (county)
+- **Platform:** Docker backend (Swift/Vapor) + Web dashboard + iOS app
 
 ---
 
-## CURRENT PROJECT VISION (Updated Session)
+## Architecture — Three-Tier Hub & Spoke
 
-### Problem Statement
-Creating an application to help CERT teams when they activate during emergencies. System must work with degraded or no internet connectivity.
+```
+County Dashboard (county.cert.w6fgc.com)
+    ↑  Teams POST summary on every state change
+    ↑  Teams poll /api/messages every 30s for county replies (acks, alerts)
+    
+Team Server(s) (team.cert.w6fgc.com or local Pi/laptop)
+    ↑  iOS app members check in, submit reports, update status
+    ↑  WebSocket → team leader dashboard (real-time)
+    
+Field Members (iPhone)
+    → self check-in with equipment
+    → submit field reports
+    → view assigned tasks
+```
 
-### Three-Tier Architecture
+### Network Modes (Graceful Degradation)
 
-#### **TIER 1: Team Level (Local CERT Team)**
-
-**Team Leader Station:**
-- Laptop running Docker container (can run locally or on cloud server)
-- Dashboard shows:
-  - Team members checked in
-  - Member equipment inventory (golf cart, chainsaw, AED, med kit, etc.)
-  - Member locations
-  - Member status (Available, Assigned, Unavailable, Request Assistance, Emergency)
-  - Reports submitted by sub-teams in the field
-  - Tasks assigned to sub-teams
-  - Sub-team composition and color assignments
-
-**Team Members:**
-- Mobile apps (iPhone priority, Android later)
-- Functions:
-  - Self check-in with CERT assignment and equipment
-  - View assigned tasks
-  - Submit field reports (Green/Orange/Red severity)
-  - Update status
-  - Local data storage with immutable timestamps
-
-#### **TIER 2: County Level (Central Command)**
-
-**County Dashboard:**
-- Overview of all CERT teams in county
-- Color-coded team status:
-  - **Green**: Team OK, no contact needed
-  - **Orange**: Incident in progress, team handling it
-  - **Red**: Emergency, priority contact required
-- Real-time situational awareness across all teams
-
-#### **TIER 3: Communication Layers (Graceful Degradation)**
-
-1. **WiFi to local laptop** - Direct connection to team leader's Docker instance
-   - Current: Laptop WiFi hotspot (limited clients)
-   - Future: Unifi gear for proper local network with more capacity
-2. **Cell network** - If towers up, connect to cloud-hosted Docker instance at cert.w6fgc.com
-3. **Meshtastic network** - Backup communication when internet/cell down
-4. **Mesh propagation** - Device-to-device relay, reports hop node-to-node until reaching dashboard
+| Mode | How it works |
+|------|-------------|
+| **Internet up** | Each team has its own FQDN. Teams push summaries to county over internet. |
+| **Internet down** | Team leader runs Docker on laptop. Team members connect to local WiFi hotspot. County unreachable — team operates standalone. |
+| **Hybrid** | Pi runs team server locally; if internet comes up it auto-reconnects to county. Pi pings `county.cert.w6fgc.com`; if reachable it pushes; otherwise it skips silently. |
 
 ---
 
-## Key Features & Requirements
+## Current Implementation — Feature Complete (v0.7)
 
-### Sub-Teams (Color-Coded Assignment System)
-- Sub-teams are the **unit of assignment** (not individuals)
-- Minimum **2 members** per sub-team
-- Each sub-team assigned a **color** for identification
-- Dashboard shows:
-  - **Color badge** indicating sub-team
-  - **Number** showing member count in sub-team
-  - **Assigned task** for that sub-team
-
-### Field Reporting System
-- **Report identification**: Each report marked with submitting sub-team color
-- **Initial severity**: Sub-team classifies as Green/Orange/Red when submitting
-- **Override capability**: Team leader can re-assign severity level
-- **Sorting options**:
-  - By sub-team (who submitted)
-  - By severity level (Green/Orange/Red)
-
-### Audit Trail & Data Integrity
-- **All actions date and time stamped**
-- **No deletion of logs** - permanent immutable record
-- Reports saved **locally on device first** with immutable timestamps
-- No possibility of removing timestamps or modifying logs
-
-### Mobile Device Sync Strategy (Store-and-Forward)
-- Reports stored locally on device until connectivity available
-- Automatic sync when any network becomes available:
-  - Close proximity to team leader (Bluetooth/MultipeerConnectivity)
-  - WiFi network
-  - Cell network
-  - Meshtastic network
-- **Mesh-style propagation**: Reports hop device-to-device (node-to-node) until reaching dashboard
-- Device acts as both **reporter AND relay node**
-- If mesh propagation not possible: fall back to direct Meshtastic integration
-
-### Authentication
-- Credentials system needed eventually
-- **Not priority right now**
-
----
-
-## Current Implementation
-
-### iOS App (SwiftUI)
-Located in `/CERT Assist/`
-- Check-in system for team members
-- Incident reporting with ICS (Incident Command System) positions
-- Task management and assignment
+### iOS App (`/CERT Assist/`)
+- Check-in with name, role, ICS position, equipment list
+- Field report submission (type, severity, location, notes)
+- Task view and status updates
 - Map view for location tracking
-- Incident logging
 - MultipeerConnectivity for offline peer-to-peer sync
 
-### Backend Server (Swift/Vapor)
-Located in `/Backend/`
-- RESTful API endpoints for members, reports, tasks, incidents
-- WebSocket server for real-time dashboard updates
-- Actor-based thread-safe data store
-- CORS enabled for iOS app communication
-- Serves web dashboard from `/Backend/Public/`
-- **Dockerized deployment** ready
+### Backend Server (`/Backend/`)
+- **Runtime:** Swift/Vapor 4, actor-based in-memory DataStore
+- **Persistence:** SQLite via Fluent (file: `data/cert_data.db`)
+- **WebSocket:** Real-time push to all connected dashboards on every state change
+- **County integration:** Pushes `TeamSummary` to county on every mutation; polls county for messages every 30s
 
-### Web Dashboard (HTML/JS/CSS)
-Located in `/Backend/Public/dashboard.html`
-- Real-time incident commander dashboard
-- WebSocket connection to backend
-- Live stats: team members, active reports, open tasks
-- Color-coded status indicators
-- Auto-reconnecting WebSocket
+#### API Endpoints
 
-## Key Features
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/auth` | PIN validation |
+| POST | `/api/checkin` | Member check-in / update |
+| GET | `/api/members` | All members |
+| GET/POST | `/api/reports` | List / create reports |
+| PUT | `/api/reports/:id` | Update report (status, escalation, etc.) |
+| PATCH | `/api/reports/:id/severity` | Override severity only |
+| GET/POST | `/api/tasks` | List / create tasks |
+| PUT | `/api/tasks/:id` | Update task |
+| POST/GET/PUT/DELETE | `/api/subteams` | Sub-team management |
+| POST | `/api/members/:id/free` | Remove member from sub-team |
+| POST | `/api/incident` | Set active incident |
+| GET | `/api/dashboard` | Full dashboard snapshot |
+| WS | `/ws` | WebSocket real-time feed |
 
-### ICS Positions Supported
-- Incident Commander
-- Safety Officer
-- Public Information Officer
-- Operations Section Chief (Medical/Triage, Search & Rescue, Fire Suppression, Damage Assessment)
-- Planning Section Chief (Documentation, Resource Tracking)
-- Logistics Section Chief (Communications, Supplies, Equipment)
+### Team Dashboard (`/Backend/Public/dashboard.html`)
+- Real-time WebSocket connection, auto-reconnect
+- Live stats: members, active reports, open tasks, sub-teams
+- **Sub-team management:** create, reassign members, delete, assign tasks
+- **Task management:** create, edit, complete, cancel, re-open
+- **Report detail modal:** click any report to see full details
+  - Acknowledge (New → Assigned)
+  - Mark Resolved
+  - Re-open
+  - County escalation toggle (see below)
+- 📡 indicator on report cards that are being sent to county
+- PIN modal on first load; PIN stored in `sessionStorage`
 
-### Report Types
-- Tree Down
-- Flooding
-- Power Line Down
-- Medical Need
-- Blocked Road
-- Fire/Smoke
-- Gas Smell
-- Welfare Check
-- Structure Damage
-- Needs 911
+### Member Portal (`/Backend/Public/member.html`)
+- Self check-in with team PIN
+- Equipment selection
+- Report submission
+- Status update
 
-### Member Status Tracking
-- Available
-- Assigned
-- Unavailable
-- Injured
-- Needs Help
-
----
-
-## Design Philosophy
-
-### Simplicity Over Complexity
-- **Not ATAK**: Tactical Awareness Kit (used by military) is too complicated for CERT demographic
-- Goal: Super simple, fast, elegant solution
-- Mobile app interface: Keep it minimal (details to be discussed)
-
-### No Single Point of Failure
-- Multiple communication paths
-- Local-first data storage
-- Devices act as relay nodes
-- Graceful degradation when infrastructure fails
+### County Server (`/CountyServer/`)
+- Separate Docker service (default port 8090)
+- Receives `TeamSummary` pushes from all teams
+- Queues messages (acks, alerts, info) for teams to poll
+- County dashboard shows all teams, color-coded by severity
+- Team detail view fetches live data from team endpoint
+- PIN auth via `COUNTY_PIN` env var
 
 ---
 
-## Report Types (From Original Design)
-- Tree Down
-- Flooding
-- Power Line Down
-- Medical Need
-- Blocked Road
-- Fire/Smoke
-- Gas Smell
-- Welfare Check
-- Structure Damage
-- Needs 911
-- Other
+## County Escalation System
 
-## Member Status Tracking
-- Available
-- Assigned
-- Unavailable
-- Injured / Request Assistance
-- Emergency / Needs Help
+Reports have an `escalatedToCounty: Bool?` field:
 
-## ICS Positions Supported
-- Incident Commander
-- Safety Officer
-- Public Information Officer
-- Operations Section Chief (Medical/Triage, Search & Rescue, Fire Suppression, Damage Assessment)
-- Planning Section Chief (Documentation, Resource Tracking)
-- Logistics Section Chief (Communications, Supplies, Equipment)
+| Severity | `escalatedToCounty` | Behavior |
+|----------|-------------------|----------|
+| High / Life Safety | `nil` (default) | Auto-escalated — county sees it |
+| High / Life Safety | `false` | Suppressed — team leader chose to keep it local |
+| Low / Medium | `nil` (default) | Local only — county does NOT see it |
+| Low / Medium | `true` | Manually pushed — team leader sent it to county |
+
+The team leader dashboard has a **County Visibility** toggle in every report's detail modal. High/LS reports show a 🔕 Suppress button; Low/Medium reports show a 📡 Push to county button.
+
+The county's `unacknowledgedPriority` count in `TeamSummary` reflects only reports that (a) go to county and (b) have not yet been acknowledged by the county EOC.
 
 ---
 
-## Deployment
+## Authentication
 
-### Docker Container Setup
+### PIN Authentication (Implemented)
+- **Header:** `X-CERT-Token: <pin>`
+- **Scope:** All non-GET API calls require the PIN. GETs and WebSocket upgrades are open.
+- **Team server:** Set `TEAM_PIN` env var in `docker-compose.yml`
+- **County server:** Set `COUNTY_PIN` env var in `CountyServer/docker-compose.yml`
+- **Dashboard:** Shows PIN modal on load; PIN stored in `sessionStorage`
+- **Member portal:** PIN field in check-in form; stored in `localStorage`
 
-**Location:** `Backend/Dockerfile` and `Backend/docker-compose.yml`
+### How PIN works end-to-end
+1. Team leader sets `TEAM_PIN=XXXX` in `docker-compose.yml` before deployment
+2. Dashboard loads → calls `POST /api/auth` with saved PIN
+3. If 401 → shows PIN modal; correct PIN saved to sessionStorage
+4. All subsequent writes (`apiCall()`) send `X-CERT-Token` header automatically
+5. Members enter PIN in the member portal check-in form
 
-**Multi-stage Build:**
-- **Build stage**: Uses `swift:5.9-jammy` image
-  - Installs libsqlite3-dev
-  - Compiles Swift code in release mode
-- **Production stage**: Uses `swift:5.9-jammy-slim` image
-  - Minimal runtime dependencies (libsqlite3-0)
-  - Non-root user (vapor:vapor, uid 1000)
-  - Exposes port 8080
-  - Serves from `/app`
-  - Mounts `Public/` directory for dashboard assets
+---
 
-**docker-compose.yml:**
-```yaml
-services:
-  app:
-    build:
-      context: .
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./Public:/app/Public
-    restart: unless-stopped
-    environment:
-      - ENVIRONMENT=development
+## Data Models (Key Fields)
+
+### IncidentReport
+```
+id, type, location, severity, status, notes,
+reportedBy (UUID), subTeamID,
+acknowledgedByCounty (Bool?),   ← nil = false, set by county ack message
+acknowledgedAt,
+escalatedToCounty (Bool?),      ← nil = auto, true = forced up, false = suppressed
+reportedAt, lastUpdated
 ```
 
-**Deployment Options:**
-- Can run on Ubuntu server online (cert.w6fgc.com) ✅ **Currently running**
-- Can run locally on team leader's laptop
-- Portable, self-contained deployment
+### CERTMember
+```
+id, name, role, icsPosition, status, equipment, location, subTeamID, lastUpdated
+```
 
-**Commands:**
+### CERTTask
+```
+id, title, description, assignedTo, assignedSubTeamID, status, priority,
+location, relatedReportID, createdAt, completedAt, notes
+```
+
+### SubTeam
+```
+id, color (Red/Blue/Green/Yellow/Purple/Orange/Teal/Pink),
+memberIDs, assignedTaskID, createdAt, lastUpdated
+```
+
+---
+
+## Security (Implemented)
+
+| Layer | Status | Details |
+|-------|--------|---------|
+| PIN authentication | ✅ | `X-CERT-Token` header; per-deployment shared PIN |
+| XSS prevention | ✅ | `esc()` applied to all user-sourced innerHTML in dashboard |
+| SSRF prevention | ✅ | County dashboard validates team endpoints (`https://` only) |
+| Input validation | ✅ | `teamId` validated as `^[a-zA-Z0-9\-_]{1,64}$` in county routes |
+| SSL/TLS | ✅ | Let's Encrypt on both cloud servers |
+| Network firewall | ✅ | UFW + iptables on Ubuntu servers |
+| Threat intelligence | ✅ | IPsum blocklist, auto-updated daily at 3 AM |
+| Rate limiting | ✅ | Nginx: 10 req/s API, 5 req/s WebSocket |
+| Docker isolation | ✅ | Port 8080 not directly internet-accessible |
+
+See `SECURITY-STATUS.md` for full details.
+
+---
+
+## Known Limitations / Technical Debt
+
+- **In-memory storage:** Data is lost on container restart. SQLite is wired up via Fluent but migrations/models not yet implemented. All data currently lives in the `DataStore` actor.
+- **Single PIN:** No per-user authentication. Shared PIN is simple but can't revoke a single user.
+- **No offline sync:** iOS app uses MultipeerConnectivity but full store-and-forward mesh relay is not implemented.
+- **Sub-team badge on reports:** The JSON key `sub_team_id` is sent by the server but the member list in the dashboard uses `member.subTeamID` (a pre-existing JS/snake_case mismatch). Team badges on report cards now correctly use `report.sub_team_id`.
+
+---
+
+## Deployment Quick Reference
+
+See `DEPLOYMENT.md` for full details.
+
 ```bash
-# Build and start
+# Team server
 cd Backend
-docker-compose up -d
+docker-compose up -d --build
 
-# View logs
-docker-compose logs -f
-
-# Stop
-docker-compose down
-
-# Rebuild after changes
+# County server
+cd CountyServer
 docker-compose up -d --build
 ```
 
-### Ubuntu Server (cert.w6fgc.com) - Production Deployment
+**Key env vars to set before deploying:**
 
-**Status: ✅ LIVE**
+```yaml
+# Backend/docker-compose.yml
+TEAM_ID: your-team-id
+TEAM_NAME: "My CERT Team"
+TEAM_PIN: "4012"              # Change this!
+COUNTY_ENDPOINT: https://county.cert.w6fgc.com
 
-**Access:** https://cert.w6fgc.com/dashboard
-
-**Stack:**
-- ✅ Docker container running Vapor backend (port 8080)
-- ✅ Nginx reverse proxy (port 80/443 → 8080)
-- ✅ SSL/HTTPS with Let's Encrypt (auto-renewing certificates)
-- ✅ HTTP → HTTPS automatic redirect
-- ✅ WebSocket support for real-time updates
-- ✅ Rate limiting & DDoS protection
-- ✅ Security headers (X-Frame-Options, XSS-Protection, etc.)
-
-**Nginx Configuration:** `/etc/nginx/sites-available/cert`
-
-Rate Limits:
-- API endpoints: 10 req/sec (burst 20)
-- WebSocket: 5 req/sec (burst 5)
-- Max connections per IP: 10
-
-**SSL Certificate:**
-- Provider: Let's Encrypt (Certbot)
-- Location: `/etc/letsencrypt/live/cert.w6fgc.com/`
-- Auto-renewal: Managed by Certbot
-
-**Deployment Process:**
-```bash
-# On Ubuntu server
-cd ~/path/to/CERT-Assist/Backend
-docker-compose up -d --build
-
-# Nginx reload (if config changes)
-sudo nginx -t
-sudo systemctl reload nginx
-
-# View logs
-docker-compose logs -f
-sudo tail -f /var/log/nginx/access.log
-sudo tail -f /var/log/nginx/error.log
+# CountyServer/docker-compose.yml
+COUNTY_PIN: ""                # Set if you want county dashboard protected
 ```
-
----
-
-## TODO / Next Steps
-
-### Immediate Priorities
-- [ ] Implement **sub-team color-coding system** in dashboard and mobile app
-- [ ] Update dashboard to show sub-teams (color badge + member count + task)
-- [ ] Implement **report severity classification** (Green/Orange/Red)
-- [ ] Add **sub-team indicator** to reports
-- [ ] Team leader ability to **re-assign report severity**
-- [ ] Implement **report sorting** (by sub-team or by severity)
-- [ ] Docker deployment configuration files
-- [ ] Deploy backend to cert.w6fgc.com
-
-### Mobile App Development
-- [ ] Build iPhone app with store-and-forward sync
-- [ ] Implement local immutable data storage
-- [ ] Add mesh-style device-to-device relay
-- [ ] Android version (later)
-
-### Infrastructure
-- [ ] Add database persistence (SQLite or PostgreSQL)
-- [ ] Implement authentication/credentials system (later priority)
-- [ ] Meshtastic integration for Tier 3 communications
-- [ ] Unifi network gear setup for local deployment
-- [ ] SSL/HTTPS configuration
-
-### County-Level Features (Future)
-- [ ] County dashboard showing all teams
-- [ ] Team status color coding (Green/Orange/Red at team level)
-- [ ] Multi-team coordination view
-
-### Enhancement Features
-- [ ] Map view on web dashboard with sub-team locations
-- [ ] Photo upload capability for damage reports
-- [ ] PDF/CSV export for after-action reports
-- [ ] Training mode for CERT drills
-
----
-
-## Development Notes
-- Using Swift 5.9+
-- Vapor 4.89.0 for backend
-- SwiftUI for iOS app
-- Vanilla JavaScript for dashboard (no frameworks)
-- Docker for deployment
-- Git repository backed up
 
 ---
 
 ## Contact
-Frank Gadot - W6FGC
-
----
-
-## Project Background & Rationale
-
-This app fills a gap that existing emergency apps don't address. FEMA's app provides alerts and preparedness information, but doesn't help small CERT teams coordinate during active incidents.
-
-**Core problem it solves:**
-
-During an incident, a CERT team needs answers to:
-- Who is available?
-- Where are they?
-- What streets/homes have been checked?
-- Who needs help?
-- What resources do we have?
-- What tasks are open?
-- What was reported, when, and by whom?
-
-Most small CERT teams do this by paper, text messages, WhatsApp, radios, or memory. That falls apart quickly.
-
-**Target users:**
-- Small CERT teams
-- HOAs with emergency preparedness programs
-- Neighborhood associations
-- Schools, churches, campuses
-- Marinas, RV parks, gated communities
-
-**Key differentiator:**
-Lightweight emergency coordination without buying a full public-safety CAD system, with resilience for degraded network conditions.
+Frank Gadot — W6FGC

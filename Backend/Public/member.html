@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CERT Member</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f2f2f7;
+            min-height: 100vh;
+            padding-bottom: 40px;
+        }
+
+        header {
+            background: #c0392b;
+            color: white;
+            padding: 18px 20px 14px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        header h1 { font-size: 20px; font-weight: 700; }
+        header p  { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        /* ── Cards ──────────────────────────────────────────────── */
+        .card {
+            background: white;
+            border-radius: 12px;
+            margin: 14px 16px 0;
+            overflow: hidden;
+        }
+        .card-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #8E8E93;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 10px 16px 4px;
+        }
+        .field {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f2f2f7;
+            display: flex;
+            align-items: center;
+        }
+        .field:last-child { border-bottom: none; }
+        .field input,
+        .field select,
+        .field textarea {
+            flex: 1;
+            font-size: 17px;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-family: inherit;
+            color: #1c1c1e;
+            min-width: 0;
+        }
+        .field textarea { resize: none; min-height: 80px; }
+        .field select   { -webkit-appearance: none; appearance: none; }
+
+        /* ── Buttons ────────────────────────────────────────────── */
+        .btn {
+            display: block;
+            width: calc(100% - 32px);
+            margin: 14px 16px 0;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            font-family: inherit;
+        }
+        .btn-primary   { background: #007AFF; color: white; }
+        .btn-report    { background: #34C759; color: white; font-size: 20px; padding: 20px; }
+        .btn-danger    { background: #FF3B30; color: white; }
+        .btn-secondary { background: #e5e5ea; color: #3a3a3c; }
+
+        /* ── Equipment grid ─────────────────────────────────────── */
+        .equip-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 10px 16px 14px;
+        }
+        .equip-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f2f2f7;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .equip-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #007AFF;
+            flex-shrink: 0;
+        }
+
+        /* ── Home screen ────────────────────────────────────────── */
+        .member-card {
+            background: white;
+            border-radius: 12px;
+            margin: 14px 16px 0;
+            padding: 18px;
+        }
+        .member-name { font-size: 26px; font-weight: 700; color: #1c1c1e; }
+        .member-role { font-size: 15px; color: #8E8E93; margin-top: 2px; }
+
+        .team-badge {
+            display: inline-block;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            margin-top: 12px;
+        }
+        .team-badge.red    { background: #dc3545; }
+        .team-badge.blue   { background: #0d6efd; }
+        .team-badge.green  { background: #198754; }
+        .team-badge.yellow { background: #ffc107; color: #333; }
+        .team-badge.purple { background: #6f42c1; }
+        .team-badge.orange { background: #fd7e14; }
+        .team-badge.teal   { background: #20c997; }
+        .team-badge.pink   { background: #d63384; }
+        .team-badge.none   { background: #8E8E93; }
+
+        .task-box {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-top: 12px;
+        }
+        .task-label { font-size: 11px; font-weight: 700; color: #92400e; text-transform: uppercase; margin-bottom: 4px; }
+        .task-title { font-size: 16px; font-weight: 600; color: #1c1c1e; }
+        .task-desc  { font-size: 13px; color: #555; margin-top: 4px; }
+        .standby    { font-size: 14px; color: #8E8E93; margin-top: 12px; font-style: italic; }
+
+        .session-note {
+            font-size: 13px;
+            color: #8E8E93;
+            text-align: center;
+            margin: 14px 16px 0;
+        }
+
+        /* ── Severity buttons ───────────────────────────────────── */
+        .sev-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 10px 16px 14px;
+        }
+        .sev-btn {
+            padding: 14px 8px;
+            border: 2px solid;
+            border-radius: 10px;
+            background: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+        .sev-btn.low  { border-color: #34C759; color: #34C759; }
+        .sev-btn.med  { border-color: #fbbf24; color: #92400e; }
+        .sev-btn.high { border-color: #FF9500; color: #FF9500; }
+        .sev-btn.crit { border-color: #FF3B30; color: #FF3B30; }
+        .sev-btn.low.sel  { background: #34C759; color: white; }
+        .sev-btn.med.sel  { background: #fbbf24; color: #333; }
+        .sev-btn.high.sel { background: #FF9500; color: white; }
+        .sev-btn.crit.sel { background: #FF3B30; color: white; }
+
+        /* ── Toast ──────────────────────────────────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(28,28,30,0.92);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 22px;
+            font-size: 15px;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.25s;
+            z-index: 9999;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🚨 CERT Field Board</h1>
+    <p id="headerSub">Member Portal</p>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCREEN 1 — CHECK-IN
+═══════════════════════════════════════════════════════════ -->
+<div id="checkinScreen" class="screen active">
+
+    <div class="card" style="margin-top:20px;">
+        <div class="card-title">Your Name</div>
+        <div class="field">
+            <input id="ciName" type="text" placeholder="First Last"
+                   autocomplete="name" autocorrect="off" spellcheck="false">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Role</div>
+        <div class="field">
+            <select id="ciRole">
+                <option value="CERT Member">CERT Member</option>
+                <option value="Team Leader">Team Leader</option>
+                <option value="Operations - Medical/Triage">Medical / Triage</option>
+                <option value="Operations - Search &amp; Rescue">Search &amp; Rescue</option>
+                <option value="Operations - Damage Assessment">Damage Assessment</option>
+                <option value="Operations - Fire Suppression">Fire Suppression</option>
+                <option value="Logistics - Communications">Communications</option>
+                <option value="Logistics - Supplies">Supplies / Logistics</option>
+                <option value="Planning - Documentation">Documentation</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Team PIN</div>
+        <div class="field">
+            <input id="ciPin" type="password" placeholder="Enter team PIN (if required)"
+                   autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Equipment I Have</div>
+        <div class="equip-grid">
+            <label class="equip-item"><input type="checkbox" value="Radio"> Radio</label>
+            <label class="equip-item"><input type="checkbox" value="First Aid Kit"> First Aid Kit</label>
+            <label class="equip-item"><input type="checkbox" value="AED"> AED</label>
+            <label class="equip-item"><input type="checkbox" value="Chainsaw"> Chainsaw</label>
+            <label class="equip-item"><input type="checkbox" value="Generator"> Generator</label>
+            <label class="equip-item"><input type="checkbox" value="Vehicle"> Vehicle</label>
+            <label class="equip-item"><input type="checkbox" value="Golf Cart"> Golf Cart</label>
+            <label class="equip-item"><input type="checkbox" value="Fire Extinguisher"> Fire Ext.</label>
+            <label class="equip-item"><input type="checkbox" value="SAR Gear"> SAR Gear</label>
+        </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="checkIn()" style="margin-top:20px;">Check In</button>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCREEN 2 — HOME
+═══════════════════════════════════════════════════════════ -->
+<div id="homeScreen" class="screen">
+
+    <div class="member-card">
+        <div class="member-name" id="homeName">—</div>
+        <div class="member-role" id="homeRole">—</div>
+        <div id="homeTeam"></div>
+        <div id="homeTask"></div>
+    </div>
+
+    <button class="btn btn-report" onclick="showReport()">+ Submit Report</button>
+
+    <p class="session-note" id="sessionNote"></p>
+
+    <button class="btn btn-secondary" onclick="checkOut()" style="margin-top:20px;">Check Out</button>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCREEN 3 — SUBMIT REPORT
+═══════════════════════════════════════════════════════════ -->
+<div id="reportScreen" class="screen">
+
+    <div class="card" style="margin-top:20px;">
+        <div class="card-title">Incident Type</div>
+        <div class="field">
+            <select id="rType">
+                <option value="Tree Down">Tree Down</option>
+                <option value="Flooding">Flooding</option>
+                <option value="Power Line Down">Power Line Down</option>
+                <option value="Medical Need">Medical Need</option>
+                <option value="Blocked Road">Blocked Road</option>
+                <option value="Fire/Smoke">Fire/Smoke</option>
+                <option value="Gas Smell">Gas Smell</option>
+                <option value="Welfare Check">Welfare Check</option>
+                <option value="Structure Damage">Structure Damage</option>
+                <option value="Needs 911">Needs 911</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Severity</div>
+        <div class="sev-grid">
+            <button class="sev-btn low"  id="sLow"  onclick="setSev('Low')">Low</button>
+            <button class="sev-btn med"  id="sMed"  onclick="setSev('Medium')">Medium</button>
+            <button class="sev-btn high" id="sHigh" onclick="setSev('High')">High</button>
+            <button class="sev-btn crit" id="sCrit" onclick="setSev('Life Safety')">Life Safety</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Location / Address</div>
+        <div class="field">
+            <input id="rAddress" type="text"
+                   placeholder="e.g. 123 Oak St, near the park entrance"
+                   autocorrect="off">
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Notes</div>
+        <div class="field">
+            <textarea id="rNotes"
+                placeholder="What do you see? Number of people, hazards, immediate needs..."></textarea>
+        </div>
+    </div>
+
+    <button class="btn btn-danger" onclick="submitReport()" style="margin-top:20px;">Submit Report</button>
+    <button class="btn btn-secondary" onclick="showScreen('homeScreen')">Cancel</button>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    // ── State ──────────────────────────────────────────────────────────────────
+    let memberID   = localStorage.getItem('cert_mid');
+    let memberName = localStorage.getItem('cert_mname');
+    let memberRole = localStorage.getItem('cert_mrole');
+    let reportCount = parseInt(localStorage.getItem('cert_rcount') || '0');
+    let severity = 'Medium';
+    let gps = null;
+    let refreshTimer = null;
+
+    // ── Boot ───────────────────────────────────────────────────────────────────
+    if (memberID && memberName) {
+        populateHome();
+        showScreen('homeScreen');
+        scheduleRefresh();
+    }
+
+    // ── Screen helpers ─────────────────────────────────────────────────────────
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function populateHome() {
+        document.getElementById('homeName').textContent = memberName;
+        document.getElementById('homeRole').textContent = memberRole;
+        document.getElementById('headerSub').textContent = 'Checked In ✓';
+        updateSessionNote();
+    }
+
+    function showReport() {
+        severity = 'Medium';
+        renderSev();
+        document.getElementById('rNotes').value = '';
+        document.getElementById('rAddress').value = '';
+        gps = null;
+        tryGPS();
+        showScreen('reportScreen');
+    }
+
+    // ── Check-In ───────────────────────────────────────────────────────────────
+    async function checkIn() {
+        const name = document.getElementById('ciName').value.trim();
+        if (!name) { toast('Please enter your name'); return; }
+
+        const role = document.getElementById('ciRole').value;
+        const pin  = document.getElementById('ciPin').value;
+        const equip = [...document.querySelectorAll('.equip-grid input:checked')].map(c => c.value);
+        const now = isoNow();
+
+        localStorage.setItem('cert_team_pin', pin);
+
+        try {
+            const res = await api('POST', '/api/checkin', {
+                name, role,
+                status: 'Available',
+                equipment: equip,
+                last_updated: now
+            });
+
+            // HTTP response is snake_case (global Content encoder)
+            memberID   = res.member_id ?? res.memberID;
+            memberName = name;
+            memberRole = role;
+            reportCount = 0;
+
+            localStorage.setItem('cert_mid',    memberID);
+            localStorage.setItem('cert_mname',  memberName);
+            localStorage.setItem('cert_mrole',  memberRole);
+            localStorage.setItem('cert_rcount', '0');
+
+            populateHome();
+            showScreen('homeScreen');
+            toast('Checked in!');
+            scheduleRefresh();
+        } catch (e) {
+            toast(e.status === 401 ? 'Incorrect PIN — ask your team leader' : 'Cannot reach server — check WiFi');
+        }
+    }
+
+    function checkOut() {
+        if (!confirm('End your session and check out?')) return;
+        clearTimeout(refreshTimer);
+        localStorage.removeItem('cert_mid');
+        localStorage.removeItem('cert_mname');
+        localStorage.removeItem('cert_mrole');
+        localStorage.removeItem('cert_rcount');
+        memberID = memberName = memberRole = null;
+        reportCount = 0;
+        document.getElementById('ciName').value = '';
+        document.getElementById('headerSub').textContent = 'Member Portal';
+        document.getElementById('homeTeam').innerHTML = '';
+        document.getElementById('homeTask').innerHTML = '';
+        showScreen('checkinScreen');
+    }
+
+    // ── Assignment refresh ─────────────────────────────────────────────────────
+    // /api/dashboard is HTTP → response is snake_case
+    async function refreshAssignment() {
+        try {
+            const d = await api('GET', '/api/dashboard');
+
+            const me = (d.members || []).find(m => m.id === memberID);
+            if (!me) return;
+
+            const teamEl = document.getElementById('homeTeam');
+            const taskEl = document.getElementById('homeTask');
+
+            const teamID = me.sub_team_id;
+            if (teamID) {
+                const team = (d.sub_teams || []).find(t => t.id === teamID);
+                if (team) {
+                    teamEl.innerHTML =
+                        `<span class="team-badge ${team.color.toLowerCase()}">${team.color} Team</span>`;
+
+                    const task = (d.tasks || []).find(t =>
+                        t.assigned_sub_team_id === team.id &&
+                        t.status !== 'Completed' && t.status !== 'Cancelled'
+                    );
+                    taskEl.innerHTML = task
+                        ? `<div class="task-box">
+                               <div class="task-label">Your Task</div>
+                               <div class="task-title">${esc(task.title)}</div>
+                               ${task.description ? `<div class="task-desc">${esc(task.description)}</div>` : ''}
+                           </div>`
+                        : '<p class="standby">No task assigned yet — stand by.</p>';
+                }
+            } else {
+                teamEl.innerHTML = '<span class="team-badge none">Not yet assigned to a team</span>';
+                taskEl.innerHTML = '';
+            }
+        } catch (e) {
+            // Silent fail — server might be temporarily unreachable
+        }
+    }
+
+    function scheduleRefresh() {
+        refreshAssignment();
+        refreshTimer = setInterval(refreshAssignment, 30000);
+    }
+
+    // ── Severity ───────────────────────────────────────────────────────────────
+    function setSev(val) { severity = val; renderSev(); }
+    function renderSev() {
+        const map = { Low: 'sLow', Medium: 'sMed', High: 'sHigh', 'Life Safety': 'sCrit' };
+        Object.entries(map).forEach(([v, id]) =>
+            document.getElementById(id).classList.toggle('sel', v === severity));
+    }
+
+    // ── GPS (optional — fails silently on plain HTTP on iOS) ──────────────────
+    function tryGPS() {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(
+            pos => { gps = { lat: pos.coords.latitude, lng: pos.coords.longitude }; },
+            () => {}
+        );
+    }
+
+    // ── Report submission ──────────────────────────────────────────────────────
+    async function submitReport() {
+        if (!memberID) { toast('Not checked in'); return; }
+
+        const address = document.getElementById('rAddress').value.trim();
+        const notes   = document.getElementById('rNotes').value.trim();
+        const now = isoNow();
+
+        const payload = {
+            type:         document.getElementById('rType').value,
+            severity:     severity,
+            status:       'New',
+            notes:        notes,
+            reported_by:  memberID,
+            reported_at:  now,
+            last_updated: now,
+            location: {
+                latitude:  gps ? gps.lat : 0,
+                longitude: gps ? gps.lng : 0,
+                address:   address || null,
+                timestamp: now
+            }
+        };
+
+        try {
+            await api('POST', '/api/reports', payload);
+            reportCount++;
+            localStorage.setItem('cert_rcount', String(reportCount));
+            updateSessionNote();
+            toast('Report submitted ✓');
+            showScreen('homeScreen');
+        } catch (e) {
+            toast(e.status === 401 ? 'Incorrect PIN — ask your team leader' : 'Failed to submit — check WiFi');
+        }
+    }
+
+    // ── Utilities ──────────────────────────────────────────────────────────────
+    // ISO timestamp without milliseconds (Swift's iso8601 decoder rejects .000Z)
+    function isoNow() {
+        return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+    }
+
+    async function api(method, path, body) {
+        const opts = {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CERT-Token': localStorage.getItem('cert_team_pin') || ''
+            }
+        };
+        if (body) opts.body = JSON.stringify(body);
+        const res = await fetch(path, opts);
+        if (!res.ok) {
+            const err = new Error(await res.text());
+            err.status = res.status;
+            throw err;
+        }
+        return res.json();
+    }
+
+    function esc(s) {
+        return String(s)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function updateSessionNote() {
+        document.getElementById('sessionNote').textContent =
+            reportCount ? `${reportCount} report${reportCount > 1 ? 's' : ''} submitted this session` : '';
+    }
+
+    function toast(msg) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.classList.add('show');
+        setTimeout(() => el.classList.remove('show'), 2500);
+    }
+
+    // Render default severity on page load
+    renderSev();
+</script>
+</body>
+</html>

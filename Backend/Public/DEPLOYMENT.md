@@ -118,9 +118,7 @@ limit_conn_zone $binary_remote_addr zone=conn_limit:10m;
 
 ### 2. Docker Setup
 
-**Location:** `Backend/`
-
-**docker-compose.yml:**
+**Team server — `Backend/docker-compose.yml`:**
 ```yaml
 services:
   app:
@@ -128,16 +126,39 @@ services:
       context: .
     ports:
       - "8080:8080"
+    environment:
+      - ENVIRONMENT=production
+      - TEAM_ID=your-team-id          # unique slug, alphanumeric + hyphens
+      - TEAM_NAME=My CERT Team
+      - TEAM_LOCATION=                # optional human-readable city/area
+      - TEAM_ENDPOINT=https://team.cert.w6fgc.com  # public URL of THIS server
+      - TEAM_PIN=4012                 # shared PIN — change before deployment!
+      - COUNTY_ENDPOINT=https://county.cert.w6fgc.com  # remove for standalone
+    volumes:
+      - ./Public:/app/Public
+      - ./data:/app/data
+    restart: unless-stopped
+```
+
+**County server — `CountyServer/docker-compose.yml`:**
+```yaml
+services:
+  county:
+    build:
+      context: .
+    ports:
+      - "8090:8080"
+    environment:
+      - ENVIRONMENT=production
+      - COUNTY_PIN=                   # set to protect county dashboard writes
     volumes:
       - ./Public:/app/Public
     restart: unless-stopped
-    environment:
-      - ENVIRONMENT=development
 ```
 
 **Dockerfile:** Multi-stage build
-- Build stage: Swift 5.9 + compile
-- Production stage: Minimal runtime + non-root user
+- Build stage: `swift:5.9-jammy` — compiles Swift in release mode
+- Production stage: `swift:5.9-jammy-slim` — minimal runtime, non-root user `vapor:vapor` (uid 1000)
 
 ### 3. SSL/TLS Certificates
 

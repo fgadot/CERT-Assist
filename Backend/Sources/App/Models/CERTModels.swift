@@ -13,9 +13,9 @@ struct SubTeam: Content {
     var color: TeamColor
     var memberIDs: [UUID]
     var assignedTaskID: UUID?
-    var createdAt: Date?  // ← Make optional so frontend doesn't need to send
-    var lastUpdated: Date?  // ← Make optional so frontend doesn't need to send
-    
+    var createdAt: Date?
+    var lastUpdated: Date?
+
     enum TeamColor: String, Codable, CaseIterable {
         case red = "Red"
         case blue = "Blue"
@@ -25,7 +25,7 @@ struct SubTeam: Content {
         case orange = "Orange"
         case teal = "Teal"
         case pink = "Pink"
-        
+
         var hexColor: String {
             switch self {
             case .red: return "#dc3545"
@@ -51,9 +51,9 @@ struct CERTMember: Content {
     var status: MemberStatus
     var equipment: [String]
     var location: LocationData?
-    var subTeamID: UUID?  // ← NEW: Link to sub-team
+    var subTeamID: UUID?
     var lastUpdated: Date
-    
+
     enum MemberStatus: String, Codable {
         case available = "Available"
         case assigned = "Assigned"
@@ -65,31 +65,22 @@ struct CERTMember: Content {
 
 // ICS Positions for reference
 enum ICSPosition: String, Codable, CaseIterable {
-    // Command Staff
     case incidentCommander = "Incident Commander"
     case safetyOfficer = "Safety Officer"
     case publicInformationOfficer = "Public Information Officer"
     case liaisonOfficer = "Liaison Officer"
-    
-    // Operations Section
     case operationsChief = "Operations Section Chief"
     case medicalTriage = "Operations - Medical/Triage"
     case searchRescue = "Operations - Search & Rescue"
     case fireSuppression = "Operations - Fire Suppression"
     case damageAssessment = "Operations - Damage Assessment"
-    
-    // Planning Section
     case planningChief = "Planning Section Chief"
     case documentation = "Planning - Documentation"
     case resourceTracking = "Planning - Resource Tracking"
-    
-    // Logistics Section
     case logisticsChief = "Logistics Section Chief"
     case communications = "Logistics - Communications"
     case supplies = "Logistics - Supplies"
     case equipment = "Logistics - Equipment"
-    
-    // None
     case none = "Not Assigned"
 }
 
@@ -103,10 +94,13 @@ struct IncidentReport: Content {
     var status: ReportStatus
     var notes: String
     var reportedBy: UUID
-    var subTeamID: UUID?  // ← NEW: Which sub-team submitted this
+    var subTeamID: UUID?
+    var acknowledgedByCounty: Bool?   // nil = false; set by county ack message
+    var acknowledgedAt: Date?
+    var escalatedToCounty: Bool?      // nil = auto (High/LS go up); true = forced up; false = suppressed
     var reportedAt: Date
     var lastUpdated: Date
-    
+
     enum ReportType: String, Codable {
         case treeDown = "Tree Down"
         case flooding = "Flooding"
@@ -120,14 +114,14 @@ struct IncidentReport: Content {
         case needsEmergencyServices = "Needs 911"
         case other = "Other"
     }
-    
+
     enum Severity: String, Codable {
         case low = "Low"
         case medium = "Medium"
         case high = "High"
         case lifeSafety = "Life Safety"
     }
-    
+
     enum ReportStatus: String, Codable {
         case new = "New"
         case assigned = "Assigned"
@@ -142,16 +136,16 @@ struct CERTTask: Content {
     var id: UUID?
     var title: String
     var description: String
-    var assignedTo: [UUID]  // Keep for backward compatibility
-    var assignedSubTeamID: UUID?  // ← NEW: Assigned to sub-team
+    var assignedTo: [UUID]
+    var assignedSubTeamID: UUID?
     var status: TaskStatus
     var priority: String
     var location: LocationData?
     var relatedReportID: UUID?
-    var createdAt: Date?  // Make optional so frontend doesn't need to send
+    var createdAt: Date?
     var completedAt: Date?
     var notes: String
-    
+
     enum TaskStatus: String, Codable {
         case open = "Open"
         case assigned = "Assigned"
@@ -192,6 +186,44 @@ struct DashboardData: Content {
     var members: [CERTMember]
     var reports: [IncidentReport]
     var tasks: [CERTTask]
-    var subTeams: [SubTeam]  // ← NEW: Include sub-teams
+    var subTeams: [SubTeam]
     var lastUpdate: Date
+}
+
+// MARK: - County Integration
+
+struct TeamSummary: Content {
+    var teamID: String
+    var teamName: String
+    var location: String?
+    var endpoint: String?
+    var memberCount: Int
+    var activeMemberCount: Int
+    var reportCounts: ReportSeverityCounts
+    var unacknowledgedPriority: Int
+    var openTaskCount: Int
+    var lastContact: Date
+
+    struct ReportSeverityCounts: Content {
+        var lifeSafety: Int
+        var high: Int
+        var medium: Int
+        var low: Int
+    }
+}
+
+struct CountyMessage: Content {
+    var id: UUID
+    var type: MessageType
+    var targetTeamID: String
+    var reportID: UUID?
+    var text: String
+    var timestamp: Date
+    var confirmed: Bool
+
+    enum MessageType: String, Codable {
+        case acknowledgment
+        case alert
+        case info
+    }
 }

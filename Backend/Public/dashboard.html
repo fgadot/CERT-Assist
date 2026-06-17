@@ -400,30 +400,68 @@
         .badge.completed { background: #34C759; color: white; }
         .badge.cancelled { background: #8E8E93; color: white; }
 
+        /* Priority-coded left border on task cards */
+        .task-item.p-low  { border-left-color: #34C759; }
+        .task-item.p-med  { border-left-color: #FFCC00; }
+        .task-item.p-high { border-left-color: #FF9500; }
+        .task-item.p-crit { border-left-color: #FF3B30; }
+        .task-item.cancelled { opacity: 0.55; border-left-color: #8E8E93; }
+
         .task-actions {
             display: flex;
             gap: 6px;
             margin-top: 8px;
         }
 
+        /* Neutral action buttons — color conveys data above, not actions */
         .btn-sm {
-            padding: 4px 10px;
+            padding: 4px 12px;
             font-size: 12px;
-            border: none;
+            border: 1px solid #d1d1d6;
             border-radius: 5px;
             cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
+            font-weight: 500;
+            background: #f5f5f5;
+            color: #3a3a3c;
+            transition: background 0.15s;
         }
+        .btn-sm:hover         { background: #e5e5ea; }
+        .btn-sm.cancel        { color: #FF3B30; }
+        .btn-sm.cancel:hover  { background: #fff0f0; border-color: #FF3B30; }
+        .btn-sm.reopen        { color: #007AFF; }
 
-        .btn-sm.edit   { background: #007AFF; color: white; }
-        .btn-sm.cancel { background: #FF9500; color: white; }
-        .btn-sm.done   { background: #34C759; color: white; }
-        .btn-sm.reopen { background: #8E8E93; color: white; }
+        /* Report detail modal */
+        .report-item { cursor: pointer; }
+        .report-item:hover { filter: brightness(0.96); }
 
-        .btn-sm:hover { opacity: 0.85; }
-
-        .task-item.cancelled { opacity: 0.6; border-left-color: #8E8E93; }
+        .detail-row {
+            display: flex;
+            gap: 12px;
+            padding: 9px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+            align-items: flex-start;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            min-width: 110px;
+            flex-shrink: 0;
+        }
+        .county-section {
+            margin-top: 16px;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        .county-section-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.05em;
+        }
     </style>
 </head>
 <body>
@@ -459,8 +497,8 @@
         <div class="subteam-header">
             <h2>🎨 Teams</h2>
             <div style="display: flex; gap: 10px;">
-                <button class="btn btn-primary" onclick="openCreateTaskModal()">+ Create Task</button>
                 <button class="btn btn-primary" onclick="openCreateSubTeamModal()">+ Create Team</button>
+                <button class="btn btn-primary" onclick="openCreateTaskModal()">+ Create Task</button>
             </div>
         </div>
         <div id="subTeamList">
@@ -571,6 +609,24 @@
         </div>
     </div>
 
+    <!-- PIN Authentication Modal -->
+    <div class="modal" id="pinModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔐 Team Access PIN</h2>
+            </div>
+            <p style="margin-bottom: 16px; color: #666;">Enter the team PIN to access this dashboard.</p>
+            <div class="form-group">
+                <label>PIN</label>
+                <input type="password" id="pinInput" placeholder="Enter PIN"
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;"
+                       onkeydown="if(event.key==='Enter') submitPin()">
+            </div>
+            <p id="pinError" style="color: #FF3B30; font-size: 13px; margin-bottom: 12px; min-height: 18px;"></p>
+            <button class="btn btn-primary" onclick="submitPin()" style="width: 100%;">Access Dashboard</button>
+        </div>
+    </div>
+
     <!-- Edit Task Modal -->
     <div class="modal" id="editTaskModal">
         <div class="modal-content">
@@ -617,7 +673,87 @@
         </div>
     </div>
 
+    <!-- Report Detail Modal -->
+    <div class="modal" id="reportDetailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="reportModalTitle">Report Details</h2>
+                <button class="close-btn" onclick="closeReportModal()">&times;</button>
+            </div>
+            <div id="reportModalBody"></div>
+            <div id="reportModalActions" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
     <script>
+        // ── Security helpers ──────────────────────────────────────────────────────
+        function esc(s) {
+            return String(s ?? '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function getCertPin() {
+            return sessionStorage.getItem('cert_pin') || '';
+        }
+
+        async function apiCall(method, url, body) {
+            const opts = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CERT-Token': getCertPin()
+                }
+            };
+            if (body !== undefined) opts.body = JSON.stringify(body);
+            return fetch(url, opts);
+        }
+
+        async function checkAuthAndConnect() {
+            try {
+                const res = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CERT-Token': getCertPin() }
+                });
+                if (res.status === 401) {
+                    showPinModal();
+                } else {
+                    connect();
+                }
+            } catch {
+                connect();
+            }
+        }
+
+        function showPinModal() {
+            document.getElementById('pinModal').classList.add('show');
+            setTimeout(() => document.getElementById('pinInput').focus(), 50);
+        }
+
+        function hidePinModal() {
+            document.getElementById('pinModal').classList.remove('show');
+        }
+
+        async function submitPin() {
+            const pin = document.getElementById('pinInput').value;
+            try {
+                const res = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CERT-Token': pin }
+                });
+                if (res.ok) {
+                    sessionStorage.setItem('cert_pin', pin);
+                    hidePinModal();
+                    connect();
+                } else {
+                    document.getElementById('pinError').textContent = 'Incorrect PIN — check with your team leader.';
+                }
+            } catch {
+                document.getElementById('pinError').textContent = 'Cannot reach server — check WiFi.';
+            }
+        }
+
+        // ── State ────────────────────────────────────────────────────────────────
         let ws;
         let reconnectAttempts = 0;
         const maxReconnectAttempts = 5;
@@ -626,6 +762,7 @@
         let previousTaskCount = 0;
         let previousSubTeamCount = 0;
         let currentData = null;
+        let currentReportId = null;
         
         function connect() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -769,11 +906,11 @@
                 return `
                 <div class="member-item ${member.status.toLowerCase().replace(' ', '')}">
                     <div class="item-header">
-                        ${teamBadge}${member.name}
+                        ${teamBadge}${esc(member.name)}
                     </div>
                     <div class="item-meta">
-                        <span class="badge ${member.status.toLowerCase().replace(' ', '')}">${member.status}</span>
-                        ${member.role}
+                        <span class="badge ${member.status.toLowerCase().replace(' ', '')}">${esc(member.status)}</span>
+                        ${esc(member.role)}
                     </div>
                 </div>
             `;
@@ -785,25 +922,30 @@
         
         function updateReportList(reports, subTeams) {
             const container = document.getElementById('reportList');
-            
+
             if (reports.length === 0) {
                 container.innerHTML = '<div class="empty-state">No reports yet</div>';
                 return;
             }
-            
+
             container.innerHTML = reports.map(report => {
-                const subTeam = subTeams ? subTeams.find(st => st.id === report.subTeamID) : null;
-                const teamBadge = subTeam ? 
+                const subTeam = subTeams ? subTeams.find(st => st.id === report.sub_team_id) : null;
+                const teamBadge = subTeam ?
                     `<span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color}</span>` : '';
-                
+
+                const isHighPriority = report.severity === 'High' || report.severity === 'Life Safety';
+                const goesToCounty = (isHighPriority && report.escalated_to_county !== false) || report.escalated_to_county === true;
+                const countyDot = goesToCounty ? ' <span title="Sent to county" style="font-size:11px;">📡</span>' : '';
+                const ackedBadge = report.acknowledged_by_county ? ' <span title="Acknowledged by county" style="font-size:11px; color:#28a745;">✓ County</span>' : '';
+
                 return `
-                <div class="report-item ${report.severity.toLowerCase().replace(' ', '')}">
+                <div class="report-item ${report.severity.toLowerCase().replace(' ', '')}" onclick="openReportModal('${report.id}')">
                     <div class="item-header">
-                        ${teamBadge}${report.type}
+                        ${teamBadge}${esc(report.type)}${countyDot}
                     </div>
                     <div class="item-meta">
-                        <span class="badge ${report.status.toLowerCase()}">${report.status}</span>
-                        <span class="severity-badge ${report.severity.toLowerCase().replace(' ', '')}">${report.severity}</span>
+                        <span class="badge ${report.status.toLowerCase()}">${esc(report.status)}</span>
+                        <span class="severity-badge ${report.severity.toLowerCase().replace(' ', '')}">${esc(report.severity)}</span>${ackedBadge}
                     </div>
                 </div>
             `;
@@ -818,29 +960,35 @@
                 return;
             }
 
+            const priorityClass = { Low: 'p-low', Medium: 'p-med', High: 'p-high', Critical: 'p-crit' };
+            const priorityColor = { Low: '#34C759', Medium: '#b8860b', High: '#FF9500', Critical: '#FF3B30' };
+
             container.innerHTML = tasks.map(task => {
                 const subTeam = subTeams ? subTeams.find(st => st.id === task.assignedSubTeamID) : null;
                 const teamBadge = subTeam ?
-                    `<span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color}</span>` : '';
+                    `<span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color} Team</span>` : '';
+                const pClass    = priorityClass[task.priority] || '';
+                const pColor    = priorityColor[task.priority] || '#8E8E93';
+                const pLabel    = `<span style="color:${pColor};font-weight:700;font-size:11px;">● ${task.priority}</span>`;
                 const isCancelled = task.status === 'Cancelled';
-                const isFinished = task.status === 'Completed' || isCancelled;
+                const isFinished  = task.status === 'Completed' || isCancelled;
 
                 const actions = isFinished ? `
                     <div class="task-actions">
                         <button class="btn-sm reopen" onclick="reopenTask('${task.id}', event)">↩ Re-open</button>
                     </div>` : `
                     <div class="task-actions">
-                        <button class="btn-sm edit"   onclick="openEditTaskModal('${task.id}', event)">✏ Edit</button>
-                        <button class="btn-sm done"   onclick="completeTask('${task.id}', event)">✓ Complete</button>
-                        <button class="btn-sm cancel" onclick="cancelTask('${task.id}', event)">✕ Cancel</button>
+                        <button class="btn-sm edit"   onclick="openEditTaskModal('${task.id}', event)">Edit</button>
+                        <button class="btn-sm done"   onclick="completeTask('${task.id}', event)">Complete</button>
+                        <button class="btn-sm cancel" onclick="cancelTask('${task.id}', event)">Cancel</button>
                     </div>`;
 
                 return `
-                <div class="task-item${isCancelled ? ' cancelled' : ''}">
-                    <div class="item-header">${teamBadge}${task.title}</div>
+                <div class="task-item ${pClass}${isCancelled ? ' cancelled' : ''}">
+                    <div class="item-header">${teamBadge}${esc(task.title)}</div>
                     <div class="item-meta">
-                        <span class="badge ${task.status.toLowerCase()}">${task.status}</span>
-                        ${task.priority}
+                        ${pLabel}
+                        <span class="badge ${task.status.toLowerCase()}" style="margin-left:6px;">${esc(task.status)}</span>
                     </div>
                     ${actions}
                 </div>`;
@@ -863,8 +1011,8 @@
                 // Create member pills with free buttons
                 const memberPills = teamMembers.map(m => `
                     <span class="member-pill">
-                        ${m.name}
-                        <button class="free-member-btn" onclick="freeMember('${m.id}', '${m.name}', event)" title="Free ${m.name} from team">
+                        ${esc(m.name)}
+                        <button class="free-member-btn" onclick="freeMember('${m.id}', event)" title="Free ${esc(m.name)} from team">
                             ✕
                         </button>
                     </span>
@@ -880,10 +1028,10 @@
                             <div style="background: white; padding: 8px; border-radius: 6px; margin-bottom: 6px; border-left: 3px solid ${getPriorityColor(task.priority)};">
                                 <div style="display: flex; justify-content: space-between; align-items: start;">
                                     <div style="flex: 1;">
-                                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 2px;">${task.title}</div>
+                                        <div style="font-weight: 600; font-size: 13px; margin-bottom: 2px;">${esc(task.title)}</div>
                                         <div style="font-size: 11px; color: #666;">
-                                            <span class="badge ${task.status.toLowerCase()}">${task.status}</span>
-                                            <span style="background: ${getPriorityColor(task.priority)}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 4px;">${task.priority}</span>
+                                            <span class="badge ${task.status.toLowerCase()}">${esc(task.status)}</span>
+                                            <span style="background: ${getPriorityColor(task.priority)}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 4px;">${esc(task.priority)}</span>
                                         </div>
                                     </div>
                                     <button class="btn-sm done"   onclick="completeTask('${task.id}', event)">✓ Complete</button>
@@ -966,7 +1114,7 @@
                     return `
                         <div class="checkbox-item">
                             <input type="checkbox" id="member_${member.id}" value="${member.id}">
-                            <label for="member_${member.id}" ${style}>${member.name} - ${member.role}${teamLabel}</label>
+                            <label for="member_${member.id}" ${style}>${esc(member.name)} - ${esc(member.role)}${teamLabel}</label>
                         </div>
                     `;
                 }).join('');
@@ -1035,14 +1183,8 @@
             console.log('Creating team:', subTeam);
             
             try {
-                const response = await fetch('/api/subteams', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(subTeam)
-                });
-                
+                const response = await apiCall('POST', '/api/subteams', subTeam);
+
                 console.log('Response status:', response.status);
                 const responseText = await response.text();
                 console.log('Response body:', responseText);
@@ -1060,18 +1202,17 @@
             }
         }
         
-        async function freeMember(memberId, memberName, event) {
-            event.stopPropagation(); // Prevent any parent click handlers
-            
+        async function freeMember(memberId, event) {
+            event.stopPropagation();
+            const memberName = currentData?.members?.find(m => m.id === memberId)?.name || 'this member';
+
             if (!confirm(`Free ${memberName} from their team?\n\nThey will return to "Available" status.\n\nNote: If this leaves the team with less than 2 members, the team will be automatically disbanded.`)) {
                 return;
             }
-            
+
             try {
-                const response = await fetch(`/api/members/${memberId}/free`, {
-                    method: 'POST'
-                });
-                
+                const response = await apiCall('POST', `/api/members/${memberId}/free`);
+
                 if (response.ok) {
                     console.log(`✅ ${memberName} freed from team`);
                 } else {
@@ -1139,16 +1280,7 @@
         
         async function updateTeamMembers(teamId, memberIDs, teamColor) {
             try {
-                const response = await fetch(`/api/subteams/${teamId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        color: teamColor,
-                        memberIDs: memberIDs
-                    })
-                });
+                const response = await apiCall('PUT', `/api/subteams/${teamId}`, { color: teamColor, memberIDs: memberIDs });
                 
                 if (response.ok) {
                     console.log(`✅ ${teamColor} Team updated successfully`);
@@ -1207,13 +1339,7 @@
             console.log('Creating task:', task);
             
             try {
-                const response = await fetch('/api/tasks', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(task)
-                });
+                const response = await apiCall('POST', '/api/tasks', task);
                 
                 if (response.ok) {
                     console.log('✅ Task created successfully');
@@ -1250,13 +1376,7 @@
             };
             
             try {
-                const response = await fetch(`/api/tasks/${taskId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(updatedTask)
-                });
+                const response = await apiCall('PUT', `/api/tasks/${taskId}`, updatedTask);
                 
                 if (response.ok) {
                     console.log('✅ Task completed');
@@ -1313,11 +1433,7 @@
             };
 
             try {
-                const response = await fetch(`/api/tasks/${taskId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(updated)
-                });
+                const response = await apiCall('PUT', `/api/tasks/${taskId}`, updated);
                 if (response.ok) {
                     closeEditTaskModal();
                 } else {
@@ -1338,11 +1454,7 @@
             if (!task) return;
 
             try {
-                const response = await fetch(`/api/tasks/${taskId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...task, status: 'Cancelled' })
-                });
+                const response = await apiCall('PUT', `/api/tasks/${taskId}`, { ...task, status: 'Cancelled' });
                 if (!response.ok) alert('Failed to cancel task');
             } catch (err) {
                 alert('Error: ' + err.message);
@@ -1356,15 +1468,143 @@
 
             const newStatus = task.assignedSubTeamID ? 'Assigned' : 'Open';
             try {
-                const response = await fetch(`/api/tasks/${taskId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...task, status: newStatus, completedAt: null })
-                });
+                const response = await apiCall('PUT', `/api/tasks/${taskId}`, { ...task, status: newStatus, completedAt: null });
                 if (!response.ok) alert('Failed to re-open task');
             } catch (err) {
                 alert('Error: ' + err.message);
             }
+        }
+
+        // ── Report Detail Modal ────────────────────────────────────────────────
+
+        function openReportModal(reportId) {
+            const report = currentData?.reports?.find(r => r.id === reportId);
+            if (!report) return;
+
+            currentReportId = reportId;
+
+            const reporter = currentData?.members?.find(m => m.id === report.reported_by);
+            const subTeam  = currentData?.subTeams?.find(st => st.id === report.sub_team_id);
+            const sevClass = report.severity.toLowerCase().replace(' ', '');
+
+            const location = report.location;
+            const locationStr = location?.address ||
+                (location ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : 'Unknown');
+
+            const reportedAt = new Date(report.reported_at).toLocaleString();
+            const teamBadge  = subTeam ? `<span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color} Team</span>` : '';
+
+            const isHighPriority = report.severity === 'High' || report.severity === 'Life Safety';
+            const escalated = report.escalated_to_county;
+
+            let countyStatusText, countyBtnText, countyBtnStyle;
+            if (isHighPriority) {
+                if (escalated === false) {
+                    countyStatusText = '🔕 Suppressed — not sent to county';
+                    countyBtnText    = '↩ Restore auto-escalation';
+                    countyBtnStyle   = '';
+                } else {
+                    countyStatusText = '📡 Auto-escalated to county';
+                    countyBtnText    = '🔕 Suppress from county';
+                    countyBtnStyle   = 'color:#856404;';
+                }
+            } else {
+                if (escalated === true) {
+                    countyStatusText = '📡 Manually sent to county';
+                    countyBtnText    = '↩ Remove from county';
+                    countyBtnStyle   = 'color:#856404;';
+                } else {
+                    countyStatusText = '🏠 Local only (not sent to county)';
+                    countyBtnText    = '📡 Push to county';
+                    countyBtnStyle   = '';
+                }
+            }
+
+            const countyAckRow = report.acknowledged_by_county
+                ? `<div class="detail-row"><span class="detail-label">County EOC</span><span style="color:#28a745;">✓ Acknowledged</span></div>`
+                : '';
+
+            document.getElementById('reportModalTitle').textContent = report.type;
+
+            document.getElementById('reportModalBody').innerHTML = `
+                <div style="margin-bottom:16px;">
+                    <span class="severity-badge ${sevClass}">${esc(report.severity)}</span>
+                    <span class="badge ${report.status.toLowerCase()}" style="margin-left:6px;">${esc(report.status)}</span>
+                    ${teamBadge ? `<span style="margin-left:6px;">${teamBadge}</span>` : ''}
+                </div>
+                <div class="detail-row"><span class="detail-label">Location</span><span>${esc(locationStr)}</span></div>
+                <div class="detail-row"><span class="detail-label">Notes</span><span>${esc(report.notes || '—')}</span></div>
+                <div class="detail-row"><span class="detail-label">Reported by</span><span>${esc(reporter?.name || 'Unknown')}</span></div>
+                <div class="detail-row"><span class="detail-label">Reported at</span><span>${reportedAt}</span></div>
+                ${countyAckRow}
+                <div class="county-section">
+                    <div class="county-section-title">County Visibility</div>
+                    <div style="margin-bottom:8px; font-size:14px;">${countyStatusText}</div>
+                    <button class="btn-sm" style="${countyBtnStyle}" onclick="toggleCountyEscalation()">${countyBtnText}</button>
+                </div>
+            `;
+
+            const actions = [];
+            if (report.status === 'New') {
+                actions.push(`<button class="btn btn-primary" style="flex:1;" onclick="acknowledgeReport()">Acknowledge</button>`);
+            }
+            if (report.status !== 'Resolved' && report.status !== 'Cancelled') {
+                actions.push(`<button class="btn" style="flex:1;background:#34C759;color:white;" onclick="resolveReport()">Mark Resolved</button>`);
+            }
+            if (report.status === 'Resolved') {
+                actions.push(`<button class="btn" style="flex:1;background:#f5f5f5;color:#333;" onclick="reopenReport()">Re-open</button>`);
+            }
+
+            document.getElementById('reportModalActions').innerHTML =
+                actions.length ? `<div style="display:flex;gap:8px;">${actions.join('')}</div>` : '';
+
+            document.getElementById('reportDetailModal').classList.add('show');
+        }
+
+        function closeReportModal() {
+            document.getElementById('reportDetailModal').classList.remove('show');
+            currentReportId = null;
+        }
+
+        async function acknowledgeReport() {
+            await updateReportStatus('Assigned');
+        }
+
+        async function resolveReport() {
+            await updateReportStatus('Resolved');
+        }
+
+        async function reopenReport() {
+            await updateReportStatus('New');
+        }
+
+        async function updateReportStatus(newStatus) {
+            const report = currentData?.reports?.find(r => r.id === currentReportId);
+            if (!report) return;
+            try {
+                const res = await apiCall('PUT', `/api/reports/${currentReportId}`, { ...report, status: newStatus });
+                if (res.ok) { closeReportModal(); }
+                else { alert('Failed to update report: ' + await res.text()); }
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        async function toggleCountyEscalation() {
+            const report = currentData?.reports?.find(r => r.id === currentReportId);
+            if (!report) return;
+
+            const isHighPriority = report.severity === 'High' || report.severity === 'Life Safety';
+            let newValue;
+            if (isHighPriority) {
+                newValue = report.escalated_to_county === false ? null : false;
+            } else {
+                newValue = report.escalated_to_county === true ? null : true;
+            }
+
+            try {
+                const res = await apiCall('PUT', `/api/reports/${currentReportId}`, { ...report, escalated_to_county: newValue });
+                if (res.ok) { closeReportModal(); }
+                else { alert('Failed to update: ' + await res.text()); }
+            } catch (err) { alert('Error: ' + err.message); }
         }
 
         async function deleteSubTeam(id) {
@@ -1373,9 +1613,7 @@
             }
             
             try {
-                const response = await fetch(`/api/subteams/${id}`, {
-                    method: 'DELETE'
-                });
+                const response = await apiCall('DELETE', `/api/subteams/${id}`);
                 
                 if (response.ok) {
                     console.log('✅ Team deleted successfully');
@@ -1391,7 +1629,7 @@
         
         // Start connection on page load
         console.log('🚀 Starting connection...');
-        connect();
+        checkAuthAndConnect();
         
         // Also expose updateDashboard globally for debugging
         window.updateDashboard = updateDashboard;

@@ -6,8 +6,22 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - ENVIRONMENT=development
+      - ENVIRONMENT=production
+      # ── Team identity ──────────────────────────────────────────────────
+      # Set these per-deployment. TEAM_ENDPOINT is the public URL of THIS
+      # server (sent to county so the county dashboard can fetch full data).
+      - TEAM_ID=unknown
+      - TEAM_NAME=Unknown Team
+      - TEAM_LOCATION=
+      - TEAM_ENDPOINT=https://team.cert.w6fgc.com
+      # ── Authentication ─────────────────────────────────────────────────────────
+      # Set TEAM_PIN to require a shared PIN for all write operations.
+      # Leave blank or omit to run without authentication (read access always open).
+      - TEAM_PIN=4012
+      # ── County integration ─────────────────────────────────────────────
+      # Remove or leave blank to run standalone (no county connection).
+      - COUNTY_ENDPOINT=https://county.cert.w6fgc.com
     volumes:
       - ./Public:/app/Public
-      - ./data:/app/data  # Persist database file
+      - ./data:/app/data
     restart: unless-stopped

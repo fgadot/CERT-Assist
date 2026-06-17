@@ -6,48 +6,99 @@
 import Vapor
 import Fluent
 import FluentSQLiteDriver
+import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 public func configure(_ app: Application) throws {
-    
-    // Configure JSON encoder/decoder for dates
+
     let encoder = JSONEncoder()
     encoder.dateEncodingStrategy = .iso8601
     encoder.keyEncodingStrategy = .convertToSnakeCase
-    
+
     let decoder = JSONDecoder()
     decoder.dateDecodingStrategy = .iso8601
     decoder.keyDecodingStrategy = .convertFromSnakeCase
-    
+
     ContentConfiguration.global.use(encoder: encoder, for: .json)
     ContentConfiguration.global.use(decoder: decoder, for: .json)
-    
-    // Configure SQLite database in /app/data directory (persisted via Docker volume)
+
     let dbPath = app.directory.workingDirectory + "data/cert_data.db"
     app.databases.use(.sqlite(.file(dbPath)), as: .sqlite)
-    
-    // Run migrations (none yet, but ready for future use)
-    // app.migrations.add(...)
-    // try app.autoMigrate().wait()
-    
-    // Configure maximum upload file size (for future photo uploads)
+
     app.routes.defaultMaxBodySize = "10mb"
-    
-    // Serve files from /Public directory
+
     app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
-    
-    // Configure CORS for iOS app
+
     let corsConfiguration = CORSMiddleware.Configuration(
         allowedOrigin: .all,
         allowedMethods: [.GET, .POST, .PUT, .OPTIONS, .DELETE, .PATCH],
         allowedHeaders: [.accept, .authorization, .contentType, .origin, .xRequestedWith, .userAgent, .accessControlAllowOrigin]
     )
-    let cors = CORSMiddleware(configuration: corsConfiguration)
-    app.middleware.use(cors, at: .beginning)
-    
-    // Register routes
+    app.middleware.use(CORSMiddleware(configuration: corsConfiguration), at: .beginning)
+
+    if let pin = Environment.get("TEAM_PIN"), !pin.isEmpty {
+        app.middleware.use(PINAuthMiddleware(pin: pin))
+        print("🔐 PIN authentication enabled")
+    }
+
     try routes(app)
-    
+
+    // ── County message polling (Option 2: teams poll county, not county push to teams) ──
+    // Teams poll the county server every 30s for pending messages (acks, alerts, etc.)
+    // This way county never needs to reach team servers directly — teams pull messages.
+    if let countyEndpoint = Environment.get("COUNTY_ENDPOINT"),
+       let teamID = Environment.get("TEAM_ID") {
+        print("🗺️  County endpoint: \(countyEndpoint) — polling every 30s for messages")
+        Task {
+            while true {
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
+                await pollCountyMessages(countyEndpoint: countyEndpoint, teamID: teamID)
+            }
+        }
+    }
+
     print("✅ CERT Field Board Backend configured successfully")
-    print("📁 Database location: cert_data.db")
+    print("📁 Team ID: \(Environment.get("TEAM_ID") ?? "not set")")
 }
 
+// Polls county server for messages addressed to this team, processes them, then confirms.
+private func pollCountyMessages(countyEndpoint: String, teamID: String) async {
+    guard let url = URL(string: "\(countyEndpoint)/api/messages?team=\(teamID)") else { return }
+
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+    // URLSession async overloads aren't available on Linux; use completion-handler form.
+    let fetchedData: Data? = await withCheckedContinuation { continuation in
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            continuation.resume(returning: data)
+        }.resume()
+    }
+    guard let data = fetchedData,
+          let messages = try? decoder.decode([CountyMessage].self, from: data),
+          !messages.isEmpty else { return }
+
+    print("📬 Received \(messages.count) message(s) from county")
+
+    for message in messages {
+        await dataStore.applyCountyMessage(message)
+
+        // Confirm we processed it so county can clear it
+        if let confirmURL = URL(string: "\(countyEndpoint)/api/messages/\(message.id)/confirm") {
+            var req = URLRequest(url: confirmURL)
+            req.httpMethod = "POST"
+            req.timeoutInterval = 5
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                URLSession.shared.dataTask(with: req) { _, _, _ in
+                    continuation.resume()
+                }.resume()
+            }
+        }
+    }
+
+    // Broadcast updated state (acks now visible on team dashboard)
+    await dataStore.broadcastUpdate()
+}
