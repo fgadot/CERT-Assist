@@ -205,6 +205,66 @@
             pointer-events: none;
         }
         .toast.show { opacity: 1; }
+
+        /* ── Name edit ──────────────────────────────────────────── */
+        .name-display-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 2px;
+        }
+        .edit-name-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.45;
+            padding: 0;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .edit-name-btn:active { opacity: 1; }
+        .name-edit-row { display: none; margin-bottom: 6px; }
+        .name-edit-input {
+            width: 100%;
+            font-size: 24px;
+            font-weight: 700;
+            border: none;
+            border-bottom: 2px solid #007AFF;
+            background: transparent;
+            outline: none;
+            font-family: inherit;
+            color: #1c1c1e;
+            padding-bottom: 4px;
+        }
+
+        /* ── My Reports ─────────────────────────────────────────── */
+        .my-reports-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: #8E8E93;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 14px;
+            margin-bottom: 8px;
+        }
+        .report-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            background: #f2f2f7;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 6px;
+        }
+        .report-row-title { font-size: 14px; font-weight: 600; color: #1c1c1e; }
+        .report-row-addr  { font-size: 12px; color: #8E8E93; margin-top: 2px; }
+        .report-row-status { font-size: 12px; font-weight: 600; white-space: nowrap; padding-top: 2px; }
+        .status-waiting      { color: #8E8E93; }
+        .status-acknowledged { color: #FF9500; }
+        .status-resolved     { color: #34C759; }
+        .status-escalated    { color: #FF3B30; }
     </style>
 </head>
 <body>
@@ -277,10 +337,23 @@
 <div id="homeScreen" class="screen">
 
     <div class="member-card">
-        <div class="member-name" id="homeName">—</div>
+        <div class="name-display-row" id="nameDisplayRow">
+            <span class="member-name" id="homeNameText">—</span>
+            <button class="edit-name-btn" onclick="editNameMode()">✏️</button>
+        </div>
+        <div class="name-edit-row" id="nameEditRow">
+            <input type="text" id="nameEditInput" class="name-edit-input"
+                   autocomplete="name" autocorrect="off" spellcheck="false"
+                   onkeydown="if(event.key==='Enter')saveName()">
+            <div style="display:flex; gap:8px; margin-top:10px;">
+                <button class="btn btn-primary"   style="flex:1;padding:10px;font-size:15px;margin:0;" onclick="saveName()">Save</button>
+                <button class="btn btn-secondary" style="flex:1;padding:10px;font-size:15px;margin:0;" onclick="cancelNameEdit()">Cancel</button>
+            </div>
+        </div>
         <div class="member-role" id="homeRole">—</div>
         <div id="homeTeam"></div>
         <div id="homeTask"></div>
+        <div id="homeReports"></div>
     </div>
 
     <button class="btn btn-report" onclick="showReport()">+ Submit Report</button>
@@ -373,7 +446,7 @@
     }
 
     function populateHome() {
-        document.getElementById('homeName').textContent = memberName;
+        document.getElementById('homeNameText').textContent = memberName;
         document.getElementById('homeRole').textContent = memberRole;
         document.getElementById('headerSub').textContent = 'Checked In ✓';
         updateSessionNote();
@@ -442,6 +515,8 @@
         document.getElementById('headerSub').textContent = 'Member Portal';
         document.getElementById('homeTeam').innerHTML = '';
         document.getElementById('homeTask').innerHTML = '';
+        document.getElementById('homeReports').innerHTML = '';
+        cancelNameEdit();
         showScreen('checkinScreen');
     }
 
@@ -480,8 +555,72 @@
                 teamEl.innerHTML = '<span class="team-badge none">Not yet assigned to a team</span>';
                 taskEl.innerHTML = '';
             }
+
+            // ── My Reports ────────────────────────────────────────────────────
+            const myReports = (d.reports || [])
+                .filter(r => r.reported_by === memberID)
+                .sort((a, b) => new Date(b.reported_at) - new Date(a.reported_at))
+                .slice(0, 5);
+
+            const reportsEl = document.getElementById('homeReports');
+            if (myReports.length === 0) {
+                reportsEl.innerHTML = '';
+            } else {
+                const statusMap = {
+                    'New':       { label: 'Submitted — waiting', cls: 'status-waiting' },
+                    'Assigned':  { label: 'Acknowledged ✓',      cls: 'status-acknowledged' },
+                    'Resolved':  { label: 'Resolved ✓',          cls: 'status-resolved' },
+                    'Escalated': { label: 'Escalated 🚨',         cls: 'status-escalated' }
+                };
+                reportsEl.innerHTML =
+                    `<div class="my-reports-title">My Reports (${myReports.length})</div>` +
+                    myReports.map(r => {
+                        const s = statusMap[r.status] || { label: r.status, cls: 'status-waiting' };
+                        const addr = r.location?.address
+                            ? `<div class="report-row-addr">${esc(r.location.address)}</div>`
+                            : '';
+                        return `<div class="report-row">
+                            <div>
+                                <div class="report-row-title">${esc(r.type)}</div>
+                                ${addr}
+                            </div>
+                            <div class="report-row-status ${s.cls}">${s.label}</div>
+                        </div>`;
+                    }).join('');
+            }
         } catch (e) {
             // Silent fail — server might be temporarily unreachable
+        }
+    }
+
+    // ── Name edit ──────────────────────────────────────────────────────────────
+    function editNameMode() {
+        document.getElementById('nameDisplayRow').style.display = 'none';
+        document.getElementById('nameEditRow').style.display = 'block';
+        const input = document.getElementById('nameEditInput');
+        input.value = memberName;
+        input.focus();
+        input.select();
+    }
+
+    function cancelNameEdit() {
+        document.getElementById('nameDisplayRow').style.display = 'flex';
+        document.getElementById('nameEditRow').style.display = 'none';
+    }
+
+    async function saveName() {
+        const newName = document.getElementById('nameEditInput').value.trim();
+        if (!newName) { toast('Name cannot be empty'); return; }
+        if (newName === memberName) { cancelNameEdit(); return; }
+        try {
+            await api('PATCH', `/api/members/${memberID}/name`, { name: newName });
+            memberName = newName;
+            localStorage.setItem('cert_mname', memberName);
+            document.getElementById('homeNameText').textContent = memberName;
+            cancelNameEdit();
+            toast('Name updated ✓');
+        } catch (e) {
+            toast(e.status === 401 ? 'Incorrect PIN' : 'Failed to update — check connection');
         }
     }
 

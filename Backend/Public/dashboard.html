@@ -828,7 +828,7 @@
             const memberCount = data.members?.length || 0;
             const reportCount = data.reports?.length || 0;
             const taskCount = (data.tasks || []).filter(t => t.status === 'Open' || t.status === 'Assigned').length;
-            const subTeamCount = data.subTeams?.length || 0;
+            const subTeamCount = data.sub_teams?.length || 0;
             
             console.log('Setting memberCount to:', memberCount);
             console.log('Setting reportCount to:', reportCount);
@@ -877,10 +877,10 @@
                 document.getElementById('incidentStatus').textContent = data.incident.name;
             }
             
-            updateMemberList(data.members || [], data.subTeams || []);
-            updateReportList(data.reports || [], data.subTeams || []);
-            updateTaskList(data.tasks || [], data.subTeams || []);
-            updateSubTeamList(data.subTeams || [], data.members || []);
+            updateMemberList(data.members || [], data.sub_teams || []);
+            updateReportList(data.reports || [], data.sub_teams || []);
+            updateTaskList(data.tasks || [], data.sub_teams || []);
+            updateSubTeamList(data.sub_teams || [], data.members || []);
             
             const now = new Date().toLocaleTimeString();
             document.getElementById('lastUpdate').innerHTML = 
@@ -899,7 +899,7 @@
             }
             
             const html = members.map(member => {
-                const subTeam = subTeams ? subTeams.find(st => st.id === member.subTeamID) : null;
+                const subTeam = subTeams ? subTeams.find(st => st.id === member.sub_team_id) : null;
                 const teamBadge = subTeam ? 
                     `<span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color}</span>` : '';
                 
@@ -964,7 +964,7 @@
             const priorityColor = { Low: '#34C759', Medium: '#b8860b', High: '#FF9500', Critical: '#FF3B30' };
 
             container.innerHTML = tasks.map(task => {
-                const subTeam = subTeams ? subTeams.find(st => st.id === task.assignedSubTeamID) : null;
+                const subTeam = subTeams ? subTeams.find(st => st.id === task.assigned_sub_team_id) : null;
                 const teamBadge = subTeam ?
                     `<span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color} Team</span>` : '';
                 const pClass    = priorityClass[task.priority] || '';
@@ -1005,8 +1005,8 @@
             }
             
             container.innerHTML = subTeams.map(subTeam => {
-                const teamMembers = members.filter(m => m.subTeamID === subTeam.id);
-                const teamTasks = (currentData.tasks || []).filter(t => t.assignedSubTeamID === subTeam.id);
+                const teamMembers = members.filter(m => m.sub_team_id === subTeam.id);
+                const teamTasks = (currentData.tasks || []).filter(t => t.assigned_sub_team_id === subTeam.id);
                 
                 // Create member pills with free buttons
                 const memberPills = teamMembers.map(m => `
@@ -1107,7 +1107,7 @@
                 checkboxList.innerHTML = '<div class="empty-state">Not enough members (need at least 2)</div>';
             } else {
                 checkboxList.innerHTML = eligibleMembers.map(member => {
-                    const currentTeam = currentData.subTeams.find(st => st.id === member.subTeamID);
+                    const currentTeam = (currentData.sub_teams || []).find(st => st.id === member.sub_team_id);
                     const teamLabel = currentTeam ? ` - Currently on ${currentTeam.color} Team` : '';
                     const style = currentTeam ? 'style="color: #666; font-style: italic;"' : '';
                     
@@ -1145,20 +1145,20 @@
             
             memberIDs.forEach(memberID => {
                 const member = currentData.members.find(m => m.id === memberID);
-                if (member && member.subTeamID) {
-                    const oldTeam = currentData.subTeams.find(st => st.id === member.subTeamID);
+                if (member && member.sub_team_id) {
+                    const oldTeam = (currentData.sub_teams || []).find(st => st.id === member.sub_team_id);
                     if (oldTeam) {
-                        const currentCount = affectedTeams.get(oldTeam.id) ?? oldTeam.memberIDs.length;
+                        const currentCount = affectedTeams.get(oldTeam.id) ?? (oldTeam.member_ids || oldTeam.memberIDs || []).length;
                         affectedTeams.set(oldTeam.id, currentCount - 1);
                     }
                 }
             });
-            
+
             // Check if any team will be left with 1 member (which will auto-disband)
             const teamsBeingDisbanded = [];
             affectedTeams.forEach((remainingCount, teamID) => {
                 if (remainingCount === 1) {
-                    const team = currentData.subTeams.find(st => st.id === teamID);
+                    const team = (currentData.sub_teams || []).find(st => st.id === teamID);
                     if (team) {
                         teamsBeingDisbanded.push(team.color);
                     }
@@ -1228,13 +1228,13 @@
         function addMemberToTeam(teamId, teamColor, event) {
             event.stopPropagation();
             
-            if (!currentData || !currentData.members || !currentData.subTeams) {
+            if (!currentData || !currentData.members || !currentData.sub_teams) {
                 alert('Data not loaded yet. Please wait.');
                 return;
             }
-            
+
             // Get the current team
-            const team = currentData.subTeams.find(st => st.id === teamId);
+            const team = (currentData.sub_teams || []).find(st => st.id === teamId);
             if (!team) {
                 alert('Team not found');
                 return;
@@ -1243,18 +1243,18 @@
             // Get available members (not in this team)
             const availableMembers = currentData.members.filter(m => {
                 const status = m.status.toLowerCase();
-                return (status === 'available' || status === 'assigned') && m.subTeamID !== teamId;
+                return (status === 'available' || status === 'assigned') && m.sub_team_id !== teamId;
             });
-            
+
             if (availableMembers.length === 0) {
                 alert('No available members to add');
                 return;
             }
-            
+
             // Create a simple selection dialog
             const memberOptions = availableMembers.map((m, idx) => {
-                const currentTeamName = m.subTeamID ? 
-                    currentData.subTeams.find(st => st.id === m.subTeamID)?.color + ' Team' : 
+                const currentTeamName = m.sub_team_id ?
+                    (currentData.sub_teams || []).find(st => st.id === m.sub_team_id)?.color + ' Team' :
                     'Available';
                 return `${idx + 1}. ${m.name} (${currentTeamName})`;
             }).join('\n');
@@ -1304,9 +1304,9 @@
             
             // Populate team dropdown
             const teamSelect = document.getElementById('taskTeam');
-            const teams = currentData.subTeams || [];
-            
-            teamSelect.innerHTML = '<option value="">Unassigned</option>' + 
+            const teams = currentData.sub_teams || [];
+
+            teamSelect.innerHTML = '<option value="">Unassigned</option>' +
                 teams.map(team => `<option value="${team.id}">${team.color} Team</option>`).join('');
             
             document.getElementById('createTaskModal').classList.add('show');
@@ -1330,7 +1330,7 @@
                 description: description,
                 priority: priority,
                 status: 'Open',
-                assignedSubTeamID: teamId || null,
+                assigned_sub_team_id: teamId || null,
                 assignedTo: [],
                 notes: ''
                 // Don't send createdAt - backend sets it automatically
@@ -1404,9 +1404,9 @@
             document.getElementById('editTaskPriority').value = task.priority;
 
             const teamSelect = document.getElementById('editTaskTeam');
-            const teams = currentData.subTeams || [];
+            const teams = currentData.sub_teams || [];
             teamSelect.innerHTML = '<option value="">Unassigned</option>' +
-                teams.map(t => `<option value="${t.id}"${t.id === task.assignedSubTeamID ? ' selected' : ''}>${t.color} Team</option>`).join('');
+                teams.map(t => `<option value="${t.id}"${t.id === task.assigned_sub_team_id ? ' selected' : ''}>${t.color} Team</option>`).join('');
 
             document.getElementById('editTaskModal').classList.add('show');
         }
@@ -1428,7 +1428,7 @@
                 title: document.getElementById('editTaskTitle').value,
                 description: document.getElementById('editTaskDescription').value,
                 priority: document.getElementById('editTaskPriority').value,
-                assignedSubTeamID: teamId || null,
+                assigned_sub_team_id: teamId || null,
                 status: teamId ? 'Assigned' : (task.status === 'Assigned' ? 'Open' : task.status)
             };
 
@@ -1466,7 +1466,7 @@
             const task = currentData.tasks.find(t => t.id === taskId);
             if (!task) return;
 
-            const newStatus = task.assignedSubTeamID ? 'Assigned' : 'Open';
+            const newStatus = task.assigned_sub_team_id ? 'Assigned' : 'Open';
             try {
                 const response = await apiCall('PUT', `/api/tasks/${taskId}`, { ...task, status: newStatus, completedAt: null });
                 if (!response.ok) alert('Failed to re-open task');
@@ -1484,7 +1484,7 @@
             currentReportId = reportId;
 
             const reporter = currentData?.members?.find(m => m.id === report.reported_by);
-            const subTeam  = currentData?.subTeams?.find(st => st.id === report.sub_team_id);
+            const subTeam  = (currentData?.sub_teams || []).find(st => st.id === report.sub_team_id);
             const sevClass = report.severity.toLowerCase().replace(' ', '');
 
             const location = report.location;

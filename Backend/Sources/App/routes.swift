@@ -476,6 +476,19 @@ func routes(_ app: Application) throws {
         return .ok
     }
 
+    api.patch("members", ":id", "name") { req async throws -> HTTPStatus in
+        let id = try req.parameters.require("id", as: UUID.self)
+        struct NameUpdate: Content { var name: String }
+        let update = try req.content.decode(NameUpdate.self)
+        guard var member = await dataStore.getAllMembers().first(where: { $0.id == id }) else {
+            throw Abort(.notFound, reason: "Member not found")
+        }
+        member.name = update.name
+        member.lastUpdated = Date()
+        await dataStore.updateMember(member)
+        return .ok
+    }
+
     api.patch("reports", ":id", "severity") { req async throws -> IncidentReport in
         let id = try req.parameters.require("id", as: UUID.self)
         struct SeverityUpdate: Content { var severity: IncidentReport.Severity }
