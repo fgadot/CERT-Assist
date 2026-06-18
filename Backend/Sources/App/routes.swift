@@ -41,6 +41,7 @@ actor DataStore {
         }
 
         log("🚀 DataStore initialized - Audit logging started")
+        loadPins()
     }
 
     private func log(_ message: String) {
@@ -61,6 +62,59 @@ actor DataStore {
 
     func removeWebSocket(_ ws: WebSocket) {
         connectedWebSockets.removeAll { $0 === ws }
+    }
+
+    // ── PIN Management ─────────────────────────────────────────────────────────────
+
+    private var dashboardPin: String?
+    private var memberPin: String?
+
+    private struct PinConfig: Codable {
+        var dashboardPin: String?
+        var memberPin: String?
+    }
+
+    private var pinConfigURL: URL { URL(fileURLWithPath: "/app/config/pins.json") }
+
+    func loadPins() {
+        if let data = try? Data(contentsOf: pinConfigURL),
+           let config = try? JSONDecoder().decode(PinConfig.self, from: data) {
+            dashboardPin = config.dashboardPin?.isEmpty == false ? config.dashboardPin : nil
+            memberPin    = config.memberPin?.isEmpty == false    ? config.memberPin    : nil
+        }
+        if (dashboardPin ?? "").isEmpty {
+            dashboardPin = Environment.get("DASHBOARD_PIN") ?? Environment.get("TEAM_PIN")
+        }
+        if (memberPin ?? "").isEmpty {
+            memberPin = Environment.get("MEMBER_PIN")
+        }
+        log("🔐 PINs: dashboard=\(isDashboardPinSet() ? "set" : "NOT SET — first-run required"), member=\(isMemberPinSet() ? "set" : "open")")
+    }
+
+    private func savePins() {
+        let config = PinConfig(dashboardPin: dashboardPin, memberPin: memberPin)
+        let dir = URL(fileURLWithPath: "/app/config")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        if let data = try? JSONEncoder().encode(config) {
+            try? data.write(to: pinConfigURL, options: .atomic)
+        }
+    }
+
+    func getDashboardPin() -> String { dashboardPin ?? "" }
+    func getMemberPin()   -> String { memberPin   ?? "" }
+    func isDashboardPinSet() -> Bool { !(dashboardPin ?? "").isEmpty }
+    func isMemberPinSet()    -> Bool { !(memberPin    ?? "").isEmpty }
+
+    func setDashboardPin(_ pin: String) {
+        dashboardPin = pin.isEmpty ? nil : pin
+        savePins()
+        log("🔐 Dashboard PIN \(pin.isEmpty ? "cleared" : "updated")")
+    }
+
+    func setMemberPin(_ pin: String) {
+        memberPin = pin.isEmpty ? nil : pin
+        savePins()
+        log("🔐 Member PIN \(pin.isEmpty ? "cleared" : "updated")")
     }
 
     func broadcastUpdate() async {
@@ -370,14 +424,44 @@ func routes(_ app: Application) throws {
         return Response(status: .ok, headers: headers, body: .init(string: html))
     }
 
-    let api = app.grouped("api")
+    let api       = app.grouped("api")
+    let memberApi = app.grouped(MemberPINMiddleware()).grouped("api")
+    let adminApi  = app.grouped(DashboardPINMiddleware()).grouped("api")
 
-    // PIN validation — middleware accepts or rejects; reaching here means PIN is correct
-    api.post("auth") { req async throws -> HTTPStatus in
+    // ── Setup (unprotected) ───────────────────────────────────────────────────────
+
+    api.get("setup", "status") { req async throws -> [String: Bool] in
+        return [
+            "dashboard_pin_set": await dataStore.isDashboardPinSet(),
+            "member_pin_set":    await dataStore.isMemberPinSet()
+        ]
+    }
+
+    api.post("setup", "dashboard-pin") { req async throws -> HTTPStatus in
+        struct PinSetup: Content { var pin: String; var currentPin: String? }
+        let body = try req.content.decode(PinSetup.self)
+        let current = await dataStore.getDashboardPin()
+        if !current.isEmpty {
+            guard body.currentPin == current else {
+                throw Abort(.unauthorized, reason: "Incorrect current PIN")
+            }
+        }
+        guard body.pin.count >= 4 else {
+            throw Abort(.badRequest, reason: "PIN must be at least 4 characters")
+        }
+        await dataStore.setDashboardPin(body.pin)
         return .ok
     }
 
-    api.post("checkin") { req async throws -> CheckInResponse in
+    // ── Dashboard auth validation (dashboard PIN required) ────────────────────────
+
+    adminApi.post("auth") { req async throws -> HTTPStatus in
+        return .ok
+    }
+
+    // ── Member API (member PIN) ───────────────────────────────────────────────────
+
+    memberApi.post("checkin") { req async throws -> CheckInResponse in
         var member = try req.content.decode(CERTMember.self)
         if member.id == nil { member.id = UUID() }
         await dataStore.addMember(member)
@@ -388,7 +472,7 @@ func routes(_ app: Application) throws {
         return await dataStore.getAllMembers()
     }
 
-    api.post("reports") { req async throws -> IncidentReport in
+    memberApi.post("reports") { req async throws -> IncidentReport in
         var report = try req.content.decode(IncidentReport.self)
         if report.id == nil { report.id = UUID() }
         await dataStore.addReport(report)
@@ -399,7 +483,9 @@ func routes(_ app: Application) throws {
         return await dataStore.getAllReports()
     }
 
-    api.put("reports", ":id") { req async throws -> IncidentReport in
+    // ── Admin API (dashboard PIN) ─────────────────────────────────────────────────
+
+    adminApi.put("reports", ":id") { req async throws -> IncidentReport in
         let id = try req.parameters.require("id", as: UUID.self)
         var report = try req.content.decode(IncidentReport.self)
         report.id = id
@@ -408,7 +494,7 @@ func routes(_ app: Application) throws {
         return report
     }
 
-    api.post("tasks") { req async throws -> CERTTask in
+    adminApi.post("tasks") { req async throws -> CERTTask in
         var task = try req.content.decode(CERTTask.self)
         if task.id == nil { task.id = UUID() }
         task.createdAt = Date()
@@ -420,7 +506,7 @@ func routes(_ app: Application) throws {
         return await dataStore.getAllTasks()
     }
 
-    api.put("tasks", ":id") { req async throws -> CERTTask in
+    adminApi.put("tasks", ":id") { req async throws -> CERTTask in
         let id = try req.parameters.require("id", as: UUID.self)
         var task = try req.content.decode(CERTTask.self)
         task.id = id
@@ -429,7 +515,7 @@ func routes(_ app: Application) throws {
         return task
     }
 
-    api.post("incident") { req async throws -> Incident in
+    adminApi.post("incident") { req async throws -> Incident in
         var incident = try req.content.decode(Incident.self)
         if incident.id == nil { incident.id = UUID() }
         await dataStore.setIncident(incident)
@@ -442,7 +528,7 @@ func routes(_ app: Application) throws {
 
     // ── Sub-team endpoints ────────────────────────────────────────────────────────
 
-    api.post("subteams") { req async throws -> SubTeam in
+    adminApi.post("subteams") { req async throws -> SubTeam in
         var subTeam = try req.content.decode(SubTeam.self)
         if subTeam.id == nil { subTeam.id = UUID() }
         let now = Date()
@@ -456,7 +542,7 @@ func routes(_ app: Application) throws {
         return await dataStore.getAllSubTeams()
     }
 
-    api.put("subteams", ":id") { req async throws -> SubTeam in
+    adminApi.put("subteams", ":id") { req async throws -> SubTeam in
         let id = try req.parameters.require("id", as: UUID.self)
         var subTeam = try req.content.decode(SubTeam.self)
         subTeam.id = id
@@ -464,19 +550,19 @@ func routes(_ app: Application) throws {
         return subTeam
     }
 
-    api.delete("subteams", ":id") { req async throws -> HTTPStatus in
+    adminApi.delete("subteams", ":id") { req async throws -> HTTPStatus in
         let id = try req.parameters.require("id", as: UUID.self)
         await dataStore.deleteSubTeam(id)
         return .ok
     }
 
-    api.post("members", ":id", "free") { req async throws -> HTTPStatus in
+    adminApi.post("members", ":id", "free") { req async throws -> HTTPStatus in
         let id = try req.parameters.require("id", as: UUID.self)
         await dataStore.freeMember(id)
         return .ok
     }
 
-    api.patch("members", ":id", "name") { req async throws -> HTTPStatus in
+    memberApi.patch("members", ":id", "name") { req async throws -> HTTPStatus in
         let id = try req.parameters.require("id", as: UUID.self)
         struct NameUpdate: Content { var name: String }
         let update = try req.content.decode(NameUpdate.self)
@@ -489,7 +575,20 @@ func routes(_ app: Application) throws {
         return .ok
     }
 
-    api.patch("reports", ":id", "severity") { req async throws -> IncidentReport in
+    memberApi.patch("members", ":id", "status") { req async throws -> HTTPStatus in
+        let id = try req.parameters.require("id", as: UUID.self)
+        struct StatusUpdate: Content { var status: CERTMember.MemberStatus }
+        let update = try req.content.decode(StatusUpdate.self)
+        guard var member = await dataStore.getAllMembers().first(where: { $0.id == id }) else {
+            throw Abort(.notFound, reason: "Member not found")
+        }
+        member.status = update.status
+        member.lastUpdated = Date()
+        await dataStore.updateMember(member)
+        return .ok
+    }
+
+    adminApi.patch("reports", ":id", "severity") { req async throws -> IncidentReport in
         let id = try req.parameters.require("id", as: UUID.self)
         struct SeverityUpdate: Content { var severity: IncidentReport.Severity }
         let update = try req.content.decode(SeverityUpdate.self)
@@ -500,6 +599,13 @@ func routes(_ app: Application) throws {
         report.lastUpdated = Date()
         await dataStore.updateReport(report)
         return report
+    }
+
+    adminApi.put("config", "member-pin") { req async throws -> HTTPStatus in
+        struct PinUpdate: Content { var pin: String }
+        let body = try req.content.decode(PinUpdate.self)
+        await dataStore.setMemberPin(body.pin)
+        return .ok
     }
 
     // ── WebSocket ─────────────────────────────────────────────────────────────────

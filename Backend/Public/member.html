@@ -305,9 +305,9 @@
     </div>
 
     <div class="card">
-        <div class="card-title">Team PIN</div>
+        <div class="card-title">Member Access PIN</div>
         <div class="field">
-            <input id="ciPin" type="password" placeholder="Enter team PIN (if required)"
+            <input id="ciPin" type="password" placeholder="Enter member PIN (from your team leader)"
                    autocomplete="off" autocorrect="off" spellcheck="false">
         </div>
     </div>
@@ -505,6 +505,9 @@
     function checkOut() {
         if (!confirm('End your session and check out?')) return;
         clearTimeout(refreshTimer);
+        if (memberID) {
+            api('PATCH', `/api/members/${memberID}/status`, { status: 'Unavailable' }).catch(() => {});
+        }
         localStorage.removeItem('cert_mid');
         localStorage.removeItem('cert_mname');
         localStorage.removeItem('cert_mrole');

@@ -38,11 +38,6 @@ public func configure(_ app: Application) throws {
     )
     app.middleware.use(CORSMiddleware(configuration: corsConfiguration), at: .beginning)
 
-    if let pin = Environment.get("TEAM_PIN"), !pin.isEmpty {
-        app.middleware.use(PINAuthMiddleware(pin: pin))
-        print("🔐 PIN authentication enabled")
-    }
-
     try routes(app)
 
     // ── County message polling (Option 2: teams poll county, not county push to teams) ──

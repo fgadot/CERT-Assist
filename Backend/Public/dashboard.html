@@ -90,6 +90,7 @@
             margin-bottom: 8px;
             border-left: 4px solid #007AFF;
             animation: slideIn 0.3s ease;
+            position: relative;
         }
         
         @keyframes slideIn {
@@ -99,9 +100,26 @@
         
         .member-item.available { border-left-color: #34C759; }
         .member-item.assigned { border-left-color: #007AFF; }
-        .member-item.unavailable { border-left-color: #8E8E93; }
+        .member-item.unavailable { border-left-color: #8E8E93; opacity: 0.45; filter: grayscale(0.6); }
         .member-item.injured { border-left-color: #FF3B30; }
         .member-item.needshelp { border-left-color: #FF9500; }
+
+        .equip-tooltip {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            background: #1c1c1e;
+            color: #fff;
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            white-space: nowrap;
+            z-index: 200;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+        }
+        .member-item:hover .equip-tooltip { display: block; }
         
         .report-item.low { border-left-color: #34C759; }
         .report-item.medium { border-left-color: #FFCC00; }
@@ -470,6 +488,8 @@
         <div class="last-update">
             <span class="connection-status" id="connectionStatus"></span>
             <span id="lastUpdate">Connecting...</span>
+            <button onclick="openSettingsModal()" title="PIN Settings"
+                style="background:rgba(255,255,255,0.2);border:none;color:white;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px;margin-left:12px;">⚙️</button>
         </div>
     </header>
     
@@ -613,9 +633,9 @@
     <div class="modal" id="pinModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>🔐 Team Access PIN</h2>
+                <h2>🔐 Dashboard PIN</h2>
             </div>
-            <p style="margin-bottom: 16px; color: #666;">Enter the team PIN to access this dashboard.</p>
+            <p style="margin-bottom: 16px; color: #666;">Enter your dashboard PIN to access this view.</p>
             <div class="form-group">
                 <label>PIN</label>
                 <input type="password" id="pinInput" placeholder="Enter PIN"
@@ -624,6 +644,73 @@
             </div>
             <p id="pinError" style="color: #FF3B30; font-size: 13px; margin-bottom: 12px; min-height: 18px;"></p>
             <button class="btn btn-primary" onclick="submitPin()" style="width: 100%;">Access Dashboard</button>
+        </div>
+    </div>
+
+    <!-- First-Run Setup Modal -->
+    <div class="modal" id="setupPinModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔐 Create Dashboard PIN</h2>
+            </div>
+            <p style="margin-bottom:16px;color:#666;">First time setup — create a PIN to secure this dashboard. Keep it separate from the member PIN you give your team.</p>
+            <div class="form-group">
+                <label>New PIN (min 4 characters)</label>
+                <input type="password" id="setupPinInput" placeholder="Create your dashboard PIN"
+                       style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;"
+                       onkeydown="if(event.key==='Enter') document.getElementById('setupPinConfirm').focus()">
+            </div>
+            <div class="form-group">
+                <label>Confirm PIN</label>
+                <input type="password" id="setupPinConfirm" placeholder="Confirm PIN"
+                       style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;"
+                       onkeydown="if(event.key==='Enter') createDashboardPin()">
+            </div>
+            <p id="setupPinError" style="color:#FF3B30;font-size:13px;margin-bottom:12px;min-height:18px;"></p>
+            <button class="btn btn-primary" onclick="createDashboardPin()" style="width:100%;">Create PIN &amp; Open Dashboard</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content" style="max-width:480px;">
+            <div class="modal-header">
+                <h2>⚙️ PIN Settings</h2>
+                <button class="close-btn" onclick="closeSettingsModal()">&times;</button>
+            </div>
+
+            <h3 style="font-size:14px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Dashboard PIN</h3>
+            <div class="form-group">
+                <label>Current PIN</label>
+                <input type="password" id="dashCurrentPin" placeholder="Current PIN"
+                       style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+            </div>
+            <div class="form-group">
+                <label>New PIN (min 4 characters)</label>
+                <input type="password" id="dashNewPin" placeholder="New PIN"
+                       style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+            </div>
+            <div class="form-group">
+                <label>Confirm New PIN</label>
+                <input type="password" id="dashConfirmPin" placeholder="Confirm new PIN"
+                       style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;"
+                       onkeydown="if(event.key==='Enter') saveDashboardPin()">
+            </div>
+            <p id="dashPinMsg" style="font-size:13px;margin-bottom:12px;min-height:18px;"></p>
+            <button class="btn btn-primary" onclick="saveDashboardPin()" style="width:100%;margin-bottom:24px;">Update Dashboard PIN</button>
+
+            <hr style="border:none;border-top:1px solid #e5e5ea;margin:8px 0 20px;">
+
+            <h3 style="font-size:14px;font-weight:600;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Member Access PIN</h3>
+            <p style="color:#666;font-size:13px;margin-bottom:12px;">Share this PIN with your team members — they enter it when checking in. Leave blank to allow check-in without a PIN.</p>
+            <div class="form-group">
+                <label>Member PIN</label>
+                <input type="password" id="memberPinInput" placeholder="Set or leave blank for open access"
+                       style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;"
+                       onkeydown="if(event.key==='Enter') saveMemberPin()">
+            </div>
+            <p id="memberPinMsg" style="font-size:13px;margin-bottom:12px;min-height:18px;"></p>
+            <button class="btn btn-primary" onclick="saveMemberPin()" style="width:100%;">Save Member PIN</button>
         </div>
     </div>
 
@@ -709,6 +796,46 @@
             return fetch(url, opts);
         }
 
+        async function initDashboard() {
+            try {
+                const res = await fetch('/api/setup/status');
+                const status = await res.json();
+                if (!status.dashboard_pin_set) {
+                    document.getElementById('setupPinModal').classList.add('show');
+                    setTimeout(() => document.getElementById('setupPinInput').focus(), 50);
+                } else {
+                    checkAuthAndConnect();
+                }
+            } catch {
+                checkAuthAndConnect();
+            }
+        }
+
+        async function createDashboardPin() {
+            const pin     = document.getElementById('setupPinInput').value;
+            const confirm = document.getElementById('setupPinConfirm').value;
+            const errEl   = document.getElementById('setupPinError');
+            errEl.textContent = '';
+            if (pin.length < 4)    { errEl.textContent = 'PIN must be at least 4 characters'; return; }
+            if (pin !== confirm)   { errEl.textContent = 'PINs do not match'; return; }
+            try {
+                const res = await fetch('/api/setup/dashboard-pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin })
+                });
+                if (res.ok) {
+                    sessionStorage.setItem('cert_pin', pin);
+                    document.getElementById('setupPinModal').classList.remove('show');
+                    connect();
+                } else {
+                    errEl.textContent = 'Server error — try again.';
+                }
+            } catch {
+                errEl.textContent = 'Cannot reach server — check WiFi.';
+            }
+        }
+
         async function checkAuthAndConnect() {
             try {
                 const res = await fetch('/api/auth', {
@@ -750,6 +877,73 @@
                 }
             } catch {
                 document.getElementById('pinError').textContent = 'Cannot reach server — check WiFi.';
+            }
+        }
+
+        function openSettingsModal() {
+            document.getElementById('dashCurrentPin').value = '';
+            document.getElementById('dashNewPin').value = '';
+            document.getElementById('dashConfirmPin').value = '';
+            document.getElementById('dashPinMsg').textContent = '';
+            document.getElementById('dashPinMsg').style.color = '#FF3B30';
+            document.getElementById('memberPinInput').value = '';
+            document.getElementById('memberPinMsg').textContent = '';
+            fetch('/api/setup/status').then(r => r.json()).then(s => {
+                document.getElementById('memberPinMsg').style.color = '#8E8E93';
+                document.getElementById('memberPinMsg').textContent =
+                    s.member_pin_set ? 'Member PIN is currently set.' : 'No member PIN set — open check-in.';
+            }).catch(() => {});
+            document.getElementById('settingsModal').classList.add('show');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('show');
+        }
+
+        async function saveDashboardPin() {
+            const currentPin = document.getElementById('dashCurrentPin').value;
+            const newPin     = document.getElementById('dashNewPin').value;
+            const confirmPin = document.getElementById('dashConfirmPin').value;
+            const msgEl      = document.getElementById('dashPinMsg');
+            msgEl.style.color = '#FF3B30';
+            msgEl.textContent = '';
+            if (newPin.length < 4)    { msgEl.textContent = 'New PIN must be at least 4 characters'; return; }
+            if (newPin !== confirmPin) { msgEl.textContent = 'PINs do not match'; return; }
+            try {
+                const res = await fetch('/api/setup/dashboard-pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin: newPin, currentPin })
+                });
+                if (res.ok) {
+                    sessionStorage.setItem('cert_pin', newPin);
+                    msgEl.style.color = '#34C759';
+                    msgEl.textContent = 'Dashboard PIN updated ✓';
+                } else {
+                    msgEl.textContent = res.status === 401 ? 'Incorrect current PIN' : 'Failed to update';
+                }
+            } catch {
+                msgEl.textContent = 'Cannot reach server — check WiFi.';
+            }
+        }
+
+        async function saveMemberPin() {
+            const pin   = document.getElementById('memberPinInput').value;
+            const msgEl = document.getElementById('memberPinMsg');
+            msgEl.style.color = '#FF3B30';
+            msgEl.textContent = '';
+            try {
+                const res = await apiCall('PUT', '/api/config/member-pin', { pin });
+                if (res.ok) {
+                    msgEl.style.color = '#34C759';
+                    msgEl.textContent = pin
+                        ? 'Member PIN saved ✓ — share with your team'
+                        : 'Member PIN cleared — open check-in';
+                } else {
+                    msgEl.textContent = res.status === 401 ? 'Session expired — re-enter dashboard PIN' : 'Failed to save';
+                }
+            } catch {
+                msgEl.textContent = 'Cannot reach server — check WiFi.';
             }
         }
 
@@ -900,11 +1094,14 @@
             
             const html = members.map(member => {
                 const subTeam = subTeams ? subTeams.find(st => st.id === member.sub_team_id) : null;
-                const teamBadge = subTeam ? 
+                const teamBadge = subTeam ?
                     `<span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color}</span>` : '';
-                
+                const equip = member.equipment && member.equipment.length > 0
+                    ? `<div class="equip-tooltip">🎒 ${member.equipment.map(e => esc(e)).join(', ')}</div>` : '';
+
                 return `
                 <div class="member-item ${member.status.toLowerCase().replace(' ', '')}">
+                    ${equip}
                     <div class="item-header">
                         ${teamBadge}${esc(member.name)}
                     </div>
@@ -1629,7 +1826,7 @@
         
         // Start connection on page load
         console.log('🚀 Starting connection...');
-        checkAuthAndConnect();
+        initDashboard();
         
         // Also expose updateDashboard globally for debugging
         window.updateDashboard = updateDashboard;
