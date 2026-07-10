@@ -24,4 +24,5 @@ services:
     volumes:
       - ./Public:/app/Public
       - ./data:/app/data
+      - ./config:/app/config
     restart: unless-stopped

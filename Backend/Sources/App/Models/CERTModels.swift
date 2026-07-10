@@ -53,6 +53,8 @@ struct CERTMember: Content {
     var location: LocationData?
     var subTeamID: UUID?
     var lastUpdated: Date
+    var lentToTeam: String?       // team ID of the team that borrowed this member
+    var lentRequestId: String?    // transfer request UUID — needed for recall
 
     enum MemberStatus: String, Codable {
         case available = "Available"
@@ -187,6 +189,7 @@ struct DashboardData: Content {
     var reports: [IncidentReport]
     var tasks: [CERTTask]
     var subTeams: [SubTeam]
+    var loanableMembers: [UUID]
     var lastUpdate: Date
 }
 
@@ -215,8 +218,8 @@ struct TeamSummary: Content {
 struct CountyMessage: Content {
     var id: UUID
     var type: MessageType
-    var targetTeamID: String
-    var reportID: UUID?
+    var targetTeamId: String
+    var reportId: UUID?
     var text: String
     var timestamp: Date
     var confirmed: Bool
@@ -225,5 +228,41 @@ struct CountyMessage: Content {
         case acknowledgment
         case alert
         case info
+        case transferRequest        // owning team: someone is requesting your member
+        case transferResponse       // requesting team: your request was accepted/denied
+        case transferRelease        // owning team: requesting team returned the member
+        case transferRecallRequest  // requesting team: owning team wants their member back
+    }
+}
+
+// MARK: - County Transfer
+
+struct AvailableMember: Content {
+    var memberId: UUID
+    var teamId: String
+    var teamName: String
+    var memberName: String
+    var memberRole: String
+    var addedAt: Date
+}
+
+struct TransferRequest: Content {
+    var id: UUID
+    var requestingTeamId: String
+    var requestingTeamName: String
+    var owningTeamId: String
+    var memberId: UUID
+    var memberName: String
+    var status: TransferStatus
+    var requestedAt: Date
+    var respondedAt: Date?
+
+    enum TransferStatus: String, Codable {
+        case pending         = "Pending"
+        case accepted        = "Accepted"
+        case denied          = "Denied"
+        case recallRequested = "RecallRequested"  // owning team sent a recall request
+        case released        = "Released"         // requesting team returned voluntarily
+        case recalled        = "Recalled"         // returned after a recall request
     }
 }

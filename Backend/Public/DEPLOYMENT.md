@@ -313,7 +313,7 @@ sudo systemctl restart nginx
 
 ## Local Development Deployment
 
-For testing on team leader's laptop:
+### Single Team (quick test)
 
 ```bash
 cd Backend
@@ -327,6 +327,42 @@ docker-compose up -d
 - Laptop creates WiFi hotspot
 - Team members connect to hotspot
 - Access via `http://<laptop-ip>:8080/dashboard`
+
+### Multi-Team Local Lab (county + 2 teams)
+
+Use `docker-compose.local.yml` at the repo root to spin up all three services:
+
+```bash
+# From repo root "CERT Assist/"
+docker compose -f docker-compose.local.yml up --build
+
+# Services:
+#   county     → http://localhost:8090/county     (no PIN)
+#   team-alpha → http://localhost:8080/dashboard  (dashboard PIN: 1111)
+#   team-beta  → http://localhost:8081/dashboard  (dashboard PIN: 2222)
+```
+
+**Check in test members:**
+```bash
+# Team alpha (memberPin blank = open)
+./Backend/test_checkin.sh alpha Frank
+./Backend/test_checkin.sh alpha "Sarah J" "Medical Specialist"
+
+# Team beta
+./Backend/test_checkin.sh beta Mike
+./Backend/test_checkin.sh beta "Jane Smith" "Team Leader"
+```
+
+**PIN config files:**
+- `local-test/alpha/config/pins.json` — `{"dashboardPin":"1111","memberPin":"0000"}`
+- `local-test/beta/config/pins.json` — `{"dashboardPin":"2222","memberPin":"0000"}`
+  (create beta config if it doesn't exist — copy from alpha and change pin)
+
+**Key behaviors to test:**
+1. County shows NO teams on startup (teams appear only after first check-in)
+2. Mark a member loanable on Alpha → appears in Beta's Transfer Panel within 5s
+3. Beta requests the member → Alpha gets a county message on next 30s poll
+4. County acks a report → team sees ✅ on the report within 30s
 
 **Future: Unifi Network Deployment**
 - Deploy Unifi AP for better capacity

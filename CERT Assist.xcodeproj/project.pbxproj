@@ -6,7 +6,42 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0111BDAF2FF71151008C1D85 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0111BD9A2FF71151008C1D85 /* LocationManager.swift */; };
+		0111BDB02FF71151008C1D85 /* ReportsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0111BD9E2FF71151008C1D85 /* ReportsListView.swift */; };
+		0111BDB12FF71151008C1D85 /* MapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0111BD9B2FF71151008C1D85 /* MapView.swift */; };
+		0111BDB22FF71151008C1D85 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0111BD972FF71151008C1D85 /* ContentView.swift */; };
+		0111BDB32FF71151008C1D85 /* MultipeerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0111BD9D2FF71151008C1D85 /* MultipeerService.swift */; };
+		0111BDB42FF71151008C1D85 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0111BD9C2FF71151008C1D85 /* Models.swift */; };
+		0111BDB52FF71151008C1D85 /* TaskBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0111BD9F2FF71151008C1D85 /* TaskBoardView.swift */; };
+		0111BDB62FF71151008C1D85 /* CERT_AssistApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0111BD952FF71151008C1D85 /* CERT_AssistApp.swift */; };
+		0111BDB72FF71151008C1D85 /* CheckInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0111BD962FF71151008C1D85 /* CheckInView.swift */; };
+		0111BDB82FF71151008C1D85 /* IncidentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0111BD992FF71151008C1D85 /* IncidentManager.swift */; };
+		0111BDB92FF71151008C1D85 /* IncidentLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0111BD982FF71151008C1D85 /* IncidentLogView.swift */; };
+		0111BDBA2FF71151008C1D85 /* docker-compose.local.yml in Resources */ = {isa = PBXBuildFile; fileRef = 0111BDA32FF71151008C1D85 /* docker-compose.local.yml */; };
+		0111BDBB2FF71151008C1D85 /* runall.test in Resources */ = {isa = PBXBuildFile; fileRef = 0111BDAC2FF71151008C1D85 /* runall.test */; };
+		0111BDBC2FF71151008C1D85 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0111BD942FF71151008C1D85 /* Assets.xcassets */; };
+		0111BDBD2FF71151008C1D85 /* pins.json in Resources */ = {isa = PBXBuildFile; fileRef = 0111BDA42FF71151008C1D85 /* pins.json */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		0111BD942FF71151008C1D85 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0111BD952FF71151008C1D85 /* CERT_AssistApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CERT_AssistApp.swift; sourceTree = "<group>"; };
+		0111BD962FF71151008C1D85 /* CheckInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckInView.swift; sourceTree = "<group>"; };
+		0111BD972FF71151008C1D85 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		0111BD982FF71151008C1D85 /* IncidentLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncidentLogView.swift; sourceTree = "<group>"; };
+		0111BD992FF71151008C1D85 /* IncidentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncidentManager.swift; sourceTree = "<group>"; };
+		0111BD9A2FF71151008C1D85 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		0111BD9B2FF71151008C1D85 /* MapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapView.swift; sourceTree = "<group>"; };
+		0111BD9C2FF71151008C1D85 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		0111BD9D2FF71151008C1D85 /* MultipeerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultipeerService.swift; sourceTree = "<group>"; };
+		0111BD9E2FF71151008C1D85 /* ReportsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsListView.swift; sourceTree = "<group>"; };
+		0111BD9F2FF71151008C1D85 /* TaskBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskBoardView.swift; sourceTree = "<group>"; };
+		0111BDA12FF71151008C1D85 /* CERT Assist.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "CERT Assist.xcodeproj"; sourceTree = "<group>"; };
+		0111BDA22FF71151008C1D85 /* CountyServer */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = CountyServer; sourceTree = "<group>"; };
+		0111BDA32FF71151008C1D85 /* docker-compose.local.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = "docker-compose.local.yml"; sourceTree = "<group>"; };
+		0111BDA42FF71151008C1D85 /* pins.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = pins.json; sourceTree = "<group>"; };
+		0111BDAC2FF71151008C1D85 /* runall.test */ = {isa = PBXFileReference; lastKnownFileType = text; path = runall.test; sourceTree = "<group>"; };
 		0150D2C92FD89590003A00CC /* CERT Assist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CERT Assist.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		01C583782FDCC69A007BE0B1 /* Backend */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Backend; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -30,9 +65,95 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0111BDA02FF71151008C1D85 /* CERT Assist */ = {
+			isa = PBXGroup;
+			children = (
+				0111BD942FF71151008C1D85 /* Assets.xcassets */,
+				0111BD952FF71151008C1D85 /* CERT_AssistApp.swift */,
+				0111BD962FF71151008C1D85 /* CheckInView.swift */,
+				0111BD972FF71151008C1D85 /* ContentView.swift */,
+				0111BD982FF71151008C1D85 /* IncidentLogView.swift */,
+				0111BD992FF71151008C1D85 /* IncidentManager.swift */,
+				0111BD9A2FF71151008C1D85 /* LocationManager.swift */,
+				0111BD9B2FF71151008C1D85 /* MapView.swift */,
+				0111BD9C2FF71151008C1D85 /* Models.swift */,
+				0111BD9D2FF71151008C1D85 /* MultipeerService.swift */,
+				0111BD9E2FF71151008C1D85 /* ReportsListView.swift */,
+				0111BD9F2FF71151008C1D85 /* TaskBoardView.swift */,
+			);
+			path = "CERT Assist";
+			sourceTree = "<group>";
+		};
+		0111BDA52FF71151008C1D85 /* config */ = {
+			isa = PBXGroup;
+			children = (
+				0111BDA42FF71151008C1D85 /* pins.json */,
+			);
+			path = config;
+			sourceTree = "<group>";
+		};
+		0111BDA62FF71151008C1D85 /* data */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = data;
+			sourceTree = "<group>";
+		};
+		0111BDA72FF71151008C1D85 /* alpha */ = {
+			isa = PBXGroup;
+			children = (
+				0111BDA52FF71151008C1D85 /* config */,
+				0111BDA62FF71151008C1D85 /* data */,
+			);
+			path = alpha;
+			sourceTree = "<group>";
+		};
+		0111BDA82FF71151008C1D85 /* config */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = config;
+			sourceTree = "<group>";
+		};
+		0111BDA92FF71151008C1D85 /* data */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = data;
+			sourceTree = "<group>";
+		};
+		0111BDAA2FF71151008C1D85 /* beta */ = {
+			isa = PBXGroup;
+			children = (
+				0111BDA82FF71151008C1D85 /* config */,
+				0111BDA92FF71151008C1D85 /* data */,
+			);
+			path = beta;
+			sourceTree = "<group>";
+		};
+		0111BDAB2FF71151008C1D85 /* local-test */ = {
+			isa = PBXGroup;
+			children = (
+				0111BDA72FF71151008C1D85 /* alpha */,
+				0111BDAA2FF71151008C1D85 /* beta */,
+			);
+			path = "local-test";
+			sourceTree = "<group>";
+		};
+		0111BDAD2FF71151008C1D85 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
 		0150D2C02FD89590003A00CC = {
 			isa = PBXGroup;
 			children = (
+				0111BDA02FF71151008C1D85 /* CERT Assist */,
+				0111BDA12FF71151008C1D85 /* CERT Assist.xcodeproj */,
+				0111BDA22FF71151008C1D85 /* CountyServer */,
+				0111BDA32FF71151008C1D85 /* docker-compose.local.yml */,
+				0111BDAB2FF71151008C1D85 /* local-test */,
+				0111BDAC2FF71151008C1D85 /* runall.test */,
 				01C583782FDCC69A007BE0B1 /* Backend */,
 				0150D2CB2FD89590003A00CC /* CERT Assist */,
 				0150D2CA2FD89590003A00CC /* Products */,
@@ -99,6 +220,12 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0150D2CA2FD89590003A00CC /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 0111BDAD2FF71151008C1D85 /* Products */;
+					ProjectRef = 0111BDA12FF71151008C1D85 /* CERT Assist.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				0150D2C82FD89590003A00CC /* CERT Assist */,
@@ -111,6 +238,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0111BDBA2FF71151008C1D85 /* docker-compose.local.yml in Resources */,
+				0111BDBB2FF71151008C1D85 /* runall.test in Resources */,
+				0111BDBC2FF71151008C1D85 /* Assets.xcassets in Resources */,
+				0111BDBD2FF71151008C1D85 /* pins.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -121,6 +252,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0111BDAF2FF71151008C1D85 /* LocationManager.swift in Sources */,
+				0111BDB02FF71151008C1D85 /* ReportsListView.swift in Sources */,
+				0111BDB12FF71151008C1D85 /* MapView.swift in Sources */,
+				0111BDB22FF71151008C1D85 /* ContentView.swift in Sources */,
+				0111BDB32FF71151008C1D85 /* MultipeerService.swift in Sources */,
+				0111BDB42FF71151008C1D85 /* Models.swift in Sources */,
+				0111BDB52FF71151008C1D85 /* TaskBoardView.swift in Sources */,
+				0111BDB62FF71151008C1D85 /* CERT_AssistApp.swift in Sources */,
+				0111BDB72FF71151008C1D85 /* CheckInView.swift in Sources */,
+				0111BDB82FF71151008C1D85 /* IncidentManager.swift in Sources */,
+				0111BDB92FF71151008C1D85 /* IncidentLogView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

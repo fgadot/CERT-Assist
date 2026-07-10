@@ -480,6 +480,61 @@
             margin-bottom: 8px;
             letter-spacing: 0.05em;
         }
+
+        /* Transfer / Member Sharing */
+        .loanable-btn { font-size: 10px; padding: 2px 7px; color: #007AFF; border-color: #b0ccff; }
+        .loanable-btn.sharing { color: #FF3B30; border-color: #ffb0b0; }
+        .member-item.lent { border-left-color: #FF9500; opacity: 0.75; }
+        .badge.lent { background: #FF9500; color: white; font-size: 10px; }
+        .badge.from { background: #5856D6; color: white; font-size: 10px; }
+        .borrowed-section-label {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            color: #5856D6; letter-spacing: 0.06em;
+            margin: 14px 0 6px; padding: 0 2px;
+        }
+        .transfer-member-item {
+            padding: 10px 12px;
+            background: #f0f7ff;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid #007AFF;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .request-item {
+            padding: 10px 12px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid #8E8E93;
+        }
+        .request-item.incoming { border-left-color: #FF9500; background: #fff9f0; }
+        .request-item.out-accepted { border-left-color: #34C759; background: #f0fff5; }
+        .request-item.out-denied { border-left-color: #FF3B30; background: #fff0f0; }
+        .request-item.recall-urgent { border-left-color: #FF3B30; background: #fff0f0; }
+        .transfer-section-label {
+            font-size: 11px; font-weight: 700; color: #8E8E93;
+            text-transform: uppercase; letter-spacing: 0.05em; margin: 12px 0 6px;
+        }
+        .transfer-section-label:first-child { margin-top: 0; }
+        .transfer-history-label {
+            font-size: 11px; font-weight: 700; color: #C7C7CC;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            margin: 16px 0 6px; padding-top: 12px;
+            border-top: 1px solid #e5e5ea;
+        }
+        .history-item {
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            background: #f5f5f7;
+            border-left: 3px solid #d1d1d6;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -526,6 +581,26 @@
         </div>
     </div>
     
+    <!-- Transfer / Member Sharing Panel (shown only when county integration is active) -->
+    <div id="transferPanel" style="display:none;margin-bottom:20px;">
+        <div class="subteam-panel" style="margin-bottom:0;">
+            <div class="subteam-header">
+                <h2>🔄 Member Transfer</h2>
+                <button class="btn" style="font-size:12px;padding:4px 10px;background:#f5f5f5;" onclick="loadTransferData()">⟳ Refresh</button>
+            </div>
+            <div class="content-grid" style="margin-top:0;">
+                <div>
+                    <div style="font-size:14px;font-weight:600;color:#555;margin-bottom:10px;">Available from Other Teams</div>
+                    <div id="availableFromOthersList"><div class="empty-state">Loading...</div></div>
+                </div>
+                <div>
+                    <div style="font-size:14px;font-weight:600;color:#555;margin-bottom:10px;">Transfer Requests</div>
+                    <div id="transferRequestsList"><div class="empty-state">Loading...</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="content-grid">
         <div class="panel">
             <h2>👥 CERT Members</h2>
@@ -651,23 +726,37 @@
     <div class="modal" id="setupPinModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>🔐 Create Dashboard PIN</h2>
+                <h2>🔐 First-Time Setup</h2>
             </div>
-            <p style="margin-bottom:16px;color:#666;">First time setup — create a PIN to secure this dashboard. Keep it separate from the member PIN you give your team.</p>
+
+            <h3 style="font-size:13px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Dashboard PIN</h3>
+            <p style="margin-bottom:14px;color:#666;font-size:13px;">Used by the team leader to access this dashboard.</p>
             <div class="form-group">
-                <label>New PIN (min 4 characters)</label>
+                <label>Dashboard PIN (min 4 characters)</label>
                 <input type="password" id="setupPinInput" placeholder="Create your dashboard PIN"
                        style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;"
                        onkeydown="if(event.key==='Enter') document.getElementById('setupPinConfirm').focus()">
             </div>
             <div class="form-group">
-                <label>Confirm PIN</label>
+                <label>Confirm Dashboard PIN</label>
                 <input type="password" id="setupPinConfirm" placeholder="Confirm PIN"
+                       style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;"
+                       onkeydown="if(event.key==='Enter') document.getElementById('setupMemberPinInput').focus()">
+            </div>
+
+            <hr style="border:none;border-top:1px solid #e5e5ea;margin:16px 0;">
+
+            <h3 style="font-size:13px;font-weight:700;color:#8E8E93;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Member Access PIN</h3>
+            <p style="margin-bottom:14px;color:#666;font-size:13px;">Share this PIN with your team members so they can check in. Leave blank to use the same PIN as above.</p>
+            <div class="form-group">
+                <label>Member PIN (optional)</label>
+                <input type="password" id="setupMemberPinInput" placeholder="Leave blank to use dashboard PIN"
                        style="width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px;"
                        onkeydown="if(event.key==='Enter') createDashboardPin()">
             </div>
+
             <p id="setupPinError" style="color:#FF3B30;font-size:13px;margin-bottom:12px;min-height:18px;"></p>
-            <button class="btn btn-primary" onclick="createDashboardPin()" style="width:100%;">Create PIN &amp; Open Dashboard</button>
+            <button class="btn btn-primary" onclick="createDashboardPin()" style="width:100%;">Set Up &amp; Open Dashboard</button>
         </div>
     </div>
 
@@ -781,7 +870,7 @@
         }
 
         function getCertPin() {
-            return sessionStorage.getItem('cert_pin') || '';
+            return localStorage.getItem('cert_pin') || '';
         }
 
         async function apiCall(method, url, body) {
@@ -812,25 +901,37 @@
         }
 
         async function createDashboardPin() {
-            const pin     = document.getElementById('setupPinInput').value;
-            const confirm = document.getElementById('setupPinConfirm').value;
-            const errEl   = document.getElementById('setupPinError');
+            const pin       = document.getElementById('setupPinInput').value;
+            const confirm   = document.getElementById('setupPinConfirm').value;
+            const memberPin = document.getElementById('setupMemberPinInput').value;
+            const errEl     = document.getElementById('setupPinError');
             errEl.textContent = '';
-            if (pin.length < 4)    { errEl.textContent = 'PIN must be at least 4 characters'; return; }
-            if (pin !== confirm)   { errEl.textContent = 'PINs do not match'; return; }
+            if (pin.length < 4)    { errEl.textContent = 'Dashboard PIN must be at least 4 characters'; return; }
+            if (pin !== confirm)   { errEl.textContent = 'Dashboard PINs do not match'; return; }
+            if (memberPin && memberPin.length < 4) {
+                errEl.textContent = 'Member PIN must be at least 4 characters if set'; return;
+            }
             try {
                 const res = await fetch('/api/setup/dashboard-pin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ pin })
                 });
-                if (res.ok) {
-                    sessionStorage.setItem('cert_pin', pin);
-                    document.getElementById('setupPinModal').classList.remove('show');
-                    connect();
-                } else {
-                    errEl.textContent = 'Server error — try again.';
+                if (!res.ok) { errEl.textContent = 'Server error — try again.'; return; }
+
+                localStorage.setItem('cert_pin', pin);
+
+                // If a custom member PIN was given, apply it now (dashboard PIN is active)
+                if (memberPin) {
+                    await fetch('/api/config/member-pin', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'X-CERT-Token': pin },
+                        body: JSON.stringify({ pin: memberPin })
+                    });
                 }
+
+                document.getElementById('setupPinModal').classList.remove('show');
+                connect();
             } catch {
                 errEl.textContent = 'Cannot reach server — check WiFi.';
             }
@@ -869,7 +970,7 @@
                     headers: { 'Content-Type': 'application/json', 'X-CERT-Token': pin }
                 });
                 if (res.ok) {
-                    sessionStorage.setItem('cert_pin', pin);
+                    localStorage.setItem('cert_pin', pin);
                     hidePinModal();
                     connect();
                 } else {
@@ -916,7 +1017,7 @@
                     body: JSON.stringify({ pin: newPin, currentPin })
                 });
                 if (res.ok) {
-                    sessionStorage.setItem('cert_pin', newPin);
+                    localStorage.setItem('cert_pin', newPin);
                     msgEl.style.color = '#34C759';
                     msgEl.textContent = 'Dashboard PIN updated ✓';
                 } else {
@@ -947,63 +1048,309 @@
             }
         }
 
+        // ── County Transfer State ─────────────────────────────────────────────────
+        let countyConfig = null;
+        let transferPollTimer = null;
+        let currentBorrows = [];     // accepted transfers where THIS team is the requester
+        let currentLoanedOut = [];   // accepted/recallRequested transfers where THIS team is the owner
+
+        async function loadCountyConfig() {
+            try {
+                const res = await fetch('/api/config');
+                if (!res.ok) return;
+                countyConfig = await res.json();
+                if (countyConfig.county_enabled) {
+                    document.getElementById('transferPanel').style.display = 'block';
+                    await loadTransferData();
+                    if (!transferPollTimer) {
+                        transferPollTimer = setInterval(loadTransferData, 5000);
+                    }
+                }
+            } catch {}
+        }
+
+        async function loadTransferData() {
+            try {
+                const [availRes, reqRes] = await Promise.all([
+                    apiCall('GET', '/api/county/available-members'),
+                    apiCall('GET', '/api/county/transfer-requests')
+                ]);
+                const available = availRes.ok ? await availRes.json() : [];
+                const requests  = reqRes.ok  ? await reqRes.json()  : [];
+                const myTeamId = countyConfig?.team_id;
+                // Borrowed: accepted OR recall-pending transfers where WE are the requesting team
+                currentBorrows = requests.filter(r =>
+                    r.requesting_team_id === myTeamId &&
+                    (r.status === 'Accepted' || r.status === 'RecallRequested')
+                );
+                // Loaned out: active transfers where WE are the owning team
+                currentLoanedOut = requests.filter(r =>
+                    r.owning_team_id === myTeamId &&
+                    (r.status === 'Accepted' || r.status === 'RecallRequested')
+                );
+                // Always re-render the member list so borrowed/recalled states stay in sync
+                if (currentData) {
+                    updateMemberList(currentData.members || [], currentData.sub_teams || [],
+                                     currentData.loanable_members || [], currentBorrows);
+                }
+                renderTransferPanel(available, requests);
+            } catch {}
+        }
+
+        function renderTransferPanel(available, requests) {
+            const myTeamID = countyConfig?.team_id;
+            const terminalStatuses = ['Released', 'Recalled', 'Denied'];
+
+            // Available from other teams
+            const availEl = document.getElementById('availableFromOthersList');
+            if (!available.length) {
+                availEl.innerHTML = '<div class="empty-state" style="padding:20px;">No members available for transfer</div>';
+            } else {
+                availEl.innerHTML = available.map(m => `
+                    <div class="transfer-member-item">
+                        <div>
+                            <div class="item-header">${esc(m.member_name)}</div>
+                            <div class="item-meta">${esc(m.member_role)} &bull; ${esc(m.team_name)}</div>
+                        </div>
+                        <button class="btn btn-primary" style="font-size:12px;padding:4px 10px;flex-shrink:0;"
+                            onclick="requestMember('${esc(m.team_id)}', '${m.member_id}', '${esc(m.member_name)}')">
+                            Request
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            // Split requests into active and history
+            const reqEl = document.getElementById('transferRequestsList');
+            const incoming = requests.filter(r => r.owning_team_id === myTeamID);
+            const outgoing  = requests.filter(r => r.requesting_team_id === myTeamID);
+            const activeIncoming = incoming.filter(r => !terminalStatuses.includes(r.status));
+            const activeOutgoing = outgoing.filter(r => !terminalStatuses.includes(r.status));
+            const historyItems = [
+                ...incoming.filter(r => terminalStatuses.includes(r.status)),
+                ...outgoing.filter(r => terminalStatuses.includes(r.status))
+            ].sort((a, b) => new Date(b.responded_at || b.requested_at) - new Date(a.responded_at || a.requested_at));
+
+            if (!activeIncoming.length && !activeOutgoing.length && !historyItems.length) {
+                reqEl.innerHTML = '<div class="empty-state" style="padding:20px;">No transfer requests</div>';
+                return;
+            }
+
+            let html = '';
+
+            // Active incoming (we own the member)
+            if (activeIncoming.length) {
+                html += `<div class="transfer-section-label">Incoming</div>`;
+                html += activeIncoming.map(r => {
+                    if (r.status === 'Pending') {
+                        return `<div class="request-item incoming">
+                            <div class="item-header">${esc(r.requesting_team_name)} wants ${esc(r.member_name)}</div>
+                            <div class="task-actions" style="margin-top:6px;">
+                                <button class="btn-sm" style="color:#34C759;border-color:#a8e6bf;"
+                                    onclick="respondToTransferRequest('${r.id}', 'Accepted')">✓ Accept</button>
+                                <button class="btn-sm cancel"
+                                    onclick="respondToTransferRequest('${r.id}', 'Denied')">✕ Deny</button>
+                            </div>
+                        </div>`;
+                    }
+                    if (r.status === 'Accepted') {
+                        return `<div class="request-item incoming">
+                            <div class="item-header">${esc(r.member_name)}</div>
+                            <div class="item-meta"><span style="color:#34C759;font-weight:600;">✓ On loan to ${esc(r.requesting_team_id)}</span></div>
+                        </div>`;
+                    }
+                    if (r.status === 'RecallRequested') {
+                        return `<div class="request-item incoming">
+                            <div class="item-header">${esc(r.member_name)}</div>
+                            <div class="item-meta"><span style="color:#FF9500;font-weight:600;">⏳ Recall sent — awaiting ${esc(r.requesting_team_id)}</span></div>
+                        </div>`;
+                    }
+                    return '';
+                }).join('');
+            }
+
+            // Active outgoing (we borrowed the member)
+            if (activeOutgoing.length) {
+                html += `<div class="transfer-section-label">My Requests</div>`;
+                html += activeOutgoing.map(r => {
+                    if (r.status === 'Pending') {
+                        return `<div class="request-item">
+                            <div class="item-header">${esc(r.member_name)}</div>
+                            <div class="item-meta">from ${esc(r.owning_team_id)} &bull; <span style="color:#FF9500;font-weight:600;">⏳ Pending</span></div>
+                        </div>`;
+                    }
+                    if (r.status === 'Accepted') {
+                        return `<div class="request-item out-accepted">
+                            <div class="item-header">${esc(r.member_name)}</div>
+                            <div class="item-meta">from ${esc(r.owning_team_id)} &bull; <span style="color:#34C759;font-weight:600;">✓ In your roster</span></div>
+                        </div>`;
+                    }
+                    if (r.status === 'RecallRequested') {
+                        return `<div class="request-item recall-urgent">
+                            <div class="item-header">⚠️ ${esc(r.owning_team_id)} wants <strong>${esc(r.member_name)}</strong> back</div>
+                            <div style="margin-top:6px;">
+                                <button class="btn-sm" style="color:#FF3B30;border-color:#ffb0b0;"
+                                    onclick="releaseMember('${r.id}', '${esc(r.member_name)}')">↩ Return Now</button>
+                            </div>
+                        </div>`;
+                    }
+                    return '';
+                }).join('');
+            }
+
+            // History section — terminal states
+            if (historyItems.length) {
+                html += `<div class="transfer-history-label">History</div>`;
+                html += historyItems.map(r => {
+                    const isOwner = r.owning_team_id === myTeamID;
+                    const date = r.responded_at ? new Date(r.responded_at).toLocaleDateString() : '';
+                    let label, color;
+                    if (r.status === 'Recalled') {
+                        label = isOwner
+                            ? `${esc(r.member_name)} recalled from ${esc(r.requesting_team_id)}`
+                            : `${esc(r.member_name)} recalled by ${esc(r.owning_team_id)}`;
+                        color = '#34C759';
+                    } else if (r.status === 'Released') {
+                        label = isOwner
+                            ? `${esc(r.requesting_team_id)} returned ${esc(r.member_name)}`
+                            : `You returned ${esc(r.member_name)} to ${esc(r.owning_team_id)}`;
+                        color = '#5856D6';
+                    } else {
+                        label = isOwner
+                            ? `Denied ${esc(r.requesting_team_name)}'s request for ${esc(r.member_name)}`
+                            : `${esc(r.owning_team_id)} denied request for ${esc(r.member_name)}`;
+                        color = '#FF3B30';
+                    }
+                    return `<div class="history-item">
+                        <span style="color:${color};font-weight:600;">${label}</span>
+                        ${date ? `<span style="color:#8E8E93;font-size:11px;">${date}</span>` : ''}
+                    </div>`;
+                }).join('');
+            }
+
+            reqEl.innerHTML = html;
+        }
+
+        async function toggleLoanable(memberId, currentlyLoanable, event) {
+            event.stopPropagation();
+            try {
+                const res = await apiCall('PATCH', `/api/members/${memberId}/loanable`,
+                    { loanable: !currentlyLoanable });
+                if (!res.ok) alert('Failed to update sharing status');
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        async function releaseMember(requestId, memberName) {
+            if (!confirm(`Return ${memberName} to their original team?`)) return;
+            try {
+                const res = await apiCall('DELETE', `/api/county/transfer-requests/${requestId}`);
+                if (!res.ok) {
+                    const msg = await res.text();
+                    alert('Failed to release member: ' + msg);
+                } else {
+                    await loadTransferData();
+                }
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        async function sendRecall(requestId, memberName) {
+            if (!confirm(`Request ${memberName} back from the borrowing team?\n\nThey will be notified and must acknowledge the return.`)) return;
+            try {
+                const res = await apiCall('PUT', `/api/county/transfer-requests/${requestId}`,
+                    { status: 'RecallRequested' });
+                if (!res.ok) {
+                    const msg = await res.text();
+                    alert('Failed to send recall request: ' + msg);
+                } else {
+                    await loadTransferData();
+                }
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        async function requestMember(owningTeamID, memberID, memberName) {
+            if (!confirm(`Request ${memberName} from ${owningTeamID}?\n\nThey will need to accept your request.`)) return;
+            try {
+                const res = await apiCall('POST', '/api/county/transfer-requests', {
+                    owning_team_id: owningTeamID,
+                    member_id: memberID,
+                    member_name: memberName
+                });
+                if (res.ok) {
+                    loadTransferData();
+                } else {
+                    const text = await res.text();
+                    if (text.includes('already exists')) {
+                        alert('You already have a pending request for this member.');
+                    } else {
+                        alert('Failed to send request: ' + text);
+                    }
+                }
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        async function respondToTransferRequest(requestId, status) {
+            const verb = status === 'Accepted' ? 'accept' : 'deny';
+            if (!confirm(`${verb.charAt(0).toUpperCase() + verb.slice(1)} this transfer request?`)) return;
+            try {
+                const res = await apiCall('PUT', `/api/county/transfer-requests/${requestId}`, { status });
+                if (res.ok) { loadTransferData(); }
+                else { alert('Failed to respond: ' + await res.text()); }
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
         // ── State ────────────────────────────────────────────────────────────────
         let ws;
         let reconnectAttempts = 0;
-        const maxReconnectAttempts = 5;
         let previousMemberCount = 0;
         let previousReportCount = 0;
         let previousTaskCount = 0;
         let previousSubTeamCount = 0;
         let currentData = null;
         let currentReportId = null;
-        
+
+        // Fallback REST poll — fires every 15s when WebSocket is not open
+        setInterval(async () => {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                try {
+                    const res = await apiCall('GET', '/api/dashboard');
+                    if (res.ok) updateDashboard(await res.json());
+                } catch {}
+            }
+        }, 15000);
+
         function connect() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${protocol}//${window.location.host}/ws`;
-            
-            console.log('🔌 Connecting to:', wsUrl);
+
             ws = new WebSocket(wsUrl);
-            
+
             ws.onopen = () => {
-                console.log('✅ WebSocket connected');
                 document.getElementById('connectionStatus').classList.add('connected');
                 document.getElementById('lastUpdate').textContent = 'Connected - Real-time updates active';
                 reconnectAttempts = 0;
+                if (!countyConfig) loadCountyConfig();
             };
-            
+
             ws.onmessage = (event) => {
-                console.log('📨 RAW MESSAGE RECEIVED');
-                console.log('Data length:', event.data.length);
-                console.log('First 200 chars:', event.data.substring(0, 200));
-                
                 try {
-                    const data = JSON.parse(event.data);
-                    console.log('✅ Parsed successfully');
-                    console.log('Member count in data:', data.members?.length || 0);
-                    console.log('Report count in data:', data.reports?.length || 0);
-                    console.log('Task count in data:', data.tasks?.length || 0);
-                    
-                    updateDashboard(data);
+                    updateDashboard(JSON.parse(event.data));
                 } catch (error) {
-                    console.error('❌ Parse error:', error);
+                    console.error('❌ WS parse error:', error);
                 }
             };
-            
-            ws.onerror = (error) => {
-                console.error('❌ WebSocket error:', error);
-                document.getElementById('lastUpdate').textContent = 'Connection error';
+
+            ws.onerror = () => {
+                document.getElementById('lastUpdate').textContent = 'Connection error - retrying...';
             };
-            
+
             ws.onclose = () => {
-                console.log('🔌 WebSocket disconnected');
                 document.getElementById('connectionStatus').classList.remove('connected');
-                document.getElementById('lastUpdate').textContent = 'Disconnected - Reconnecting...';
-                
-                if (reconnectAttempts < maxReconnectAttempts) {
-                    reconnectAttempts++;
-                    setTimeout(connect, 2000);
-                }
+                // Exponential backoff: 2s, 4s, 8s, … up to 30s, then keep retrying at 30s
+                const delay = Math.min(2000 * Math.pow(2, reconnectAttempts), 30000);
+                reconnectAttempts++;
+                document.getElementById('lastUpdate').textContent =
+                    `Disconnected — reconnecting in ${Math.round(delay/1000)}s…`;
+                setTimeout(connect, delay);
             };
         }
         
@@ -1071,7 +1418,7 @@
                 document.getElementById('incidentStatus').textContent = data.incident.name;
             }
             
-            updateMemberList(data.members || [], data.sub_teams || []);
+            updateMemberList(data.members || [], data.sub_teams || [], data.loanable_members || [], currentBorrows);
             updateReportList(data.reports || [], data.sub_teams || []);
             updateTaskList(data.tasks || [], data.sub_teams || []);
             updateSubTeamList(data.sub_teams || [], data.members || []);
@@ -1083,37 +1430,96 @@
             console.log('✅ Dashboard update complete');
         }
         
-        function updateMemberList(members, subTeams) {
-            console.log('Updating member list with', members.length, 'members');
+        function updateMemberList(members, subTeams, loanableMembers = [], borrows = []) {
+            console.log('Updating member list with', members.length, 'members,', borrows.length, 'borrowed');
             const container = document.getElementById('memberList');
-            
-            if (members.length === 0) {
+
+            if (members.length === 0 && borrows.length === 0) {
                 container.innerHTML = '<div class="empty-state">No members checked in yet</div>';
                 return;
             }
-            
-            const html = members.map(member => {
+
+            const ownHtml = members.map(member => {
                 const subTeam = subTeams ? subTeams.find(st => st.id === member.sub_team_id) : null;
                 const teamBadge = subTeam ?
                     `<span class="team-badge ${subTeam.color.toLowerCase()}">${subTeam.color}</span>` : '';
                 const equip = member.equipment && member.equipment.length > 0
                     ? `<div class="equip-tooltip">🎒 ${member.equipment.map(e => esc(e)).join(', ')}</div>` : '';
 
+                const isLent = !!member.lent_to_team;
+                const isLoanable = loanableMembers.includes(member.id);
+                const loanRecord = currentLoanedOut.find(r => r.member_id === member.id);
+                const isRecallPending = loanRecord?.status === 'RecallRequested';
+
+                // If the member is currently lent out, show assignment badge + Recall button
+                let actionEl = '';
+                if (isLent) {
+                    if (isRecallPending) {
+                        actionEl = `<span class="badge lent" style="font-size:10px;background:#FF9500;">Recall Sent → ${esc(member.lent_to_team)}</span>`;
+                    } else if (member.lent_request_id) {
+                        actionEl = `<span class="badge lent" style="font-size:10px;">Assigned to ${esc(member.lent_to_team)}</span>
+                            <button class="btn-sm" style="color:#FF9500;border-color:#ffd280;font-size:10px;margin-left:4px;"
+                               onclick="sendRecall('${member.lent_request_id}', '${esc(member.name)}')"
+                               title="Request this member back from the borrowing team">↩ Recall</button>`;
+                    } else {
+                        actionEl = `<span class="badge lent" style="font-size:10px;">Assigned to ${esc(member.lent_to_team)}</span>`;
+                    }
+                } else if (countyConfig?.county_enabled) {
+                    actionEl = `
+                        <button class="btn-sm loanable-btn ${isLoanable ? 'sharing' : ''}"
+                            onclick="toggleLoanable('${member.id}', ${isLoanable}, event)"
+                            title="${isLoanable ? 'Stop sharing with other teams' : 'Share with other teams'}">
+                            ${isLoanable ? '↙ Unshare' : '↗ Share'}
+                        </button>`;
+                }
+
                 return `
-                <div class="member-item ${member.status.toLowerCase().replace(' ', '')}">
+                <div class="member-item ${isLent ? 'lent' : member.status.toLowerCase().replace(' ', '')}">
                     ${equip}
-                    <div class="item-header">
-                        ${teamBadge}${esc(member.name)}
+                    <div class="item-header" style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>${teamBadge}${esc(member.name)}</span>
+                        ${actionEl}
                     </div>
                     <div class="item-meta">
-                        <span class="badge ${member.status.toLowerCase().replace(' ', '')}">${esc(member.status)}</span>
+                        <span class="badge ${isLent ? 'lent' : member.status.toLowerCase().replace(' ', '')}">${isLent ? 'On Loan' : esc(member.status)}</span>
                         ${esc(member.role)}
                     </div>
-                </div>
-            `;
+                </div>`;
             }).join('');
-            
-            container.innerHTML = html;
+
+            // Borrowed members section (members from other teams)
+            let borrowHtml = '';
+            if (borrows.length > 0) {
+                // Also check if any borrow has a pending recall (from all transfer requests)
+                borrowHtml = `<div class="borrowed-section-label">Borrowed Members</div>` +
+                    borrows.map(r => {
+                        const isRecallUrgent = r.status === 'RecallRequested';
+                        const returnLabel = isRecallUrgent ? '↩ Return Now' : '↩ Return';
+                        const returnStyle = isRecallUrgent
+                            ? 'color:#FF3B30;border-color:#ffb0b0;font-size:10px;font-weight:700;'
+                            : 'color:#FF3B30;border-color:#ffb0b0;font-size:10px;';
+                        const recallNotice = isRecallUrgent
+                            ? `<div style="color:#FF3B30;font-size:11px;font-weight:600;margin-top:4px;">⚠️ ${esc(r.owning_team_id)} is requesting this member back</div>`
+                            : '';
+                        return `
+                        <div class="member-item" style="border-left-color:${isRecallUrgent ? '#FF3B30' : '#5856D6'};background:${isRecallUrgent ? '#fff0f0' : '#f5f4ff'};">
+                            <div class="item-header" style="display:flex;justify-content:space-between;align-items:center;">
+                                <span><span class="badge from">From ${esc(r.owning_team_id)}</span> ${esc(r.member_name)}</span>
+                                <button class="btn-sm" style="${returnStyle}"
+                                    onclick="releaseMember('${r.id}', '${esc(r.member_name)}')"
+                                    title="Return this member to their original team">
+                                    ${returnLabel}
+                                </button>
+                            </div>
+                            <div class="item-meta">
+                                <span class="badge from">Borrowed</span>
+                            </div>
+                            ${recallNotice}
+                        </div>`;
+                    }).join('');
+            }
+
+            container.innerHTML = ownHtml + borrowHtml;
             console.log('Member list HTML updated');
         }
         

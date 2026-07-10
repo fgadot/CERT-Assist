@@ -45,8 +45,13 @@ public func configure(_ app: Application) throws {
     // This way county never needs to reach team servers directly — teams pull messages.
     if let countyEndpoint = Environment.get("COUNTY_ENDPOINT"),
        let teamID = Environment.get("TEAM_ID") {
-        print("🗺️  County endpoint: \(countyEndpoint) — polling every 30s for messages")
+        print("🗺️  County endpoint: \(countyEndpoint) — startup push + polling every 30s for messages")
         Task {
+            // Wait for server to fully start, then push initial state to county
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            await dataStore.broadcastUpdate()
+            print("📡 Initial county push sent")
+
             while true {
                 try? await Task.sleep(nanoseconds: 30_000_000_000)
                 await pollCountyMessages(countyEndpoint: countyEndpoint, teamID: teamID)

@@ -9,7 +9,7 @@ import Vapor
 // MARK: - Team Summary (pushed by team servers)
 
 struct TeamSummary: Content {
-    var teamID: String
+    var teamId: String
     var teamName: String
     var location: String?
     var endpoint: String?          // e.g. "https://oakdale.cert.w6fgc.com"
@@ -31,13 +31,47 @@ struct TeamSummary: Content {
     }
 }
 
+// MARK: - Available Member (team → county, for cross-team borrowing)
+
+struct AvailableMember: Content {
+    var memberId: UUID         // team's own member UUID (also used as county record key)
+    var teamId: String
+    var teamName: String
+    var memberName: String
+    var memberRole: String
+    var addedAt: Date
+}
+
+// MARK: - Transfer Request (requesting team → county → owning team)
+
+struct TransferRequest: Content {
+    var id: UUID
+    var requestingTeamId: String
+    var requestingTeamName: String
+    var owningTeamId: String
+    var memberId: UUID
+    var memberName: String
+    var status: TransferStatus
+    var requestedAt: Date
+    var respondedAt: Date?
+
+    enum TransferStatus: String, Codable {
+        case pending         = "Pending"
+        case accepted        = "Accepted"
+        case denied          = "Denied"
+        case recallRequested = "RecallRequested"  // owning team sent a recall request
+        case released        = "Released"         // requesting team returned voluntarily
+        case recalled        = "Recalled"         // returned after a recall request
+    }
+}
+
 // MARK: - County Message (county → team, picked up by team polling)
 
 struct CountyMessage: Content {
     var id: UUID
     var type: MessageType
-    var targetTeamID: String
-    var reportID: UUID?
+    var targetTeamId: String
+    var reportId: UUID?
     var text: String
     var timestamp: Date
     var confirmed: Bool            // true once team has polled and processed
@@ -46,6 +80,10 @@ struct CountyMessage: Content {
         case acknowledgment
         case alert
         case info
+        case transferRequest        // owning team: someone is requesting your member
+        case transferResponse       // requesting team: your request was accepted/denied
+        case transferRelease        // owning team: requesting team returned the member
+        case transferRecallRequest  // requesting team: owning team wants their member back
     }
 }
 
@@ -53,6 +91,6 @@ struct CountyMessage: Content {
 
 struct CountyDashboardData: Content {
     var teams: [TeamSummary]
-    var pendingMessageCounts: [String: Int]   // teamID → count of unconfirmed messages
+    var pendingMessageCounts: [String: Int]   // teamId → count of unconfirmed messages
     var lastUpdate: Date
 }

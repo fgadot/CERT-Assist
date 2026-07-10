@@ -82,12 +82,10 @@ actor DataStore {
             dashboardPin = config.dashboardPin?.isEmpty == false ? config.dashboardPin : nil
             memberPin    = config.memberPin?.isEmpty == false    ? config.memberPin    : nil
         }
-        if (dashboardPin ?? "").isEmpty {
-            dashboardPin = Environment.get("DASHBOARD_PIN") ?? Environment.get("TEAM_PIN")
-        }
-        if (memberPin ?? "").isEmpty {
-            memberPin = Environment.get("MEMBER_PIN")
-        }
+        // Fall back to env vars; TEAM_PIN initializes both PINs if neither is set from file
+        let envPin = Environment.get("DASHBOARD_PIN") ?? Environment.get("TEAM_PIN")
+        if (dashboardPin ?? "").isEmpty { dashboardPin = envPin }
+        if (memberPin ?? "").isEmpty    { memberPin = Environment.get("MEMBER_PIN") ?? envPin }
         log("🔐 PINs: dashboard=\(isDashboardPinSet() ? "set" : "NOT SET — first-run required"), member=\(isMemberPinSet() ? "set" : "open")")
     }
 
@@ -175,21 +173,67 @@ actor DataStore {
     func applyCountyMessage(_ message: CountyMessage) {
         switch message.type {
         case .acknowledgment:
-            if let reportID = message.reportID, var report = reports[reportID] {
+            if let reportId = message.reportId, var report = reports[reportId] {
                 report.acknowledgedByCounty = true
                 report.acknowledgedAt = message.timestamp
-                reports[reportID] = report
+                reports[reportId] = report
                 log("✅ COUNTY ACK: \(report.type.rawValue) acknowledged by County EOC")
             }
         case .alert:
             log("⚠️ COUNTY ALERT: \(message.text)")
         case .info:
             log("ℹ️ COUNTY MESSAGE: \(message.text)")
+        case .transferRequest:
+            log("📥 TRANSFER REQUEST: \(message.text)")
+        case .transferResponse:
+            log("📤 TRANSFER RESPONSE: \(message.text)")
+        case .transferRelease:
+            // Requesting team returned a borrowed member — clear our lentToTeam flag
+            if let memberId = message.reportId, var member = members[memberId] {
+                member.lentToTeam = nil
+                member.lentRequestId = nil
+                members[memberId] = member
+                log("📤 MEMBER RETURNED: \(member.name) returned from \(message.text)")
+            }
+        case .transferRecallRequest:
+            // Owning team wants their member back — Beta's dashboard will show this via transfer poll
+            log("🔔 RECALL REQUEST: \(message.text)")
         }
     }
 
+    // ── Loanable Members ──────────────────────────────────────────────────────────
+
+    var loanableMembers: Set<UUID> = []
+
+    func setLoanable(_ id: UUID, loanable: Bool) async {
+        if loanable { loanableMembers.insert(id) } else { loanableMembers.remove(id) }
+        log("🔄 LOANABLE: \(id) → \(loanable ? "available for transfer" : "not available")")
+        await broadcastUpdate()
+    }
+
+    func setLentToTeam(_ teamId: String?, memberId: UUID, requestId: String? = nil) async {
+        guard var member = members[memberId] else { return }
+        member.lentToTeam = teamId
+        member.lentRequestId = requestId
+        members[memberId] = member
+        if let teamId {
+            log("🤝 LENT: \(member.name) on loan to \(teamId) (request: \(requestId ?? "?"))")
+        } else {
+            log("🔙 RETURNED: \(member.name) loan cleared")
+        }
+        await broadcastUpdate()
+    }
+
+    func getLoanableMembers() -> [UUID] { Array(loanableMembers) }
+
+    func getCountyEndpoint() -> String? { countyEndpoint }
+    func getTeamID() -> String { teamID }
+    func getTeamName() -> String { teamName }
+
     private func pushToCounty() async {
         guard let countyEndpoint else { return }
+        // Don't push to county until at least one member is checked in
+        guard !members.isEmpty else { return }
         let summary = buildTeamSummary()
 
         guard let url = URL(string: "\(countyEndpoint)/api/teams/summary") else { return }
@@ -395,9 +439,46 @@ actor DataStore {
             reports: Array(reports.values),
             tasks: Array(tasks.values),
             subTeams: Array(subTeams.values),
+            loanableMembers: Array(loanableMembers),
             lastUpdate: Date()
         )
     }
+}
+
+// MARK: - County HTTP helpers (free functions, not in actor)
+
+private func countyRequest(
+    method: String, endpoint: String, path: String, body: Data? = nil
+) async -> Data? {
+    guard let url = URL(string: "\(endpoint)\(path)") else { return nil }
+    var req = URLRequest(url: url)
+    req.httpMethod = method
+    req.timeoutInterval = 10
+    if let body {
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = body
+    }
+    if let pin = Environment.get("COUNTY_PIN"), !pin.isEmpty {
+        req.setValue(pin, forHTTPHeaderField: "X-CERT-Token")
+    }
+    return await withCheckedContinuation { cont in
+        URLSession.shared.dataTask(with: req) { d, _, _ in cont.resume(returning: d) }.resume()
+    }
+}
+
+private func countyDecode<T: Decodable>(_ type: T.Type, method: String, endpoint: String, path: String, body: Data? = nil) async -> T? {
+    guard let data = await countyRequest(method: method, endpoint: endpoint, path: path, body: body) else { return nil }
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
+    return try? decoder.decode(type, from: data)
+}
+
+private func countyEncode<T: Encodable>(_ value: T) -> Data? {
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
+    encoder.keyEncodingStrategy = .convertToSnakeCase
+    return try? encoder.encode(value)
 }
 
 let dataStore = DataStore()
@@ -449,7 +530,13 @@ func routes(_ app: Application) throws {
         guard body.pin.count >= 4 else {
             throw Abort(.badRequest, reason: "PIN must be at least 4 characters")
         }
+        let isFirstRun = current.isEmpty
         await dataStore.setDashboardPin(body.pin)
+        // On first-run, seed the member PIN to the same value so check-in is protected immediately
+        if isFirstRun {
+            let memberAlreadySet = await dataStore.isMemberPinSet()
+            if !memberAlreadySet { await dataStore.setMemberPin(body.pin) }
+        }
         return .ok
     }
 
@@ -605,6 +692,128 @@ func routes(_ app: Application) throws {
         struct PinUpdate: Content { var pin: String }
         let body = try req.content.decode(PinUpdate.self)
         await dataStore.setMemberPin(body.pin)
+        return .ok
+    }
+
+    // ── County transfer / loanable members ───────────────────────────────────────
+
+    api.get("config") { req async throws -> Response in
+        let teamID = await dataStore.getTeamID()
+        let teamName = await dataStore.getTeamName()
+        let countyEnabled = await dataStore.getCountyEndpoint() != nil
+        let safe = teamName.replacingOccurrences(of: "\"", with: "\\\"")
+        let json = "{\"team_id\":\"\(teamID)\",\"team_name\":\"\(safe)\",\"county_enabled\":\(countyEnabled)}"
+        var headers = HTTPHeaders()
+        headers.add(name: .contentType, value: "application/json")
+        return Response(status: .ok, headers: headers, body: .init(string: json))
+    }
+
+    adminApi.patch("members", ":id", "loanable") { req async throws -> HTTPStatus in
+        let id = try req.parameters.require("id", as: UUID.self)
+        struct LoanableBody: Content { var loanable: Bool }
+        let body = try req.content.decode(LoanableBody.self)
+        guard let member = await dataStore.getAllMembers().first(where: { $0.id == id }) else {
+            throw Abort(.notFound)
+        }
+        await dataStore.setLoanable(id, loanable: body.loanable)
+        if let endpoint = await dataStore.getCountyEndpoint() {
+            if body.loanable {
+                let avail = AvailableMember(
+                    memberId: id,
+                    teamId: await dataStore.getTeamID(),
+                    teamName: await dataStore.getTeamName(),
+                    memberName: member.name,
+                    memberRole: member.role,
+                    addedAt: Date()
+                )
+                if let data = countyEncode(avail) {
+                    _ = await countyRequest(method: "POST", endpoint: endpoint,
+                                            path: "/api/available-members", body: data)
+                }
+            } else {
+                _ = await countyRequest(method: "DELETE", endpoint: endpoint,
+                                        path: "/api/available-members/\(id)")
+            }
+        }
+        return .ok
+    }
+
+    adminApi.get("county", "available-members") { req async throws -> [AvailableMember] in
+        guard let endpoint = await dataStore.getCountyEndpoint() else { return [] }
+        let teamID = await dataStore.getTeamID()
+        return await countyDecode([AvailableMember].self, method: "GET", endpoint: endpoint,
+                                   path: "/api/available-members?exclude=\(teamID)") ?? []
+    }
+
+    adminApi.post("county", "transfer-requests") { req async throws -> TransferRequest in
+        guard let endpoint = await dataStore.getCountyEndpoint() else {
+            throw Abort(.serviceUnavailable, reason: "County server not configured")
+        }
+        struct RequestBody: Content { var owningTeamId: String; var memberId: UUID; var memberName: String }
+        let body = try req.content.decode(RequestBody.self)
+        struct FullBody: Encodable {
+            var requestingTeamId: String; var requestingTeamName: String
+            var owningTeamId: String; var memberId: UUID; var memberName: String
+        }
+        let full = FullBody(
+            requestingTeamId: await dataStore.getTeamID(),
+            requestingTeamName: await dataStore.getTeamName(),
+            owningTeamId: body.owningTeamId,
+            memberId: body.memberId,
+            memberName: body.memberName
+        )
+        guard let bodyData = countyEncode(full),
+              let result = await countyDecode(TransferRequest.self, method: "POST", endpoint: endpoint,
+                                              path: "/api/transfer-requests", body: bodyData)
+        else { throw Abort(.badGateway, reason: "County server error") }
+        return result
+    }
+
+    adminApi.get("county", "transfer-requests") { req async throws -> [TransferRequest] in
+        guard let endpoint = await dataStore.getCountyEndpoint() else { return [] }
+        let teamID = await dataStore.getTeamID()
+        return await countyDecode([TransferRequest].self, method: "GET", endpoint: endpoint,
+                                   path: "/api/transfer-requests?team=\(teamID)") ?? []
+    }
+
+    adminApi.put("county", "transfer-requests", ":id") { req async throws -> TransferRequest in
+        guard let endpoint = await dataStore.getCountyEndpoint() else {
+            throw Abort(.serviceUnavailable, reason: "County server not configured")
+        }
+        let id = try req.parameters.require("id", as: UUID.self)
+        struct RespondBody: Content { var status: String }
+        let body = try req.content.decode(RespondBody.self)
+        struct FullBody: Encodable { var status: String; var teamId: String }
+        let full = FullBody(status: body.status, teamId: await dataStore.getTeamID())
+        guard let bodyData = countyEncode(full),
+              let result = await countyDecode(TransferRequest.self, method: "PUT", endpoint: endpoint,
+                                              path: "/api/transfer-requests/\(id)", body: bodyData)
+        else { throw Abort(.badGateway, reason: "County server error") }
+        if body.status == "Accepted" {
+            // Member is now on loan — mark locally so the dashboard shows the lent badge
+            await dataStore.setLoanable(result.memberId, loanable: false)
+            await dataStore.setLentToTeam(result.requestingTeamId, memberId: result.memberId,
+                                          requestId: result.id.uuidString)
+        }
+        // RecallRequested: no backend state change — member stays lent; dashboard derives
+        // "Recall Sent" state from currentLoanedOut (transfer request poll).
+        return result
+    }
+
+    adminApi.delete("county", "transfer-requests", ":id") { req async throws -> HTTPStatus in
+        guard let endpoint = await dataStore.getCountyEndpoint() else {
+            throw Abort(.serviceUnavailable, reason: "County server not configured")
+        }
+        let id = try req.parameters.require("id", as: UUID.self)
+        let teamId = await dataStore.getTeamID()
+        // County returns the transfer request so we know which member to un-mark
+        if let result = await countyDecode(TransferRequest.self, method: "DELETE", endpoint: endpoint,
+                                           path: "/api/transfer-requests/\(id)?team=\(teamId)") {
+            // If we're the owning team (Alpha recalling), clear lentToTeam immediately
+            if result.owningTeamId == teamId {
+                await dataStore.setLentToTeam(nil, memberId: result.memberId)
+            }
+        }
         return .ok
     }
 

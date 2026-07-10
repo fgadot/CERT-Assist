@@ -1,0 +1,51 @@
+services:
+  county:
+    build:
+      context: ./CountyServer
+    ports:
+      - "8090:8080"
+    volumes:
+      - ./CountyServer/Public:/app/Public
+    environment:
+      - ENVIRONMENT=production
+      - COUNTY_PIN=
+
+  team-alpha:
+    build:
+      context: ./Backend
+    ports:
+      - "8080:8080"
+    environment:
+      - ENVIRONMENT=production
+      - TEAM_ID=alpha
+      - TEAM_NAME=Alpha Team
+      - TEAM_LOCATION=
+      - TEAM_ENDPOINT=http://localhost:8080
+      - TEAM_PIN=1111
+      - COUNTY_ENDPOINT=http://county:8080
+    volumes:
+      - ./Backend/Public:/app/Public
+      - ./local-test/alpha/data:/app/data
+      - ./local-test/alpha/config:/app/config
+    depends_on:
+      - county
+
+  team-beta:
+    build:
+      context: ./Backend
+    ports:
+      - "8081:8080"
+    environment:
+      - ENVIRONMENT=production
+      - TEAM_ID=beta
+      - TEAM_NAME=Beta Team
+      - TEAM_LOCATION=
+      - TEAM_ENDPOINT=http://localhost:8081
+      - TEAM_PIN=2222
+      - COUNTY_ENDPOINT=http://county:8080
+    volumes:
+      - ./Backend/Public:/app/Public
+      - ./local-test/beta/data:/app/data
+      - ./local-test/beta/config:/app/config
+    depends_on:
+      - county

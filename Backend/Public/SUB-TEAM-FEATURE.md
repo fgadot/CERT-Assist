@@ -1,7 +1,8 @@
 # Sub-Team Feature Implementation
 
 **Implemented:** June 14, 2026  
-**Status:** ✅ Complete - Ready for Testing
+**Last Updated:** July 2, 2026  
+**Status:** ✅ Complete - Production Ready
 
 ---
 
@@ -333,95 +334,19 @@ POST /api/reports
 
 ## Known Limitations
 
-### Current Implementation
+1. **No persistence** - Data lost on container restart (in-memory DataStore). SQLite via Fluent is wired up but migrations not yet implemented.
+2. **Single PIN** - No per-user authentication. Team leader and all members share one PIN.
+3. **No sub-team editing** - Can only delete and recreate. Add/remove members from existing sub-team not supported.
+4. **Mobile app not connected** - iOS app uses MultipeerConnectivity but doesn't call the team server API yet.
 
-1. **No persistence** - Data lost on server restart (in-memory only)
-   - **Solution needed:** Add SQLite/PostgreSQL database
+## Completed Items (as of July 2026)
 
-2. **No authentication** - Anyone can create/delete sub-teams
-   - **Solution needed:** Add team leader PIN or credentials
-
-3. **No sub-team editing** - Can only delete and recreate
-   - **Solution needed:** Add edit modal to change members
-
-4. **No task-to-subteam UI** - Can assign via API but not dashboard
-   - **Solution needed:** Add task creation UI with sub-team dropdown
-
-5. **Mobile app not connected** - iOS app doesn't use these APIs yet
-   - **Solution needed:** Implement network layer in iOS app
-
-### Design Decisions
-
-1. **Minimum 2 members per sub-team**
-   - Enforced in UI validation
-   - Not enforced in backend (should add)
-
-2. **One sub-team per member**
-   - Member can only be in one sub-team at a time
-   - Automatically unassigned from old team if reassigned
-
-3. **Deleting sub-team unassigns members**
-   - Members return to "Available" status
-   - Could keep as "Assigned" for audit trail
-
----
-
-## Next Steps
-
-### Immediate (Do This Week)
-
-1. **Test the implementation**
-   - Use test_checkin.sh to create members
-   - Create sub-teams via dashboard
-   - Test WebSocket updates
-
-2. **Add backend validation**
-   - Minimum 2 members per sub-team
-   - Unique color per active sub-team
-   - Validate member exists before adding
-
-3. **Update test script**
-   - Add sub-team creation examples
-   - Add report submission with sub-team
-
-### Short-Term (Before Production)
-
-4. **Add database persistence**
-   - SQLite for development
-   - PostgreSQL for production
-   - Migration script for data models
-
-5. **Add authentication**
-   - Team leader PIN for dashboard
-   - API keys for mobile apps
-   - JWT tokens for session management
-
-6. **Add task assignment UI**
-   - Create task modal with sub-team dropdown
-   - Show assigned sub-team on task cards
-   - Allow reassignment
-
-7. **Connect iOS app**
-   - Network service layer
-   - API integration
-   - Sync local MultipeerConnectivity with server
-
-### Long-Term (Nice to Have)
-
-8. **Sub-team editing**
-   - Add/remove members from existing sub-team
-   - Change sub-team color
-   - Merge/split sub-teams
-
-9. **Sub-team analytics**
-   - Reports completed per sub-team
-   - Tasks assigned per sub-team
-   - Time tracking
-
-10. **Map view with sub-teams**
-    - Show sub-team locations on map
-    - Color-code markers by team
-    - Track movement history
+- ✅ Sub-team CRUD (create, view, delete) via dashboard
+- ✅ Color badges on members, reports, tasks
+- ✅ Real-time WebSocket updates
+- ✅ Task assignment UI with sub-team dropdown
+- ✅ PIN authentication (`X-CERT-Token` header on all writes)
+- ✅ County integration (sub-team data flows through `TeamSummary`)
 
 ---
 
