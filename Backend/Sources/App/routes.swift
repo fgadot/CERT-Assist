@@ -170,6 +170,9 @@ actor DataStore {
         )
     }
 
+    // Inbox of received county alert/info messages, kept for dashboard display (last 50)
+    var countyInbox: [CountyMessage] = []
+
     func applyCountyMessage(_ message: CountyMessage) {
         switch message.type {
         case .acknowledgment:
@@ -180,8 +183,12 @@ actor DataStore {
                 log("✅ COUNTY ACK: \(report.type.rawValue) acknowledged by County EOC")
             }
         case .alert:
+            countyInbox.append(message)
+            if countyInbox.count > 50 { countyInbox.removeFirst() }
             log("⚠️ COUNTY ALERT: \(message.text)")
         case .info:
+            countyInbox.append(message)
+            if countyInbox.count > 50 { countyInbox.removeFirst() }
             log("ℹ️ COUNTY MESSAGE: \(message.text)")
         case .transferRequest:
             log("📥 TRANSFER REQUEST: \(message.text)")
@@ -440,6 +447,7 @@ actor DataStore {
             tasks: Array(tasks.values),
             subTeams: Array(subTeams.values),
             loanableMembers: Array(loanableMembers),
+            countyInbox: countyInbox,
             lastUpdate: Date()
         )
     }
@@ -814,6 +822,24 @@ func routes(_ app: Application) throws {
                 await dataStore.setLentToTeam(nil, memberId: result.memberId)
             }
         }
+        return .ok
+    }
+
+    // ── Flag for county EOC review ────────────────────────────────────────────────
+    adminApi.post("county", "flag") { req async throws -> HTTPStatus in
+        guard let endpoint = await dataStore.getCountyEndpoint() else {
+            throw Abort(.serviceUnavailable, reason: "County server not configured")
+        }
+        struct FlagBody: Content { var text: String }
+        let body = try req.content.decode(FlagBody.self)
+        struct FullBody: Encodable { var teamId: String; var teamName: String; var text: String }
+        let full = FullBody(
+            teamId: await dataStore.getTeamID(),
+            teamName: await dataStore.getTeamName(),
+            text: body.text
+        )
+        guard let bodyData = countyEncode(full) else { throw Abort(.internalServerError) }
+        _ = await countyRequest(method: "POST", endpoint: endpoint, path: "/api/team-flags", body: bodyData)
         return .ok
     }
 

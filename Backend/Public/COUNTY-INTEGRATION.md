@@ -1,6 +1,6 @@
 # County Integration Architecture
 
-**Last Updated:** July 2, 2026  
+**Last Updated:** July 10, 2026  
 **Status:** ✅ Fully working
 
 This document covers the county ↔ team server integration: architecture decisions, data flow, the critical JSON key strategy gotcha, and debugging history. Read this before touching any county-related code.
@@ -102,14 +102,54 @@ On startup, `configure.swift` fires an initial `broadcastUpdate()` after a 3-sec
 `configure.swift` starts a background loop that polls `GET $COUNTY_ENDPOINT/api/messages?team=$TEAM_ID` every 30 seconds. For each message:
 1. Calls `dataStore.applyCountyMessage(message)` to process it locally
 2. POSTs to `$COUNTY_ENDPOINT/api/messages/:id/confirm` to clear it
-3. Calls `dataStore.broadcastUpdate()` so dashboard reflects the change
+3. Calls `dataStore.broadcastUpdate()` so dashboard reflects the change via WebSocket
+
+`alert` and `info` messages are saved into `DataStore.countyInbox` (last 50), which is included in `DashboardData` and pushed to the team dashboard via WebSocket. The team dashboard renders a **County Messages** panel and triggers browser notifications and a toast when new messages arrive.
 
 Message types:
-- `acknowledgment` — marks a report as `acknowledgedByCounty = true`
-- `alert` — logged as county alert
-- `info` — logged as county info
-- `transferRequest` — logged (owning team sees incoming request)
-- `transferResponse` — logged (requesting team sees accept/deny)
+| Type | Effect on team |
+|------|---------------|
+| `acknowledgment` | Marks a report as `acknowledgedByCounty = true` |
+| `alert` | Saved to `countyInbox`, shown in panel (red), browser notification triggered |
+| `info` | Saved to `countyInbox`, shown in panel (blue), browser notification triggered |
+| `transferRequest` | Logged — owning team sees request in Transfer Panel (5s poll) |
+| `transferResponse` | Logged — requesting team sees accept/deny in Transfer Panel |
+| `transferRelease` | Clears `lentToTeam` on member — member returns to alpha's roster |
+| `transferRecallRequest` | Logged — beta team sees recall notice in Transfer Panel |
+
+---
+
+## County → All Teams Broadcast
+
+County can send a message to **all registered teams** at once:
+
+```
+POST /api/broadcast  { type: "alert" | "info", text: "…" }
+```
+
+This creates a `CountyMessage` for every key in `countyStore.teams` (all teams that have ever pushed a summary, regardless of member count). Each team picks it up on its next 30s poll.
+
+County dashboard: the **📢 Broadcast** button in the header opens a modal with type selector and message field.
+
+---
+
+## Team → County Flags
+
+Team leads can raise a flag for the County EOC to review:
+
+```
+Team dashboard → "📣 Flag for County" button
+    → POST /api/county/flag { text: "…" }       (to team's own backend)
+    → Backend proxies to county: POST /api/team-flags { teamId, teamName, text }
+
+County dashboard → "Flags from Teams" section (polls every 15s)
+    → GET /api/team-flags
+    → POST /api/team-flags/:id/acknowledge
+```
+
+Flags are displayed below the team grid on the county dashboard with an unread count badge. Acknowledged flags dim and show a checkmark.
+
+**Key distinction from messages:** Messages flow county → team (downward). Flags flow team → county (upward). They use completely separate stores.
 
 ---
 
@@ -197,6 +237,16 @@ PIN config files for local test:
 1. Check that the 30s poll loop started (look for log: `County endpoint: http://... — startup push + polling every 30s`)
 2. Check `GET /api/messages?team=TEAM_ID` manually — does it return messages?
 3. Check for `CountyMessage.targetTeamId` decode issues (must be lowercase `d`)
+
+**County Messages panel not showing on team dashboard**
+1. Verify `countyInbox` is populated: `DataStore.countyInbox` is only filled for `alert` and `info` types
+2. Check that `DashboardData.countyInbox` is included in the WebSocket push
+3. Panel is shown only if `countyConfig.county_enabled` is true
+
+**Team flag not appearing on county dashboard**
+1. Check team backend log: `POST /api/county/flag` → proxied to county `/api/team-flags`
+2. County uses PIN auth — verify `COUNTY_PIN` env var matches
+3. Flags section polls every 15s; wait one cycle or click browser refresh
 
 ---
 

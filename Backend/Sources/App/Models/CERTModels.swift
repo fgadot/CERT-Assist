@@ -190,6 +190,7 @@ struct DashboardData: Content {
     var tasks: [CERTTask]
     var subTeams: [SubTeam]
     var loanableMembers: [UUID]
+    var countyInbox: [CountyMessage]   // recent alert/info messages received from county
     var lastUpdate: Date
 }
 

@@ -366,6 +366,10 @@
         <p>Emergency Operations Center — Real-Time Team Overview</p>
     </div>
     <div class="conn-row">
+        <button onclick="openBroadcastModal()"
+            style="padding:7px 16px;background:#FF9500;color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;margin-right:14px;">
+            📢 Broadcast
+        </button>
         <span class="dot" id="dot"></span>
         <span id="connLabel">Connecting…</span>
     </div>
@@ -402,6 +406,44 @@
     <div class="empty-county">
         <h2>Waiting for teams…</h2>
         <p>Team servers will appear here as they check in.</p>
+    </div>
+</div>
+
+<!-- Team Flags Section -->
+<div id="flagsSection" style="display:none;padding:0 30px 8px;">
+    <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+        📣 Flags from Teams
+        <span id="flagsBadge" style="display:none;background:#FF9500;color:white;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;"></span>
+    </div>
+    <div id="flagsList"></div>
+</div>
+
+<!-- Broadcast Modal -->
+<div class="modal" id="broadcastModal">
+    <div class="modal-box" style="max-width:480px;">
+        <div class="modal-header">
+            <h2>📢 Broadcast to All Teams</h2>
+            <button class="close-btn" onclick="closeBroadcastModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom:12px;">
+                <div style="font-size:12px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Message Type</div>
+                <select id="broadcastType" style="width:100%;padding:10px 12px;background:#0f3460;border:1px solid #1a4a8a;border-radius:8px;color:#e0e0e0;font-size:14px;font-family:inherit;">
+                    <option value="info">ℹ️  Info — General update</option>
+                    <option value="alert">⚠️  Alert — Urgent, needs attention</option>
+                </select>
+            </div>
+            <div>
+                <div style="font-size:12px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Message</div>
+                <textarea id="broadcastText" rows="4" placeholder="Message to all active teams…" maxlength="500"
+                    style="width:100%;padding:10px 14px;background:#0f3460;border:1px solid #1a4a8a;border-radius:8px;color:#e0e0e0;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+            </div>
+            <div style="margin-top:16px;display:flex;gap:8px;">
+                <button class="msg-send-btn" style="flex:1;" onclick="sendBroadcast()">📢 Send to All Teams</button>
+                <button onclick="closeBroadcastModal()"
+                    style="padding:10px 18px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#ccc;cursor:pointer;">Cancel</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -473,19 +515,12 @@
                 showPinModal();
             } else {
                 connect();
+                loadTeamFlags();
+                if (!flagPollTimer) flagPollTimer = setInterval(loadTeamFlags, 15000);
             }
         } catch {
             connect();
         }
-    }
-
-    function showPinModal() {
-        document.getElementById('pinModal').classList.add('show');
-        setTimeout(() => document.getElementById('pinInput').focus(), 50);
-    }
-
-    function hidePinModal() {
-        document.getElementById('pinModal').classList.remove('show');
     }
 
     async function submitPin() {
@@ -499,12 +534,23 @@
                 sessionStorage.setItem('county_pin', pin);
                 hidePinModal();
                 connect();
+                loadTeamFlags();
+                if (!flagPollTimer) flagPollTimer = setInterval(loadTeamFlags, 15000);
             } else {
                 document.getElementById('pinError').textContent = 'Incorrect PIN.';
             }
         } catch {
             document.getElementById('pinError').textContent = 'Cannot reach server.';
         }
+    }
+
+    function showPinModal() {
+        document.getElementById('pinModal').classList.add('show');
+        setTimeout(() => document.getElementById('pinInput').focus(), 50);
+    }
+
+    function hidePinModal() {
+        document.getElementById('pinModal').classList.remove('show');
     }
 
     // ── SSRF guard ───────────────────────────────────────────────────────────────
@@ -760,6 +806,10 @@
             ${memberHtml}
 
             <div class="section-title">💬 Send Message to Team</div>
+            <select id="msgType" style="width:100%;padding:8px 12px;background:#0f3460;border:1px solid #1a4a8a;border-radius:8px;color:#e0e0e0;font-size:13px;font-family:inherit;margin-bottom:8px;">
+                <option value="info">ℹ️  Info — General update</option>
+                <option value="alert">⚠️  Alert — Urgent, needs attention</option>
+            </select>
             <div class="msg-form">
                 <input class="msg-input" id="msgText" placeholder="Type a message to send to this team…" maxlength="280">
                 <button class="msg-send-btn" onclick="sendMessage('${teamId}')">Send</button>
@@ -790,13 +840,13 @@
         }
     }
 
-    // ── Send message to team ─────────────────────────────────────────────────────
+    // ── Send message to single team ──────────────────────────────────────────────
     async function sendMessage(teamId) {
         const text = document.getElementById('msgText').value.trim();
+        const type = document.getElementById('msgType')?.value || 'info';
         if (!text) { alert('Please enter a message.'); return; }
-
         try {
-            const res = await countyApiCall('POST', `/api/teams/${teamId}/message`, { type: 'info', text });
+            const res = await countyApiCall('POST', `/api/teams/${teamId}/message`, { type, text });
             if (res.ok) {
                 document.getElementById('msgText').value = '';
                 alert('Message sent. Team will receive it within 30 seconds.');
@@ -806,6 +856,85 @@
         } catch (e) {
             alert('Network error: ' + e.message);
         }
+    }
+
+    // ── Broadcast to all teams ───────────────────────────────────────────────────
+    function openBroadcastModal() {
+        document.getElementById('broadcastModal').classList.add('show');
+        setTimeout(() => document.getElementById('broadcastText').focus(), 50);
+    }
+
+    function closeBroadcastModal() {
+        document.getElementById('broadcastModal').classList.remove('show');
+    }
+
+    async function sendBroadcast() {
+        const type = document.getElementById('broadcastType').value;
+        const text = document.getElementById('broadcastText').value.trim();
+        if (!text) { alert('Please enter a message.'); return; }
+        const teamCount = (currentData?.teams || []).length;
+        if (!confirm(`Send this ${type === 'alert' ? 'ALERT' : 'message'} to all ${teamCount} active team(s)?`)) return;
+        try {
+            const res = await countyApiCall('POST', '/api/broadcast', { type, text });
+            if (res.ok) {
+                document.getElementById('broadcastText').value = '';
+                closeBroadcastModal();
+            } else {
+                alert('Failed to send broadcast: ' + await res.text());
+            }
+        } catch (e) { alert('Network error: ' + e.message); }
+    }
+
+    // ── Team Flags ───────────────────────────────────────────────────────────────
+    let flagPollTimer = null;
+
+    async function loadTeamFlags() {
+        try {
+            const res = await countyApiCall('GET', '/api/team-flags');
+            if (!res.ok) return;
+            const flags = await res.json();
+            renderFlags(flags);
+        } catch {}
+    }
+
+    function renderFlags(flags) {
+        const section = document.getElementById('flagsSection');
+        const list = document.getElementById('flagsList');
+        const badge = document.getElementById('flagsBadge');
+
+        if (!flags.length) { section.style.display = 'none'; return; }
+
+        section.style.display = 'block';
+        const unacked = flags.filter(f => !f.acknowledged).length;
+        badge.textContent = unacked;
+        badge.style.display = unacked > 0 ? 'inline' : 'none';
+
+        list.innerHTML = flags.map(f => `
+            <div style="background:#16213e;border-radius:10px;border-left:4px solid ${f.acknowledged ? '#333' : '#FF9500'};
+                padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;
+                align-items:flex-start;gap:12px;${f.acknowledged ? 'opacity:0.5;' : ''}">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;color:#fff;margin-bottom:4px;">${esc(f.team_name)}</div>
+                    <div style="color:#ccc;font-size:14px;">${esc(f.text)}</div>
+                    <div style="font-size:11px;color:#555;margin-top:6px;">${timeAgo(f.timestamp)}</div>
+                </div>
+                ${f.acknowledged
+                    ? `<span style="font-size:12px;color:#34C759;font-weight:600;white-space:nowrap;flex-shrink:0;">✓ Acknowledged</span>`
+                    : `<button onclick="acknowledgeFlag('${f.id}', this)"
+                        style="padding:6px 14px;background:#FF9500;color:white;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+                        Acknowledge</button>`}
+            </div>
+        `).join('');
+    }
+
+    async function acknowledgeFlag(id, btn) {
+        btn.disabled = true;
+        btn.textContent = '…';
+        try {
+            const res = await countyApiCall('POST', `/api/team-flags/${id}/acknowledge`);
+            if (res.ok) { loadTeamFlags(); }
+            else { btn.disabled = false; btn.textContent = 'Acknowledge'; }
+        } catch { btn.disabled = false; btn.textContent = 'Acknowledge'; }
     }
 
     // ── Utilities ────────────────────────────────────────────────────────────────

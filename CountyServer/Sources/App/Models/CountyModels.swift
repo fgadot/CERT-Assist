@@ -87,6 +87,18 @@ struct CountyMessage: Content {
     }
 }
 
+// MARK: - Team Flag (team → county: flag for EOC review)
+
+struct TeamFlag: Content {
+    var id: UUID
+    var teamId: String
+    var teamName: String
+    var text: String
+    var timestamp: Date
+    var acknowledged: Bool
+    var acknowledgedAt: Date?
+}
+
 // MARK: - County Dashboard (sent via WebSocket)
 
 struct CountyDashboardData: Content {

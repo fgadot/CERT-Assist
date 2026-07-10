@@ -518,6 +518,10 @@
             text-transform: uppercase; letter-spacing: 0.05em; margin: 12px 0 6px;
         }
         .transfer-section-label:first-child { margin-top: 0; }
+        @keyframes slideInToast {
+            from { transform: translateX(120px); opacity: 0; }
+            to   { transform: translateX(0);     opacity: 1; }
+        }
         .transfer-history-label {
             font-size: 11px; font-weight: 700; color: #C7C7CC;
             text-transform: uppercase; letter-spacing: 0.05em;
@@ -582,6 +586,21 @@
         </div>
     </div>
     
+    <!-- County Messages Panel (shown only when county integration is active) -->
+    <div id="countyMessagesPanel" style="display:none;margin-bottom:20px;">
+        <div class="subteam-panel" style="margin-bottom:0;">
+            <div class="subteam-header">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <h2>💬 County Messages</h2>
+                    <span id="countyMsgBadge" style="display:none;background:#FF3B30;color:white;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;"></span>
+                </div>
+                <button class="btn" style="background:#FF9500;color:white;border:none;font-size:13px;"
+                    onclick="openFlagModal()">📣 Flag for County</button>
+            </div>
+            <div id="countyMsgList"><div class="empty-state">No messages from county yet</div></div>
+        </div>
+    </div>
+
     <!-- Transfer / Member Sharing Panel (shown only when county integration is active) -->
     <div id="transferPanel" style="display:none;margin-bottom:20px;">
         <div class="subteam-panel" style="margin-bottom:0;">
@@ -625,6 +644,28 @@
         </div>
     </div>
     
+    <!-- Flag for County Modal -->
+    <div class="modal" id="flagModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📣 Flag for County EOC</h2>
+                <button class="close-btn" onclick="closeFlagModal()">&times;</button>
+            </div>
+            <p style="color:#666;font-size:14px;margin-bottom:16px;">
+                Send a message to the County EOC for review. They will acknowledge it when seen.
+            </p>
+            <div class="form-group">
+                <label>Message</label>
+                <textarea id="flagText" rows="4" placeholder="Describe what you need the county to review…" maxlength="500"
+                    style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:4px;">
+                <button class="btn btn-primary" onclick="sendFlag()">📣 Send Flag</button>
+                <button class="btn" onclick="closeFlagModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Create Sub-Team Modal -->
     <div class="modal" id="createSubTeamModal">
         <div class="modal-content">
@@ -1049,6 +1090,101 @@
             }
         }
 
+        // ── County Messages & Flags ───────────────────────────────────────────────
+        let previousInboxCount = 0;
+
+        function updateCountyMessages(inbox) {
+            const panel = document.getElementById('countyMessagesPanel');
+            const list  = document.getElementById('countyMsgList');
+            const badge = document.getElementById('countyMsgBadge');
+
+            if (!countyConfig?.county_enabled) return;
+            panel.style.display = 'block';
+
+            if (!inbox || !inbox.length) {
+                list.innerHTML = '<div class="empty-state">No messages from county yet</div>';
+                badge.style.display = 'none';
+                return;
+            }
+
+            // New messages since last render → show notification
+            if (inbox.length > previousInboxCount && previousInboxCount > 0) {
+                const newest = inbox[inbox.length - 1];
+                const isAlert = newest.type === 'alert';
+                showToast((isAlert ? '⚠️ County Alert: ' : '💬 County: ') + newest.text, isAlert);
+                showBrowserNotification(
+                    isAlert ? '⚠️ County Alert' : '💬 Message from County EOC',
+                    newest.text
+                );
+            }
+            previousInboxCount = inbox.length;
+
+            badge.textContent = inbox.length;
+            badge.style.display = 'inline';
+
+            list.innerHTML = [...inbox].reverse().map(m => {
+                const isAlert = m.type === 'alert';
+                const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                return `<div style="padding:10px 14px;border-radius:8px;margin-bottom:6px;
+                    background:${isAlert ? '#fff5f0' : '#f9f9f9'};
+                    border-left:4px solid ${isAlert ? '#FF3B30' : '#007AFF'};">
+                    ${isAlert ? '<strong style="color:#FF3B30;">⚠️ Alert: </strong>' : '<span style="color:#007AFF;">ℹ️ </span>'}
+                    ${esc(m.text)}
+                    <span style="float:right;font-size:11px;color:#8E8E93;">${time}</span>
+                </div>`;
+            }).join('');
+        }
+
+        function openFlagModal() {
+            document.getElementById('flagModal').classList.add('show');
+            setTimeout(() => document.getElementById('flagText').focus(), 50);
+        }
+
+        function closeFlagModal() {
+            document.getElementById('flagModal').classList.remove('show');
+        }
+
+        async function sendFlag() {
+            const text = document.getElementById('flagText').value.trim();
+            if (!text) { alert('Please enter a message.'); return; }
+            try {
+                const res = await apiCall('POST', '/api/county/flag', { text });
+                if (res.ok) {
+                    document.getElementById('flagText').value = '';
+                    closeFlagModal();
+                    showToast('📣 Flag sent to County EOC');
+                } else {
+                    alert('Failed to send flag: ' + await res.text());
+                }
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        function showToast(msg, isUrgent = false) {
+            const el = document.createElement('div');
+            el.style.cssText = `
+                position:fixed;top:20px;right:20px;z-index:9999;
+                padding:12px 18px;border-radius:10px;
+                background:${isUrgent ? '#FF3B30' : '#007AFF'};color:white;
+                font-size:14px;font-weight:600;max-width:320px;
+                box-shadow:0 4px 16px rgba(0,0,0,0.2);
+                animation:slideInToast 0.3s ease;
+            `;
+            el.textContent = msg;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 4500);
+        }
+
+        function showBrowserNotification(title, body) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, { body });
+            }
+        }
+
+        // Request notification permission once
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
         // ── County Transfer State ─────────────────────────────────────────────────
         let countyConfig = null;
         let transferPollTimer = null;
@@ -1066,6 +1202,7 @@
                     document.title = `${countyConfig.team_name} — Dashboard`;
                 }
                 if (countyConfig.county_enabled) {
+                    document.getElementById('countyMessagesPanel').style.display = 'block';
                     document.getElementById('transferPanel').style.display = 'block';
                     await loadTransferData();
                     if (!transferPollTimer) {
@@ -1428,6 +1565,7 @@
             updateReportList(data.reports || [], data.sub_teams || []);
             updateTaskList(data.tasks || [], data.sub_teams || []);
             updateSubTeamList(data.sub_teams || [], data.members || []);
+            updateCountyMessages(data.county_inbox || []);
             
             const now = new Date().toLocaleTimeString();
             document.getElementById('lastUpdate').innerHTML = 

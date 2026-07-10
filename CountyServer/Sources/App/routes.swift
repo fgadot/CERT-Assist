@@ -12,6 +12,7 @@ actor CountyDataStore {
     var connectedWebSockets: [WebSocket] = []
     var availableMembers: [UUID: AvailableMember] = [:]    // memberId → available member record
     var transferRequests: [UUID: TransferRequest] = [:]    // requestId → transfer request
+    var teamFlags: [UUID: TeamFlag] = [:]                  // flags raised by teams for county review
 
     func updateTeamSummary(_ summary: TeamSummary) async {
         teams[summary.teamId] = summary
@@ -48,6 +49,41 @@ actor CountyDataStore {
 
     func removeWebSocket(_ ws: WebSocket) {
         connectedWebSockets.removeAll { $0 === ws }
+    }
+
+    // MARK: - Broadcast (county → all registered teams)
+
+    func broadcastMessage(type: CountyMessage.MessageType, text: String) async {
+        for teamId in teams.keys {
+            let msg = CountyMessage(
+                id: UUID(), type: type, targetTeamId: teamId,
+                reportId: nil, text: text, timestamp: Date(), confirmed: false
+            )
+            var list = pendingMessages[teamId] ?? []
+            list.append(msg)
+            pendingMessages[teamId] = list
+        }
+        await broadcastUpdate()
+    }
+
+    // MARK: - Team Flags (team → county)
+
+    func createTeamFlag(_ flag: TeamFlag) async {
+        teamFlags[flag.id] = flag
+        await broadcastUpdate()
+    }
+
+    func acknowledgeTeamFlag(id: UUID) async -> TeamFlag? {
+        guard var flag = teamFlags[id] else { return nil }
+        flag.acknowledged = true
+        flag.acknowledgedAt = Date()
+        teamFlags[id] = flag
+        await broadcastUpdate()
+        return flag
+    }
+
+    func getTeamFlags() -> [TeamFlag] {
+        return teamFlags.values.sorted { $0.timestamp > $1.timestamp }
     }
 
     // MARK: - Available Members
@@ -412,6 +448,38 @@ func routes(_ app: Application) throws {
         }
 
         throw Abort(.conflict, reason: "Cannot update a transfer in \(request.status.rawValue) status")
+    }
+
+    // ── Broadcast message to all registered teams ────────────────────────────────
+    app.post("api", "broadcast") { req async throws -> HTTPStatus in
+        struct BroadcastBody: Content { var type: CountyMessage.MessageType; var text: String }
+        let body = try req.content.decode(BroadcastBody.self)
+        await countyStore.broadcastMessage(type: body.type, text: body.text)
+        return .ok
+    }
+
+    // ── Team Flags (team → county for EOC review) ─────────────────────────────────
+    app.post("api", "team-flags") { req async throws -> TeamFlag in
+        struct FlagBody: Content { var teamId: String; var teamName: String; var text: String }
+        let body = try req.content.decode(FlagBody.self)
+        let flag = TeamFlag(
+            id: UUID(), teamId: body.teamId, teamName: body.teamName,
+            text: body.text, timestamp: Date(), acknowledged: false, acknowledgedAt: nil
+        )
+        await countyStore.createTeamFlag(flag)
+        return flag
+    }
+
+    app.get("api", "team-flags") { req async throws -> [TeamFlag] in
+        return await countyStore.getTeamFlags()
+    }
+
+    app.post("api", "team-flags", ":id", "acknowledge") { req async throws -> TeamFlag in
+        let id = try req.parameters.require("id", as: UUID.self)
+        guard let flag = await countyStore.acknowledgeTeamFlag(id: id) else {
+            throw Abort(.notFound, reason: "Flag not found")
+        }
+        return flag
     }
 
     // ── County dashboard WebSocket ───────────────────────────────────────────────
