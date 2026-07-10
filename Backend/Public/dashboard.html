@@ -540,6 +540,7 @@
 <body>
     <header>
         <h1>🚨 CERT Field Board</h1>
+        <p id="teamNameLabel" style="font-size:15px;font-weight:500;opacity:0.85;margin-top:2px;display:none;"></p>
         <div class="last-update">
             <span class="connection-status" id="connectionStatus"></span>
             <span id="lastUpdate">Connecting...</span>
@@ -1059,6 +1060,11 @@
                 const res = await fetch('/api/config');
                 if (!res.ok) return;
                 countyConfig = await res.json();
+                if (countyConfig.team_name) {
+                    const lbl = document.getElementById('teamNameLabel');
+                    if (lbl) { lbl.textContent = countyConfig.team_name; lbl.style.display = 'block'; }
+                    document.title = `${countyConfig.team_name} — Dashboard`;
+                }
                 if (countyConfig.county_enabled) {
                     document.getElementById('transferPanel').style.display = 'block';
                     await loadTransferData();

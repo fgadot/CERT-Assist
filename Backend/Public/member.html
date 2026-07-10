@@ -271,6 +271,7 @@
 
 <header>
     <h1>🚨 CERT Field Board</h1>
+    <p id="teamNameLabel" style="font-size:13px;font-weight:600;opacity:0.9;margin-top:1px;display:none;"></p>
     <p id="headerSub">Member Portal</p>
 </header>
 
@@ -433,6 +434,20 @@
     let refreshTimer = null;
 
     // ── Boot ───────────────────────────────────────────────────────────────────
+    (async () => {
+        try {
+            const res = await fetch('/api/config');
+            if (res.ok) {
+                const cfg = await res.json();
+                if (cfg.team_name) {
+                    const lbl = document.getElementById('teamNameLabel');
+                    if (lbl) { lbl.textContent = cfg.team_name; lbl.style.display = 'block'; }
+                    document.title = `${cfg.team_name} — Member Portal`;
+                }
+            }
+        } catch {}
+    })();
+
     if (memberID && memberName) {
         populateHome();
         showScreen('homeScreen');
