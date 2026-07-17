@@ -10,42 +10,102 @@ services:
       - ENVIRONMENT=production
       - COUNTY_PIN=
 
-  team-alpha:
+  team-sapphire:
     build:
       context: ./Backend
     ports:
       - "8080:8080"
     environment:
       - ENVIRONMENT=production
-      - TEAM_ID=alpha
-      - TEAM_NAME=Alpha Team
+      - TEAM_ID=sapphire-point
+      - TEAM_NAME=Sapphire Point
       - TEAM_LOCATION=
       - TEAM_ENDPOINT=http://localhost:8080
       - TEAM_PIN=1111
       - COUNTY_ENDPOINT=http://county:8080
     volumes:
       - ./Backend/Public:/app/Public
-      - ./local-test/alpha/data:/app/data
-      - ./local-test/alpha/config:/app/config
+      - ./local-test/sapphire/data:/app/data
+      - ./local-test/sapphire/config:/app/config
     depends_on:
       - county
 
-  team-beta:
+  team-glenn:
     build:
       context: ./Backend
     ports:
       - "8081:8080"
     environment:
       - ENVIRONMENT=production
-      - TEAM_ID=beta
-      - TEAM_NAME=Beta Team
+      - TEAM_ID=glenn-lakes
+      - TEAM_NAME=Glenn Lakes
       - TEAM_LOCATION=
       - TEAM_ENDPOINT=http://localhost:8081
       - TEAM_PIN=2222
       - COUNTY_ENDPOINT=http://county:8080
     volumes:
       - ./Backend/Public:/app/Public
-      - ./local-test/beta/data:/app/data
-      - ./local-test/beta/config:/app/config
+      - ./local-test/glenn/data:/app/data
+      - ./local-test/glenn/config:/app/config
+    depends_on:
+      - county
+
+  team-lakewood:
+    build:
+      context: ./Backend
+    ports:
+      - "8082:8080"
+    environment:
+      - ENVIRONMENT=production
+      - TEAM_ID=lakewood-ranch
+      - TEAM_NAME=Lakewood Ranch
+      - TEAM_LOCATION=
+      - TEAM_ENDPOINT=http://localhost:8082
+      - TEAM_PIN=3333
+      - COUNTY_ENDPOINT=http://county:8080
+    volumes:
+      - ./Backend/Public:/app/Public
+      - ./local-test/lakewood/data:/app/data
+      - ./local-test/lakewood/config:/app/config
+    depends_on:
+      - county
+
+  team-lorraine:
+    build:
+      context: ./Backend
+    ports:
+      - "8083:8080"
+    environment:
+      - ENVIRONMENT=production
+      - TEAM_ID=lorraine-lakes
+      - TEAM_NAME=Lorraine Lakes
+      - TEAM_LOCATION=
+      - TEAM_ENDPOINT=http://localhost:8083
+      - TEAM_PIN=4444
+      - COUNTY_ENDPOINT=http://county:8080
+    volumes:
+      - ./Backend/Public:/app/Public
+      - ./local-test/lorraine/data:/app/data
+      - ./local-test/lorraine/config:/app/config
+    depends_on:
+      - county
+
+  team-bayview:
+    build:
+      context: ./Backend
+    ports:
+      - "8084:8080"
+    environment:
+      - ENVIRONMENT=production
+      - TEAM_ID=bayview
+      - TEAM_NAME=Bayview
+      - TEAM_LOCATION=
+      - TEAM_ENDPOINT=http://localhost:8084
+      - TEAM_PIN=5555
+      - COUNTY_ENDPOINT=http://county:8080
+    volumes:
+      - ./Backend/Public:/app/Public
+      - ./local-test/bayview/data:/app/data
+      - ./local-test/bayview/config:/app/config
     depends_on:
       - county

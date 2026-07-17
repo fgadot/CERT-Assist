@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CERT Assist — Changelog</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    padding: 40px 20px 80px;
+  }
+
+  .container { max-width: 680px; margin: 0 auto; }
+
+  .page-header {
+    background: linear-gradient(135deg, #007AFF, #0051D5);
+    color: white;
+    padding: 32px;
+    border-radius: 14px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 16px rgba(0,122,255,0.3);
+  }
+  .page-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+  .page-header p  { font-size: 14px; opacity: 0.85; }
+
+  .version-block {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+
+  .version-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .version-tag {
+    font-size: 18px;
+    font-weight: 700;
+    color: #007AFF;
+  }
+  .version-date {
+    font-size: 13px;
+    color: #888;
+  }
+  .version-badge {
+    background: #e8f4fd;
+    color: #0051D5;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .version-badge.initial { background: #e8fdf0; color: #1a7a3a; }
+
+  .change-list { padding: 16px 24px; }
+
+  .change-group { margin-bottom: 18px; }
+  .change-group:last-child { margin-bottom: 0; }
+
+  .change-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #888;
+    margin-bottom: 8px;
+  }
+
+  .change-item {
+    display: flex;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 14px;
+    line-height: 1.5;
+    border-bottom: 1px solid #f7f7f7;
+    color: #333;
+  }
+  .change-item:last-child { border-bottom: none; }
+
+  .change-icon { flex-shrink: 0; width: 20px; text-align: center; font-size: 14px; }
+
+  footer {
+    text-align: center;
+    color: #aaa;
+    font-size: 12px;
+    margin-top: 40px;
+  }
+  footer a { color: #007AFF; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <h1>Changelog</h1>
+    <p>CERT Assist — Release history and updates</p>
+  </div>
+
+  <!-- v1.0 -->
+  <div class="version-block">
+    <div class="version-header">
+      <div>
+        <div class="version-tag">v1.0</div>
+        <div class="version-date">July 2026</div>
+      </div>
+      <span class="version-badge initial">Initial Release</span>
+    </div>
+    <div class="change-list">
+
+      <div class="change-group">
+        <div class="change-group-label">Member Portal</div>
+        <div class="change-item"><span class="change-icon">✅</span>Browser-based check-in — no app required</div>
+        <div class="change-item"><span class="change-icon">✅</span>Member PIN separate from team leader dashboard PIN</div>
+        <div class="change-item"><span class="change-icon">✅</span>ICS role selection at check-in</div>
+        <div class="change-item"><span class="change-icon">✅</span>Real-time assignment and task display (auto-refreshes every 10 s)</div>
+        <div class="change-item"><span class="change-icon">✅</span>ICS-213 incident report submission</div>
+        <div class="change-item"><span class="change-icon">✅</span>Reply inbox — team leader responses visible in-app</div>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label">Team Leader Dashboard</div>
+        <div class="change-item"><span class="change-icon">✅</span>Live member roster with status and role</div>
+        <div class="change-item"><span class="change-icon">✅</span>Sub-team creation and member assignment</div>
+        <div class="change-item"><span class="change-icon">✅</span>Task board — create, assign, edit, and cancel tasks</div>
+        <div class="change-item"><span class="change-icon">✅</span>Incoming report queue with reply capability</div>
+        <div class="change-item"><span class="change-icon">✅</span>Escalation to County EOC with one click</div>
+        <div class="change-item"><span class="change-icon">✅</span>Member name editing directly from roster</div>
+        <div class="change-item"><span class="change-icon">✅</span>WebSocket-based live updates (no polling)</div>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label">County EOC Dashboard</div>
+        <div class="change-item"><span class="change-icon">✅</span>Unified view of all 5 team feeds</div>
+        <div class="change-item"><span class="change-icon">✅</span>Escalated reports from any team land here automatically</div>
+        <div class="change-item"><span class="change-icon">✅</span>County reply routed back to originating team</div>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label">Infrastructure &amp; Security</div>
+        <div class="change-item"><span class="change-icon">🔒</span>HTTPS on all 6 subdomains (wildcard cert, TLS 1.2/1.3)</div>
+        <div class="change-item"><span class="change-icon">🔒</span>fail2ban — IP blocked after 2 wrong PIN attempts for 1 hour</div>
+        <div class="change-item"><span class="change-icon">🔒</span>Rate limiting — 60 req/min per IP on all API endpoints</div>
+        <div class="change-item"><span class="change-icon">🔒</span>Docker containers bound to localhost only (ports not exposed to internet)</div>
+        <div class="change-item"><span class="change-icon">🔒</span>Security headers: X-Frame-Options, CSP, X-Content-Type-Options</div>
+        <div class="change-item"><span class="change-icon">🔒</span>UFW firewall — only ports 22 (restricted), 80, and 443 open</div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    CERT Assist &nbsp;·&nbsp; certassist.us &nbsp;·&nbsp;
+    <a href="/dashboard.html">Dashboard</a> &nbsp;·&nbsp;
+    <a href="/member.html">Member Portal</a>
+  </footer>
+
+</div>
+</body>
+</html>

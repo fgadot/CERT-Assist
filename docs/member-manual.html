@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CERT Assist — Member Guide</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, Helvetica Neue, Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: white; }
+
+  @media print {
+    .page-break { page-break-after: always; }
+    body { font-size: 12px; }
+  }
+
+  .cover {
+    height: 100vh;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    background: linear-gradient(160deg, #1a3a5c 0%, #0d6efd 100%);
+    color: white; text-align: center; padding: 40px;
+  }
+  .cover .logo { font-size: 64px; margin-bottom: 20px; }
+  .cover h1 { font-size: 36px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .cover h2 { font-size: 20px; font-weight: 400; opacity: 0.85; margin-bottom: 40px; }
+  .cover .badge {
+    background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 20px; padding: 8px 20px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+  }
+  .cover .version { margin-top: 60px; opacity: 0.5; font-size: 11px; }
+
+  .content { max-width: 680px; margin: 0 auto; padding: 48px 32px; }
+
+  h2.section { font-size: 22px; color: #0d6efd; margin: 40px 0 16px; border-bottom: 2px solid #e8f0fe; padding-bottom: 8px; }
+  h3.step { font-size: 15px; font-weight: 600; color: #1a1a1a; margin: 24px 0 8px; }
+
+  .intro-box {
+    background: #f0f6ff; border-left: 4px solid #0d6efd; border-radius: 6px;
+    padding: 16px 20px; margin: 24px 0;
+  }
+  .intro-box p { line-height: 1.6; color: #2a4a7f; }
+
+  .step-block {
+    display: flex; gap: 16px; margin: 16px 0; align-items: flex-start;
+  }
+  .step-num {
+    min-width: 32px; height: 32px; background: #0d6efd; color: white;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; flex-shrink: 0; margin-top: 2px;
+  }
+  .step-body { line-height: 1.6; }
+  .step-body strong { display: block; margin-bottom: 2px; }
+  .step-body small { color: #666; }
+
+  .tip {
+    background: #fff8e1; border-left: 4px solid #f9a825; border-radius: 6px;
+    padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #5a4000; line-height: 1.6;
+  }
+  .tip::before { content: "💡 Tip: "; font-weight: 700; }
+
+  .warning {
+    background: #ffeaea; border-left: 4px solid #e53935; border-radius: 6px;
+    padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #5a0000; line-height: 1.6;
+  }
+  .warning::before { content: "⚠️ Important: "; font-weight: 700; }
+
+  .url-box {
+    background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px;
+    padding: 12px 16px; font-family: monospace; font-size: 13px;
+    color: #0d6efd; margin: 8px 0;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12px; }
+  th { background: #0d6efd; color: white; padding: 10px 12px; text-align: left; }
+  td { padding: 9px 12px; border-bottom: 1px solid #eee; }
+  tr:nth-child(even) td { background: #f8f9fa; }
+
+  .field-label { font-weight: 600; color: #1a1a1a; }
+  .field-desc { color: #555; }
+
+  .screenshot-placeholder {
+    border: 2px dashed #ccc; border-radius: 8px; padding: 32px;
+    text-align: center; color: #999; margin: 16px 0; font-size: 12px;
+  }
+
+  footer {
+    margin-top: 60px; padding: 24px 0; border-top: 1px solid #eee;
+    text-align: center; color: #999; font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover page-break">
+  <div class="logo">🦺</div>
+  <h1>CERT Assist</h1>
+  <h2>Member Check-In Guide</h2>
+  <div class="badge">Field Member Edition</div>
+  <div class="version">certassist.us &nbsp;·&nbsp; 2026</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <div class="intro-box">
+    <p>This guide walks you through checking in with your CERT team, viewing your assignment, and submitting incident reports during an activation. You only need a smartphone or computer with a browser — no app download required.</p>
+  </div>
+
+  <!-- SECTION 1 -->
+  <h2 class="section">1. Getting Started</h2>
+
+  <h3 class="step">Open the Member Portal</h3>
+  <p style="line-height:1.6; margin-bottom:8px;">Open any browser on your phone or computer and go to your team's URL:</p>
+
+  <table>
+    <tr><th>Team</th><th>URL</th><th>Member PIN</th></tr>
+    <tr><td>Sapphire Point</td><td>https://sapphire.certassist.us/member.html</td><td>001789</td></tr>
+    <tr><td>Glenn Lakes</td><td>https://glenn.certassist.us/member.html</td><td>001789</td></tr>
+    <tr><td>Lakewood Ranch</td><td>https://lakewood.certassist.us/member.html</td><td>001789</td></tr>
+    <tr><td>Lorraine Lakes</td><td>https://lorraine.certassist.us/member.html</td><td>001789</td></tr>
+    <tr><td>Bayview</td><td>https://bayview.certassist.us/member.html</td><td>001789</td></tr>
+  </table>
+
+  <div class="info" style="background:#e3f2fd;border-left:4px solid #1565c0;border-radius:6px;padding:12px 16px;margin:16px 0;font-size:12px;color:#0d2a5e;line-height:1.6;">
+    <strong>All teams use the same member PIN: 001789</strong><br>
+    This is different from the team leader dashboard PIN. Do not share the dashboard PIN with field members.
+  </div>
+
+  <div class="tip">Bookmark your team's URL now so you can find it quickly during an activation.</div>
+
+  <!-- SECTION 2 -->
+  <h2 class="section">2. Checking In</h2>
+
+  <div class="step-block">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Enter your full name</strong>
+      Type your first and last name in the Name field.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Enter the team PIN</strong>
+      Use the PIN provided by your team leader (shown in the table above). The PIN is case-sensitive.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>Select your ICS role</strong>
+      Choose your assigned role from the dropdown (e.g., Field Rescuer, Medical, Search, etc.).
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <strong>Tap Check In</strong>
+      You'll see a confirmation and your name will appear on the team leader's dashboard instantly.
+    </div>
+  </div>
+
+  <div class="warning">Keep your browser tab open throughout the activation. Your assignment and messages update automatically every 10 seconds — you don't need to refresh.</div>
+
+  <!-- SECTION 3 -->
+  <h2 class="section">3. Viewing Your Assignment</h2>
+
+  <p style="line-height:1.6; margin-bottom:16px;">After check-in, the page shows your current status. This updates automatically as your team leader makes assignments.</p>
+
+  <div class="step-block">
+    <div class="step-num">📋</div>
+    <div class="step-body">
+      <strong>Sub-Team</strong>
+      Shows which sub-team you've been assigned to (e.g., "Alpha Team", "Medical Unit"). If blank, you haven't been assigned yet — check back in a minute.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">✅</div>
+    <div class="step-body">
+      <strong>Current Task</strong>
+      Your current assigned task appears here with its status (Pending, In Progress, Completed). If you have no task yet, this section will be empty.
+    </div>
+  </div>
+
+  <div class="tip">If your assignment doesn't appear after 30 seconds, try a hard refresh (hold Shift and tap Refresh in your browser).</div>
+
+  <!-- SECTION 4 -->
+  <h2 class="section">4. Submitting an Incident Report (ICS-213)</h2>
+
+  <p style="line-height:1.6; margin-bottom:16px;">Use this to report an incident, hazard, resource need, or any situation requiring your team leader's attention.</p>
+
+  <div class="step-block">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Tap "Submit Report" button</strong>
+      Located in the Reports section at the bottom of the page.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Fill in the report fields</strong>
+      Complete the form fields as described below.
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Field</th><th>What to Enter</th></tr>
+    <tr><td class="field-label">Subject</td><td class="field-desc">Brief one-line description (e.g., "Gas leak at 123 Oak St")</td></tr>
+    <tr><td class="field-label">Incident Type</td><td class="field-desc">Select the category that best fits (Medical, Fire, Structural, etc.)</td></tr>
+    <tr><td class="field-label">Severity</td><td class="field-desc">Low / Medium / High / Critical</td></tr>
+    <tr><td class="field-label">Location</td><td class="field-desc">Street address or landmark description</td></tr>
+    <tr><td class="field-label">Description</td><td class="field-desc">Full details — what you observed, any injuries, resources needed</td></tr>
+  </table>
+
+  <div class="step-block">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>Tap Submit</strong>
+      Your report is sent immediately to your team leader's dashboard. Your name and position are attached automatically.
+    </div>
+  </div>
+
+  <!-- SECTION 5 -->
+  <h2 class="section">5. Receiving Replies</h2>
+
+  <p style="line-height:1.6; margin-bottom:16px;">Your team leader can reply to your reports. Replies appear directly below the report in your Reports list, shown in a green box.</p>
+
+  <div class="tip">Check your reports section regularly during an activation. Replies may contain updated instructions or resource confirmations.</div>
+
+  <!-- SECTION 6 -->
+  <h2 class="section">6. Troubleshooting</h2>
+
+  <table>
+    <tr><th>Problem</th><th>Solution</th></tr>
+    <tr><td>"Incorrect PIN" error</td><td>Double-check the PIN — it is case-sensitive. Try typing it manually rather than copy-pasting.</td></tr>
+    <tr><td>Assignment not showing</td><td>Wait 30 seconds — the page polls every 10s. If still blank, do a hard refresh (Shift+Refresh).</td></tr>
+    <tr><td>Page won't load</td><td>Check your internet connection. Try switching between WiFi and cellular data.</td></tr>
+    <tr><td>Accidentally checked in with wrong name</td><td>Check in again with the correct name — notify your team leader to remove the duplicate.</td></tr>
+    <tr><td>Locked out after wrong PIN attempts</td><td>Wait 1 hour. The system automatically unlocks. Contact your team leader if urgent.</td></tr>
+  </table>
+
+  <footer>
+    CERT Assist &nbsp;·&nbsp; certassist.us &nbsp;·&nbsp; For support contact your Team Leader
+  </footer>
+
+</div>
+</body>
+</html>

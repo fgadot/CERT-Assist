@@ -91,7 +91,7 @@ struct ReportMarker: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color(report.severity.color))
+                .fill(report.severity.color)
                 .frame(width: 36, height: 36)
             
             Image(systemName: report.type.icon)
@@ -108,7 +108,7 @@ struct MemberMarker: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color(member.status.color))
+                .fill(member.status.color)
                 .frame(width: 32, height: 32)
             
             Image(systemName: "person.fill")

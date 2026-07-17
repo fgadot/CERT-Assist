@@ -1,0 +1,104 @@
+services:
+  county:
+    image: cert-county:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8090:8080"
+    environment:
+      - ENVIRONMENT=production
+      - COUNTY_PIN=CY2027..!
+
+  team-sapphire:
+    image: cert-backend:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - ENVIRONMENT=production
+      - TEAM_ID=sapphire-point
+      - TEAM_NAME=Sapphire Point
+      - TEAM_ENDPOINT=https://sapphire.certassist.us
+      - TEAM_PIN=ST2027..!
+      - MEMBER_PIN=001789
+      - COUNTY_ENDPOINT=http://county:8080
+    volumes:
+      - ./data/sapphire:/app/data
+      - ./config/sapphire:/app/config
+    depends_on:
+      - county
+
+  team-glenn:
+    image: cert-backend:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment:
+      - ENVIRONMENT=production
+      - TEAM_ID=glenn-lakes
+      - TEAM_NAME=Glenn Lakes
+      - TEAM_ENDPOINT=https://glenn.certassist.us
+      - TEAM_PIN=GS2027..!
+      - MEMBER_PIN=001789
+      - COUNTY_ENDPOINT=http://county:8080
+    volumes:
+      - ./data/glenn:/app/data
+      - ./config/glenn:/app/config
+    depends_on:
+      - county
+
+  team-lakewood:
+    image: cert-backend:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8082:8080"
+    environment:
+      - ENVIRONMENT=production
+      - TEAM_ID=lakewood-ranch
+      - TEAM_NAME=Lakewood Ranch
+      - TEAM_ENDPOINT=https://lakewood.certassist.us
+      - TEAM_PIN=LH2027..!
+      - MEMBER_PIN=001789
+      - COUNTY_ENDPOINT=http://county:8080
+    volumes:
+      - ./data/lakewood:/app/data
+      - ./config/lakewood:/app/config
+    depends_on:
+      - county
+
+  team-lorraine:
+    image: cert-backend:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8083:8080"
+    environment:
+      - ENVIRONMENT=production
+      - TEAM_ID=lorraine-lakes
+      - TEAM_NAME=Lorraine Lakes
+      - TEAM_ENDPOINT=https://lorraine.certassist.us
+      - TEAM_PIN=LS2027..!
+      - MEMBER_PIN=001789
+      - COUNTY_ENDPOINT=http://county:8080
+    volumes:
+      - ./data/lorraine:/app/data
+      - ./config/lorraine:/app/config
+    depends_on:
+      - county
+
+  team-bayview:
+    image: cert-backend:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8084:8080"
+    environment:
+      - ENVIRONMENT=production
+      - TEAM_ID=bayview
+      - TEAM_NAME=Bayview
+      - TEAM_ENDPOINT=https://bayview.certassist.us
+      - TEAM_PIN=BW2027..!
+      - MEMBER_PIN=001789
+      - COUNTY_ENDPOINT=http://county:8080
+    volumes:
+      - ./data/bayview:/app/data
+      - ./config/bayview:/app/config
+    depends_on:
+      - county

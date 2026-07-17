@@ -59,14 +59,7 @@ class IncidentManager {
     // MARK: - Init
     
     private init() {
-        loadData()
-        
-        // For development: add sample data if empty
-        #if DEBUG
-        if members.isEmpty {
-            addSampleData()
-        }
-        #endif
+        clearAllData()
     }
     
     // MARK: - Incident Management
@@ -74,13 +67,11 @@ class IncidentManager {
     func startNewIncident(name: String) {
         let incident = Incident(name: name, startDate: Date(), isActive: true)
         currentIncident = incident
-        saveData()
     }
     
     func endCurrentIncident() {
         currentIncident?.isActive = false
         currentIncident?.endDate = Date()
-        saveData()
     }
     
     // MARK: - Member Management
@@ -94,7 +85,6 @@ class IncidentManager {
         )
         currentMember = member
         members.append(member)
-        saveData()
     }
     
     func updateMemberStatus(_ status: MemberStatus) {
@@ -106,7 +96,6 @@ class IncidentManager {
         if let index = members.firstIndex(where: { $0.id == member.id }) {
             members[index] = member
         }
-        saveData()
     }
     
     func updateMemberLocation(_ location: LocationData) {
@@ -118,7 +107,6 @@ class IncidentManager {
         if let index = members.firstIndex(where: { $0.id == member.id }) {
             members[index] = member
         }
-        saveData()
     }
     
     func checkOut() {
@@ -130,40 +118,34 @@ class IncidentManager {
             members[index] = member
         }
         currentMember = nil
-        saveData()
     }
     
     // MARK: - Report Management
     
     func addReport(_ report: IncidentReport) {
         reports.append(report)
-        saveData()
     }
     
     func updateReport(_ report: IncidentReport) {
         if let index = reports.firstIndex(where: { $0.id == report.id }) {
             reports[index] = report
-            saveData()
-        }
+            }
     }
     
     func deleteReport(_ report: IncidentReport) {
         reports.removeAll { $0.id == report.id }
-        saveData()
     }
     
     // MARK: - Task Management
     
     func addTask(_ task: Task) {
         tasks.append(task)
-        saveData()
     }
     
     func updateTask(_ task: Task) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             tasks[index] = task
-            saveData()
-        }
+            }
     }
     
     func completeTask(_ task: Task) {
@@ -187,7 +169,6 @@ class IncidentManager {
 
     func deleteTask(_ task: Task) {
         tasks.removeAll { $0.id == task.id }
-        saveData()
     }
     
     // MARK: - Data Persistence
@@ -295,6 +276,5 @@ class IncidentManager {
         )
         tasks = [task]
         
-        saveData()
     }
 }

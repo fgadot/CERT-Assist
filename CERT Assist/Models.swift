@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreLocation
+import SwiftUI
 
 // MARK: - Member
 
@@ -55,13 +56,13 @@ enum MemberStatus: String, Codable, CaseIterable {
         }
     }
     
-    var color: String {
+    var color: Color {
         switch self {
-        case .available: return "green"
-        case .assigned: return "blue"
-        case .unavailable: return "gray"
-        case .injured: return "red"
-        case .needsHelp: return "orange"
+        case .available: return .green
+        case .assigned: return .blue
+        case .unavailable: return .gray
+        case .injured: return .red
+        case .needsHelp: return .orange
         }
     }
 }
@@ -167,12 +168,12 @@ enum Severity: String, Codable, CaseIterable {
     case high = "High"
     case lifeSafety = "Life Safety"
     
-    var color: String {
+    var color: Color {
         switch self {
-        case .low: return "green"
-        case .medium: return "yellow"
-        case .high: return "orange"
-        case .lifeSafety: return "red"
+        case .low: return .green
+        case .medium: return .yellow
+        case .high: return .orange
+        case .lifeSafety: return .red
         }
     }
     
@@ -201,12 +202,12 @@ enum ReportStatus: String, Codable, CaseIterable {
         }
     }
     
-    var color: String {
+    var color: Color {
         switch self {
-        case .new: return "blue"
-        case .assigned: return "orange"
-        case .resolved: return "green"
-        case .escalated: return "red"
+        case .new: return .blue
+        case .assigned: return .orange
+        case .resolved: return .green
+        case .escalated: return .red
         }
     }
 }
@@ -271,12 +272,12 @@ enum TaskStatus: String, Codable, CaseIterable {
         }
     }
 
-    var color: String {
+    var color: Color {
         switch self {
-        case .open: return "red"
-        case .assigned: return "orange"
-        case .completed: return "green"
-        case .cancelled: return "gray"
+        case .open: return .red
+        case .assigned: return .orange
+        case .completed: return .green
+        case .cancelled: return .gray
         }
     }
 }

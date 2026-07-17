@@ -471,7 +471,10 @@ func routes(_ app: Application) throws {
     }
 
     app.get("api", "team-flags") { req async throws -> [TeamFlag] in
-        return await countyStore.getTeamFlags()
+        let teamFilter = req.query[String.self, at: "team"]
+        let flags = await countyStore.getTeamFlags()
+        guard let teamFilter else { return flags }
+        return flags.filter { $0.teamId == teamFilter }
     }
 
     app.post("api", "team-flags", ":id", "acknowledge") { req async throws -> TeamFlag in

@@ -22,7 +22,7 @@ struct CheckInView: View {
                         VStack(spacing: 16) {
                             Image(systemName: member.status.icon)
                                 .font(.system(size: 60))
-                                .foregroundStyle(Color(member.status.color))
+                                .foregroundStyle(member.status.color)
                             
                             Text(member.name)
                                 .font(.title2)
@@ -80,7 +80,7 @@ struct CheckInView: View {
                                 ForEach(manager.members) { otherMember in
                                     HStack {
                                         Image(systemName: otherMember.status.icon)
-                                            .foregroundStyle(Color(otherMember.status.color))
+                                            .foregroundStyle(otherMember.status.color)
                                             .frame(width: 24)
                                         
                                         VStack(alignment: .leading, spacing: 2) {
@@ -96,7 +96,7 @@ struct CheckInView: View {
                                         
                                         Text(otherMember.status.rawValue)
                                             .font(.caption)
-                                            .foregroundStyle(Color(otherMember.status.color))
+                                            .foregroundStyle(otherMember.status.color)
                                     }
                                     .padding(.vertical, 4)
                                     

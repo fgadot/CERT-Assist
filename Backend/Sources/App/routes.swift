@@ -273,6 +273,14 @@ actor DataStore {
 
     func getAllMembers() -> [CERTMember] { Array(members.values) }
 
+    func removeMember(id: UUID) async {
+        if let m = members.removeValue(forKey: id) {
+            log("👋 MEMBER CHECKED OUT (admin): \(m.name)")
+        }
+        await broadcastUpdate()
+        await pushToCounty()
+    }
+
     func updateMember(_ member: CERTMember) async {
         let old = members[member.id!]
         members[member.id!] = member
@@ -280,8 +288,8 @@ actor DataStore {
             if old.status != member.status {
                 log("🔄 MEMBER STATUS CHANGE: \(member.name) - \(old.status.rawValue) → \(member.status.rawValue)")
             }
-            if old.subTeamID != member.subTeamID {
-                let teamInfo = member.subTeamID != nil ? "assigned to sub-team" : "removed from sub-team"
+            if old.subTeamId != member.subTeamId {
+                let teamInfo = member.subTeamId != nil ? "assigned to sub-team" : "removed from sub-team"
                 log("🔄 MEMBER TEAM CHANGE: \(member.name) - \(teamInfo)")
             }
         }
@@ -293,7 +301,7 @@ actor DataStore {
     func addReport(_ report: IncidentReport) async {
         reports[report.id!] = report
         let reporterName = members[report.reportedBy]?.name ?? "Unknown"
-        let teamInfo = report.subTeamID != nil ? " (Sub-Team Report)" : ""
+        let teamInfo = report.subTeamId != nil ? " (Sub-Team Report)" : ""
         log("📋 NEW REPORT: \(report.type.rawValue) - Severity: \(report.severity.rawValue) - By: \(reporterName)\(teamInfo) - Location: \(report.location.address ?? "N/A")")
         await broadcastUpdate()
     }
@@ -318,7 +326,7 @@ actor DataStore {
 
     func addTask(_ task: CERTTask) async {
         tasks[task.id!] = task
-        let teamInfo = task.assignedSubTeamID != nil ? " → Assigned to sub-team" : ""
+        let teamInfo = task.assignedSubTeamId != nil ? " → Assigned to sub-team" : ""
         log("📝 NEW TASK: \(task.title) - Priority: \(task.priority)\(teamInfo)")
         await broadcastUpdate()
     }
@@ -350,7 +358,7 @@ actor DataStore {
                     log("  ↳ \(oldTeam.color.rawValue) Team disbanded (less than 2 members)")
                     for remainingID in updatedTeam.memberIDs {
                         if var m = members[remainingID] {
-                            m.subTeamID = nil; m.status = .available; members[remainingID] = m
+                            m.subTeamId = nil; m.status = .available; members[remainingID] = m
                             log("  ↳ \(m.name) freed from disbanded team")
                         }
                     }
@@ -364,7 +372,7 @@ actor DataStore {
         for memberID in subTeam.memberIDs {
             if var m = members[memberID] {
                 let oldStatus = m.status
-                m.subTeamID = subTeam.id; m.status = .assigned; members[memberID] = m
+                m.subTeamId = subTeam.id; m.status = .assigned; members[memberID] = m
                 log("  ↳ Assigned: \(m.name) (\(oldStatus.rawValue) → Assigned)")
             }
         }
@@ -379,7 +387,7 @@ actor DataStore {
             log("🔄 SUB-TEAM UPDATE: \(subTeam.color.rawValue) Team - Reassigning members")
             for oldMemberID in oldSubTeam.memberIDs {
                 if var m = members[oldMemberID] {
-                    m.subTeamID = nil; m.status = .available; members[oldMemberID] = m
+                    m.subTeamId = nil; m.status = .available; members[oldMemberID] = m
                     log("  ↳ Unassigned: \(m.name)")
                 }
             }
@@ -387,7 +395,7 @@ actor DataStore {
         subTeams[subTeam.id!] = subTeam
         for memberID in subTeam.memberIDs {
             if var m = members[memberID] {
-                m.subTeamID = subTeam.id; m.status = .assigned; members[memberID] = m
+                m.subTeamId = subTeam.id; m.status = .assigned; members[memberID] = m
                 log("  ↳ Assigned: \(m.name)")
             }
         }
@@ -400,17 +408,24 @@ actor DataStore {
         log("🗑️ SUB-TEAM DELETED: \(subTeam.color.rawValue) Team - Members unassigned: \(memberNames.joined(separator: ", "))")
         for memberID in subTeam.memberIDs {
             if var m = members[memberID] {
-                m.subTeamID = nil; m.status = .available; members[memberID] = m
+                m.subTeamId = nil; m.status = .available; members[memberID] = m
             }
         }
         subTeams.removeValue(forKey: id)
+        // Clear any tasks that were assigned to this sub-team
+        for (taskID, var task) in tasks where task.assignedSubTeamId == id {
+            task.assignedSubTeamId = nil
+            task.status = .open
+            tasks[taskID] = task
+            log("  ↳ Task '\(task.title)' unassigned from deleted team")
+        }
         await broadcastUpdate()
     }
 
     func freeMember(_ memberID: UUID) async {
         guard var member = members[memberID] else { return }
-        let oldTeamID = member.subTeamID
-        member.subTeamID = nil; member.status = .available; members[memberID] = member
+        let oldTeamID = member.subTeamId
+        member.subTeamId = nil; member.status = .available; members[memberID] = member
         log("🆓 MEMBER FREED: \(member.name) - Set to Available")
 
         if let teamID = oldTeamID, var team = subTeams[teamID] {
@@ -419,7 +434,7 @@ actor DataStore {
                 log("  ↳ \(team.color.rawValue) Team disbanded (less than 2 members)")
                 for remainingID in team.memberIDs {
                     if var m = members[remainingID] {
-                        m.subTeamID = nil; m.status = .available; members[remainingID] = m
+                        m.subTeamId = nil; m.status = .available; members[remainingID] = m
                         log("  ↳ \(m.name) freed from disbanded team")
                     }
                 }
@@ -570,6 +585,12 @@ func routes(_ app: Application) throws {
     memberApi.post("reports") { req async throws -> IncidentReport in
         var report = try req.content.decode(IncidentReport.self)
         if report.id == nil { report.id = UUID() }
+        // Auto-populate ICS-213 From fields from the checked-in member record
+        if let memberRecord = await dataStore.members[report.reportedBy] {
+            if report.fromName == nil { report.fromName = memberRecord.name }
+            if report.fromPosition == nil { report.fromPosition = memberRecord.icsPosition ?? memberRecord.role }
+        }
+        if report.toName == nil { report.toName = "Team Leader" }
         await dataStore.addReport(report)
         return report
     }
@@ -580,10 +601,38 @@ func routes(_ app: Application) throws {
 
     // ── Admin API (dashboard PIN) ─────────────────────────────────────────────────
 
+    adminApi.post("members") { req async throws -> CERTMember in
+        var member = try req.content.decode(CERTMember.self)
+        if member.id == nil { member.id = UUID() }
+        member.lastUpdated = Date()
+        await dataStore.addMember(member)
+        return member
+    }
+
+    adminApi.delete("members", ":id") { req async throws -> HTTPStatus in
+        let id = try req.parameters.require("id", as: UUID.self)
+        guard await dataStore.members[id] != nil else { throw Abort(.notFound) }
+        await dataStore.removeMember(id: id)
+        return .noContent
+    }
+
     adminApi.put("reports", ":id") { req async throws -> IncidentReport in
         let id = try req.parameters.require("id", as: UUID.self)
         var report = try req.content.decode(IncidentReport.self)
         report.id = id
+        report.lastUpdated = Date()
+        await dataStore.updateReport(report)
+        return report
+    }
+
+    adminApi.post("reports", ":id", "reply") { req async throws -> IncidentReport in
+        let id = try req.parameters.require("id", as: UUID.self)
+        struct ReplyBody: Content { var replyText: String; var repliedByName: String? }
+        let body = try req.content.decode(ReplyBody.self)
+        guard var report = await dataStore.reports[id] else { throw Abort(.notFound) }
+        report.replyText = body.replyText
+        report.repliedByName = body.repliedByName
+        report.repliedAt = Date()
         report.lastUpdated = Date()
         await dataStore.updateReport(report)
         return report
@@ -606,6 +655,33 @@ func routes(_ app: Application) throws {
         var task = try req.content.decode(CERTTask.self)
         task.id = id
         if task.status == .completed && task.completedAt == nil { task.completedAt = Date() }
+        await dataStore.updateTask(task)
+        return task
+    }
+
+    // ── Member-accessible task actions ───────────────────────────────────────────
+
+    memberApi.post("tasks", ":id", "comment") { req async throws -> CERTTask in
+        let id = try req.parameters.require("id", as: UUID.self)
+        struct CommentBody: Content { var text: String; var authorName: String? }
+        let body = try req.content.decode(CommentBody.self)
+        guard var task = await dataStore.tasks[id] else { throw Abort(.notFound) }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.timeZone = TimeZone.current
+        let timeStr = formatter.string(from: Date())
+        let author = (body.authorName?.isEmpty == false) ? body.authorName! : "Member"
+        let newEntry = "[\(timeStr)] \(author): \(body.text)"
+        task.notes = task.notes.isEmpty ? newEntry : task.notes + "\n" + newEntry
+        await dataStore.updateTask(task)
+        return task
+    }
+
+    memberApi.post("tasks", ":id", "complete") { req async throws -> CERTTask in
+        let id = try req.parameters.require("id", as: UUID.self)
+        guard var task = await dataStore.tasks[id] else { throw Abort(.notFound) }
+        task.status = .completed
+        task.completedAt = Date()
         await dataStore.updateTask(task)
         return task
     }
@@ -826,7 +902,7 @@ func routes(_ app: Application) throws {
     }
 
     // ── Flag for county EOC review ────────────────────────────────────────────────
-    adminApi.post("county", "flag") { req async throws -> HTTPStatus in
+    adminApi.post("county", "flag") { req async throws -> TeamFlag in
         guard let endpoint = await dataStore.getCountyEndpoint() else {
             throw Abort(.serviceUnavailable, reason: "County server not configured")
         }
@@ -839,8 +915,18 @@ func routes(_ app: Application) throws {
             text: body.text
         )
         guard let bodyData = countyEncode(full) else { throw Abort(.internalServerError) }
-        _ = await countyRequest(method: "POST", endpoint: endpoint, path: "/api/team-flags", body: bodyData)
-        return .ok
+        guard let flag = await countyDecode(TeamFlag.self, method: "POST", endpoint: endpoint,
+                                             path: "/api/team-flags", body: bodyData) else {
+            throw Abort(.badGateway, reason: "County flag creation failed")
+        }
+        return flag
+    }
+
+    adminApi.get("county", "my-flags") { req async throws -> [TeamFlag] in
+        guard let endpoint = await dataStore.getCountyEndpoint() else { return [] }
+        let teamId = await dataStore.getTeamID()
+        return await countyDecode([TeamFlag].self, method: "GET", endpoint: endpoint,
+                                   path: "/api/team-flags?team=\(teamId)") ?? []
     }
 
     // ── WebSocket ─────────────────────────────────────────────────────────────────

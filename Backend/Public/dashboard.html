@@ -623,7 +623,11 @@
 
     <div class="content-grid">
         <div class="panel">
-            <h2>👥 CERT Members</h2>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h2 style="margin:0;">👥 CERT Members</h2>
+                <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;"
+                    onclick="openAdminCheckinModal()">+ Check In</button>
+            </div>
             <div id="memberList">
                 <div class="empty-state">No members checked in yet</div>
             </div>
@@ -645,6 +649,42 @@
     </div>
     
     <!-- Flag for County Modal -->
+    <!-- Admin Check-In Modal -->
+    <div class="modal" id="adminCheckinModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>👤 Check In Member</h2>
+                <button class="close-btn" onclick="closeAdminCheckinModal()">&times;</button>
+            </div>
+            <form id="adminCheckinForm" onsubmit="submitAdminCheckin(event)">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="acName" placeholder="First Last"
+                        autocomplete="off" autocorrect="off" spellcheck="false" required
+                        style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;">
+                </div>
+                <div class="form-group" style="margin-top:12px;">
+                    <label>Role</label>
+                    <select id="acRole" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;background:white;">
+                        <option value="CERT Member">CERT Member</option>
+                        <option value="Team Leader">Team Leader</option>
+                        <option value="Operations - Medical/Triage">Medical / Triage</option>
+                        <option value="Operations - Search &amp; Rescue">Search &amp; Rescue</option>
+                        <option value="Operations - Damage Assessment">Damage Assessment</option>
+                        <option value="Operations - Fire Suppression">Fire Suppression</option>
+                        <option value="Logistics - Communications">Communications</option>
+                        <option value="Logistics - Supplies">Supplies / Logistics</option>
+                        <option value="Planning - Documentation">Documentation</option>
+                    </select>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:16px;">
+                    <button type="submit" class="btn btn-primary">✓ Check In</button>
+                    <button type="button" class="btn" onclick="closeAdminCheckinModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="modal" id="flagModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1092,6 +1132,8 @@
 
         // ── County Messages & Flags ───────────────────────────────────────────────
         let previousInboxCount = 0;
+        let sentFlags = [];        // flags this team has sent to county
+        let previousAckedIds = new Set();
 
         function updateCountyMessages(inbox) {
             const panel = document.getElementById('countyMessagesPanel');
@@ -1101,13 +1143,7 @@
             if (!countyConfig?.county_enabled) return;
             panel.style.display = 'block';
 
-            if (!inbox || !inbox.length) {
-                list.innerHTML = '<div class="empty-state">No messages from county yet</div>';
-                badge.style.display = 'none';
-                return;
-            }
-
-            // New messages since last render → show notification
+            // New incoming messages → notify
             if (inbox.length > previousInboxCount && previousInboxCount > 0) {
                 const newest = inbox[inbox.length - 1];
                 const isAlert = newest.type === 'alert';
@@ -1119,20 +1155,112 @@
             }
             previousInboxCount = inbox.length;
 
-            badge.textContent = inbox.length;
-            badge.style.display = 'inline';
+            const totalBadge = inbox.length + sentFlags.filter(f => !f.acknowledged).length;
+            if (totalBadge > 0) {
+                badge.textContent = totalBadge;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
 
-            list.innerHTML = [...inbox].reverse().map(m => {
-                const isAlert = m.type === 'alert';
-                const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                return `<div style="padding:10px 14px;border-radius:8px;margin-bottom:6px;
-                    background:${isAlert ? '#fff5f0' : '#f9f9f9'};
-                    border-left:4px solid ${isAlert ? '#FF3B30' : '#007AFF'};">
-                    ${isAlert ? '<strong style="color:#FF3B30;">⚠️ Alert: </strong>' : '<span style="color:#007AFF;">ℹ️ </span>'}
-                    ${esc(m.text)}
-                    <span style="float:right;font-size:11px;color:#8E8E93;">${time}</span>
-                </div>`;
-            }).join('');
+            let html = '';
+
+            // Incoming from county
+            if (inbox.length) {
+                html += `<div class="transfer-section-label" style="color:#8E8E93;">From County</div>`;
+                html += [...inbox].reverse().map(m => {
+                    const isAlert = m.type === 'alert';
+                    const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    return `<div style="padding:10px 14px;border-radius:8px;margin-bottom:6px;
+                        background:${isAlert ? '#fff5f0' : '#f9f9f9'};
+                        border-left:4px solid ${isAlert ? '#FF3B30' : '#007AFF'};">
+                        ${isAlert ? '<strong style="color:#FF3B30;">⚠️ Alert: </strong>' : '<span style="color:#007AFF;">ℹ️ </span>'}
+                        ${esc(m.text)}
+                        <span style="float:right;font-size:11px;color:#8E8E93;">${time}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            // Sent flags (team → county)
+            if (sentFlags.length) {
+                html += `<div class="transfer-section-label" style="color:#8E8E93;margin-top:8px;">Sent to County</div>`;
+                html += [...sentFlags].reverse().map(f => {
+                    const time = new Date(f.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const isAcked = f.acknowledged;
+                    return `<div style="padding:10px 14px;border-radius:8px;margin-bottom:6px;
+                        background:${isAcked ? '#f0fff5' : '#fffbf0'};
+                        border-left:4px solid ${isAcked ? '#34C759' : '#FF9500'};">
+                        <span style="font-size:11px;font-weight:700;text-transform:uppercase;
+                            color:${isAcked ? '#34C759' : '#FF9500'};">
+                            ${isAcked ? '✓ Acknowledged' : '📤 Awaiting acknowledgment'}
+                        </span>
+                        <div style="margin-top:3px;">${esc(f.text)}</div>
+                        <span style="font-size:11px;color:#8E8E93;">${time}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            if (!html) {
+                list.innerHTML = '<div class="empty-state">No messages from county yet</div>';
+            } else {
+                list.innerHTML = html;
+            }
+        }
+
+        function syncSentFlags(countyFlags) {
+            if (!countyFlags || !countyFlags.length) return;
+            // Detect newly acknowledged flags and notify
+            countyFlags.forEach(f => {
+                if (f.acknowledged && !previousAckedIds.has(f.id)) {
+                    previousAckedIds.add(f.id);
+                    showToast('✓ County acknowledged your flag: ' + f.text.substring(0, 60));
+                    showBrowserNotification('✓ Flag Acknowledged', f.text);
+                }
+            });
+            sentFlags = countyFlags;
+            // Refresh county messages panel with updated flag statuses
+            if (currentData) updateCountyMessages(currentData.county_inbox || []);
+        }
+
+        function openAdminCheckinModal() {
+            document.getElementById('adminCheckinForm').reset();
+            document.getElementById('adminCheckinModal').classList.add('show');
+            setTimeout(() => document.getElementById('acName').focus(), 50);
+        }
+
+        function closeAdminCheckinModal() {
+            document.getElementById('adminCheckinModal').classList.remove('show');
+        }
+
+        async function submitAdminCheckin(event) {
+            event.preventDefault();
+            const name = document.getElementById('acName').value.trim();
+            const role = document.getElementById('acRole').value;
+            if (!name) return;
+            const now = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+            try {
+                const res = await apiCall('POST', '/api/members', {
+                    name, role,
+                    status: 'Available',
+                    equipment: [],
+                    last_updated: now
+                });
+                if (res.ok) {
+                    closeAdminCheckinModal();
+                } else {
+                    alert('Failed to check in member: ' + await res.text());
+                }
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        async function checkoutMember(memberId, memberName) {
+            if (!confirm(`Check out ${memberName}?\n\nThis removes them from the roster.`)) return;
+            try {
+                const res = await apiCall('DELETE', `/api/members/${memberId}`);
+                if (!res.ok && res.status !== 204) {
+                    alert('Failed to check out member: ' + await res.text());
+                }
+            } catch (err) { alert('Error: ' + err.message); }
         }
 
         function openFlagModal() {
@@ -1150,6 +1278,10 @@
             try {
                 const res = await apiCall('POST', '/api/county/flag', { text });
                 if (res.ok) {
+                    const flag = await res.json();
+                    // Optimistically add to sentFlags so it shows immediately
+                    sentFlags = [flag, ...sentFlags.filter(f => f.id !== flag.id)];
+                    if (currentData) updateCountyMessages(currentData.county_inbox || []);
                     document.getElementById('flagText').value = '';
                     closeFlagModal();
                     showToast('📣 Flag sent to County EOC');
@@ -1214,12 +1346,14 @@
 
         async function loadTransferData() {
             try {
-                const [availRes, reqRes] = await Promise.all([
+                const [availRes, reqRes, flagsRes] = await Promise.all([
                     apiCall('GET', '/api/county/available-members'),
-                    apiCall('GET', '/api/county/transfer-requests')
+                    apiCall('GET', '/api/county/transfer-requests'),
+                    apiCall('GET', '/api/county/my-flags')
                 ]);
                 const available = availRes.ok ? await availRes.json() : [];
                 const requests  = reqRes.ok  ? await reqRes.json()  : [];
+                if (flagsRes.ok) syncSentFlags(await flagsRes.json());
                 const myTeamId = countyConfig?.team_id;
                 // Borrowed: accepted OR recall-pending transfers where WE are the requesting team
                 currentBorrows = requests.filter(r =>
@@ -1617,12 +1751,18 @@
                         </button>`;
                 }
 
+                const checkoutBtn = !isLent
+                    ? `<button class="btn-sm" style="color:#FF3B30;border-color:#ffb0b0;font-size:10px;margin-left:6px;"
+                           onclick="checkoutMember('${member.id}', '${esc(member.name)}')"
+                           title="Check out this member">✕ Out</button>`
+                    : '';
+
                 return `
                 <div class="member-item ${isLent ? 'lent' : member.status.toLowerCase().replace(' ', '')}">
                     ${equip}
                     <div class="item-header" style="display:flex;justify-content:space-between;align-items:center;">
                         <span>${teamBadge}${esc(member.name)}</span>
-                        ${actionEl}
+                        <span style="display:flex;align-items:center;gap:4px;">${actionEl}${checkoutBtn}</span>
                     </div>
                     <div class="item-meta">
                         <span class="badge ${isLent ? 'lent' : member.status.toLowerCase().replace(' ', '')}">${isLent ? 'On Loan' : esc(member.status)}</span>
@@ -1840,33 +1980,32 @@
                 alert('No members available. Please wait for data to load.');
                 return;
             }
-            
-            // Get members who are available OR already assigned (can be reassigned)
-            // Exclude only those who are Unavailable, Injured, or Needs Help
+
+            const loanableIds = new Set(currentData.loanable_members || []);
+            const loanedOutIds = new Set(currentLoanedOut.map(r => r.member_id));
+
             const eligibleMembers = currentData.members.filter(m => {
                 const status = m.status.toLowerCase();
-                return status === 'available' || status === 'assigned';
+                if (status !== 'available' && status !== 'assigned') return false;
+                if (m.sub_team_id) return false;           // already on a sub-team
+                if (loanableIds.has(m.id)) return false;   // in sharing mode
+                if (loanedOutIds.has(m.id)) return false;  // physically with another team
+                return true;
             });
-            
+
             const checkboxList = document.getElementById('memberCheckboxList');
-            
+
             if (eligibleMembers.length < 2) {
-                checkboxList.innerHTML = '<div class="empty-state">Not enough members (need at least 2)</div>';
+                checkboxList.innerHTML = '<div class="empty-state">Not enough available members (need at least 2 members not on a team)</div>';
             } else {
-                checkboxList.innerHTML = eligibleMembers.map(member => {
-                    const currentTeam = (currentData.sub_teams || []).find(st => st.id === member.sub_team_id);
-                    const teamLabel = currentTeam ? ` - Currently on ${currentTeam.color} Team` : '';
-                    const style = currentTeam ? 'style="color: #666; font-style: italic;"' : '';
-                    
-                    return `
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="member_${member.id}" value="${member.id}">
-                            <label for="member_${member.id}" ${style}>${esc(member.name)} - ${esc(member.role)}${teamLabel}</label>
-                        </div>
-                    `;
-                }).join('');
+                checkboxList.innerHTML = eligibleMembers.map(member => `
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="member_${member.id}" value="${member.id}">
+                        <label for="member_${member.id}">${esc(member.name)} - ${esc(member.role)}</label>
+                    </div>
+                `).join('');
             }
-            
+
             document.getElementById('createSubTeamModal').classList.add('show');
         }
         
@@ -2076,7 +2215,7 @@
                 title: title,
                 description: description,
                 priority: priority,
-                status: 'Open',
+                status: teamId ? 'Assigned' : 'Open',
                 assigned_sub_team_id: teamId || null,
                 assignedTo: [],
                 notes: ''
@@ -2273,18 +2412,55 @@
 
             document.getElementById('reportModalTitle').textContent = report.type;
 
+            const subjectRow = report.subject
+                ? `<div class="detail-row"><span class="detail-label">Subject</span><span style="font-weight:600;">${esc(report.subject)}</span></div>`
+                : '';
+            const fromRow = report.from_name
+                ? `<div class="detail-row"><span class="detail-label">From</span><span>${esc(report.from_name)}${report.from_position ? ` &bull; ${esc(report.from_position)}` : ''}</span></div>`
+                : `<div class="detail-row"><span class="detail-label">From</span><span>${esc(reporter?.name || 'Unknown')}</span></div>`;
+            const toRow = report.to_name
+                ? `<div class="detail-row"><span class="detail-label">To</span><span>${esc(report.to_name)}</span></div>`
+                : '';
+
+            let replySection = '';
+            if (report.reply_text) {
+                const replyTime = report.replied_at
+                    ? new Date(report.replied_at).toLocaleString()
+                    : '';
+                replySection = `
+                <div class="county-section" style="margin-top:16px;">
+                    <div class="county-section-title">Reply (ICS-213 Box 9)</div>
+                    <div style="font-size:14px;white-space:pre-wrap;margin-bottom:6px;">${esc(report.reply_text)}</div>
+                    ${report.replied_by_name || replyTime
+                        ? `<div style="font-size:12px;color:#666;">— ${esc(report.replied_by_name || 'Team Leader')}${replyTime ? `, ${replyTime}` : ''}</div>`
+                        : ''}
+                </div>`;
+            } else {
+                replySection = `
+                <div class="county-section" style="margin-top:16px;">
+                    <div class="county-section-title">Reply (ICS-213 Box 9)</div>
+                    <textarea id="replyInputField" rows="2"
+                        placeholder="Add a reply to this report…"
+                        style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;font-family:inherit;resize:vertical;margin-bottom:8px;"></textarea>
+                    <button class="btn-sm" onclick="sendReportReply()">Send Reply</button>
+                </div>`;
+            }
+
             document.getElementById('reportModalBody').innerHTML = `
                 <div style="margin-bottom:16px;">
                     <span class="severity-badge ${sevClass}">${esc(report.severity)}</span>
                     <span class="badge ${report.status.toLowerCase()}" style="margin-left:6px;">${esc(report.status)}</span>
                     ${teamBadge ? `<span style="margin-left:6px;">${teamBadge}</span>` : ''}
                 </div>
+                ${subjectRow}
+                ${fromRow}
+                ${toRow}
                 <div class="detail-row"><span class="detail-label">Location</span><span>${esc(locationStr)}</span></div>
-                <div class="detail-row"><span class="detail-label">Notes</span><span>${esc(report.notes || '—')}</span></div>
-                <div class="detail-row"><span class="detail-label">Reported by</span><span>${esc(reporter?.name || 'Unknown')}</span></div>
+                <div class="detail-row"><span class="detail-label">Message</span><span style="white-space:pre-wrap;">${esc(report.notes || '—')}</span></div>
                 <div class="detail-row"><span class="detail-label">Reported at</span><span>${reportedAt}</span></div>
                 ${countyAckRow}
-                <div class="county-section">
+                ${replySection}
+                <div class="county-section" style="margin-top:12px;">
                     <div class="county-section-title">County Visibility</div>
                     <div style="margin-bottom:8px; font-size:14px;">${countyStatusText}</div>
                     <button class="btn-sm" style="${countyBtnStyle}" onclick="toggleCountyEscalation()">${countyBtnText}</button>
@@ -2354,6 +2530,23 @@
             } catch (err) { alert('Error: ' + err.message); }
         }
 
+        async function sendReportReply() {
+            const input = document.getElementById('replyInputField');
+            const text = input?.value.trim();
+            if (!text) { alert('Please enter a reply.'); return; }
+            try {
+                const res = await apiCall('POST', `/api/reports/${currentReportId}/reply`, {
+                    reply_text: text,
+                    replied_by_name: 'Team Leader'
+                });
+                if (res.ok) {
+                    closeReportModal();
+                } else {
+                    alert('Failed to send reply: ' + await res.text());
+                }
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
         async function deleteSubTeam(id) {
             if (!confirm('Are you sure you want to delete this team? Members will be unassigned.')) {
                 return;
@@ -2391,5 +2584,8 @@
         };
         console.log('💡 Debug: Type testUpdate() in console to test rendering');
     </script>
+<footer style="text-align:center;padding:20px;color:#aaa;font-size:12px;">
+  CERT Assist v1.0 &nbsp;·&nbsp; <a href="/changelog.html" style="color:#007AFF;text-decoration:none;">What's new</a>
+</footer>
 </body>
 </html>

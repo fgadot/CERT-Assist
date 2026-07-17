@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CERT Assist — Team Leader Guide</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, Helvetica Neue, Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: white; }
+
+  @media print {
+    .page-break { page-break-after: always; }
+    body { font-size: 12px; }
+  }
+
+  .cover {
+    height: 100vh;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    background: linear-gradient(160deg, #1a3a1a 0%, #2e7d32 100%);
+    color: white; text-align: center; padding: 40px;
+  }
+  .cover .logo { font-size: 64px; margin-bottom: 20px; }
+  .cover h1 { font-size: 36px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .cover h2 { font-size: 20px; font-weight: 400; opacity: 0.85; margin-bottom: 40px; }
+  .cover .badge {
+    background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 20px; padding: 8px 20px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+  }
+  .cover .version { margin-top: 60px; opacity: 0.5; font-size: 11px; }
+
+  .content { max-width: 680px; margin: 0 auto; padding: 48px 32px; }
+
+  h2.section { font-size: 22px; color: #2e7d32; margin: 40px 0 16px; border-bottom: 2px solid #e8f5e9; padding-bottom: 8px; }
+  h3.step { font-size: 15px; font-weight: 600; color: #1a1a1a; margin: 24px 0 8px; }
+
+  .intro-box {
+    background: #f1f8e9; border-left: 4px solid #2e7d32; border-radius: 6px;
+    padding: 16px 20px; margin: 24px 0;
+  }
+  .intro-box p { line-height: 1.6; color: #1b5e20; }
+
+  .step-block {
+    display: flex; gap: 16px; margin: 16px 0; align-items: flex-start;
+  }
+  .step-num {
+    min-width: 32px; height: 32px; background: #2e7d32; color: white;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; flex-shrink: 0; margin-top: 2px;
+  }
+  .step-body { line-height: 1.6; }
+  .step-body strong { display: block; margin-bottom: 2px; }
+  .step-body small { color: #666; }
+
+  .tip {
+    background: #fff8e1; border-left: 4px solid #f9a825; border-radius: 6px;
+    padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #5a4000; line-height: 1.6;
+  }
+  .tip::before { content: "💡 Tip: "; font-weight: 700; }
+
+  .warning {
+    background: #ffeaea; border-left: 4px solid #e53935; border-radius: 6px;
+    padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #5a0000; line-height: 1.6;
+  }
+  .warning::before { content: "⚠️ Important: "; font-weight: 700; }
+
+  .info {
+    background: #e3f2fd; border-left: 4px solid #1565c0; border-radius: 6px;
+    padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #0d2a5e; line-height: 1.6;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12px; }
+  th { background: #2e7d32; color: white; padding: 10px 12px; text-align: left; }
+  td { padding: 9px 12px; border-bottom: 1px solid #eee; vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fdf8; }
+
+  .badge-pill {
+    display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  }
+  .badge-green { background: #e8f5e9; color: #2e7d32; }
+  .badge-orange { background: #fff3e0; color: #e65100; }
+  .badge-red { background: #fce4ec; color: #b71c1c; }
+  .badge-blue { background: #e3f2fd; color: #0d47a1; }
+
+  .url-box {
+    background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px;
+    padding: 12px 16px; font-family: monospace; font-size: 13px;
+    color: #2e7d32; margin: 8px 0;
+  }
+
+  .section-divider { border: none; border-top: 1px solid #e0e0e0; margin: 32px 0; }
+
+  footer {
+    margin-top: 60px; padding: 24px 0; border-top: 1px solid #eee;
+    text-align: center; color: #999; font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover page-break">
+  <div class="logo">📋</div>
+  <h1>CERT Assist</h1>
+  <h2>Team Leader Dashboard Guide</h2>
+  <div class="badge">Team Leader Edition</div>
+  <div class="version">certassist.us &nbsp;·&nbsp; 2026</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <div class="intro-box">
+    <p>This guide covers everything you need to manage your team during a CERT activation — from opening the dashboard and tracking member check-ins, to creating sub-teams, assigning tasks, and responding to field reports.</p>
+  </div>
+
+  <!-- SECTION 1 -->
+  <h2 class="section">1. Accessing the Dashboard</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">Open a browser on your laptop or tablet and go to your team's dashboard URL:</p>
+
+  <table>
+    <tr><th>Team</th><th>Dashboard URL</th><th>Dashboard PIN</th><th>Member PIN</th></tr>
+    <tr><td>Sapphire Point</td><td>https://sapphire.certassist.us</td><td>ST2027..!</td><td>001789</td></tr>
+    <tr><td>Glenn Lakes</td><td>https://glenn.certassist.us</td><td>GS2027..!</td><td>001789</td></tr>
+    <tr><td>Lakewood Ranch</td><td>https://lakewood.certassist.us</td><td>LH2027..!</td><td>001789</td></tr>
+    <tr><td>Lorraine Lakes</td><td>https://lorraine.certassist.us</td><td>LS2027..!</td><td>001789</td></tr>
+    <tr><td>Bayview</td><td>https://bayview.certassist.us</td><td>BW2027..!</td><td>001789</td></tr>
+  </table>
+
+  <div class="info">
+    <strong>Two separate PINs:</strong> Your dashboard PIN is unique to your team and grants full administrative access. The member PIN (001789) is shared across all teams and allows field members to check in and submit reports only. Never give your dashboard PIN to field members.
+  </div>
+
+  <p style="line-height:1.6; margin-top:12px;">Enter your PIN and click <strong>Enter Dashboard</strong>. The PIN is case-sensitive.</p>
+
+  <div class="tip">Use a tablet or laptop in landscape mode for the best dashboard experience. The dashboard works on phones but the layout is optimized for larger screens.</div>
+
+  <div class="warning">The dashboard data is stored in memory on the server. If the server restarts, all check-in data is cleared. Members will need to re-check in.</div>
+
+  <!-- SECTION 2 -->
+  <h2 class="section">2. Dashboard Overview</h2>
+
+  <p style="line-height:1.6; margin-bottom:16px;">The dashboard has four main sections:</p>
+
+  <table>
+    <tr><th>Section</th><th>What It Shows</th></tr>
+    <tr><td><strong>Members</strong></td><td>All checked-in members with their name, ICS role, check-in time, and current assignment</td></tr>
+    <tr><td><strong>Sub-Teams</strong></td><td>Sub-teams you've created and which members are in each one</td></tr>
+    <tr><td><strong>Tasks</strong></td><td>All tasks — who they're assigned to, status, and priority</td></tr>
+    <tr><td><strong>Reports</strong></td><td>ICS-213 incident reports submitted by field members</td></tr>
+  </table>
+
+  <p style="line-height:1.6; margin-top:12px;">The dashboard updates in real time via WebSocket — you don't need to refresh.</p>
+
+  <!-- SECTION 3 -->
+  <h2 class="section">3. Managing Member Check-Ins</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">Members check in via their phone at <code>[team].certassist.us/member.html</code>. They appear in your Members list within seconds of checking in.</p>
+
+  <div class="step-block">
+    <div class="step-num">👁</div>
+    <div class="step-body">
+      <strong>Viewing members</strong>
+      Each member card shows: name, ICS role, check-in time, current sub-team, and assigned task.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">✏️</div>
+    <div class="step-body">
+      <strong>Editing a member's name</strong>
+      Click the member's name to edit it — useful if someone checked in with a typo.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">🗑</div>
+    <div class="step-body">
+      <strong>Removing a member</strong>
+      Use the remove/delete option on a member card if they've checked out or need to be removed.
+    </div>
+  </div>
+
+  <!-- SECTION 4 -->
+  <h2 class="section">4. Creating Sub-Teams</h2>
+
+  <div class="step-block">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Click "Create Sub-Team"</strong>
+      Enter a name for the sub-team (e.g., "Alpha", "Medical Unit", "Search Team 1").
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Assign members to the sub-team</strong>
+      Click on a member card and select which sub-team to assign them to. Members can only be in one sub-team at a time.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>Reassign or move members</strong>
+      You can reassign a member to a different sub-team at any time from their member card.
+    </div>
+  </div>
+
+  <div class="tip">Sub-team names appear on the member's phone automatically — they'll know their assignment within 10 seconds of you making it.</div>
+
+  <!-- SECTION 5 -->
+  <h2 class="section">5. Creating and Assigning Tasks</h2>
+
+  <div class="step-block">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Click "Create Task"</strong>
+      Enter the task title, description, and priority level.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Assign to a member or sub-team</strong>
+      Select who the task goes to. Members see their assigned task on their phone immediately.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>Track task status</strong>
+      Tasks progress through: <span class="badge-pill badge-orange">Pending</span> → <span class="badge-pill badge-blue">In Progress</span> → <span class="badge-pill badge-green">Completed</span>. Members can update their own task status from their phone.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <strong>Edit or cancel a task</strong>
+      Click on any task in the Tasks section to edit its details, reassign it, or cancel it.
+    </div>
+  </div>
+
+  <!-- SECTION 6 -->
+  <h2 class="section">6. Viewing and Replying to Reports</h2>
+
+  <p style="line-height:1.6; margin-bottom:16px;">Members submit ICS-213 General Message reports from their phones. These appear in the Reports section of your dashboard.</p>
+
+  <div class="step-block">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Click on any report to open it</strong>
+      The report detail shows all ICS-213 fields: Subject, From (member name + position), Incident Type, Severity, Location, and Description.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Send a reply</strong>
+      Type your response in the Reply field and click <strong>Send Reply</strong>. The member sees your reply on their phone within 10 seconds.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>Acknowledge or escalate</strong>
+      Use the <strong>Acknowledge</strong> button to mark a report as reviewed. Use <strong>Escalate to County</strong> to forward it to the county coordination dashboard.
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Report Badge</th><th>Meaning</th></tr>
+    <tr><td><span class="badge-red badge-pill">Critical</span></td><td>Requires immediate attention</td></tr>
+    <tr><td><span class="badge-orange badge-pill">High</span></td><td>Urgent — respond soon</td></tr>
+    <tr><td><span class="badge-blue badge-pill">Medium</span></td><td>Monitor and respond when able</td></tr>
+    <tr><td><span class="badge-green badge-pill">Low</span></td><td>FYI / informational</td></tr>
+  </table>
+
+  <!-- SECTION 7 -->
+  <h2 class="section">7. Escalating to County</h2>
+
+  <p style="line-height:1.6; margin-bottom:16px;">For incidents requiring county-level coordination, escalate directly from the report detail view.</p>
+
+  <div class="step-block">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Open the report</strong>
+      Click the report that needs county attention.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Click "Escalate to County"</strong>
+      The report is forwarded to the County dashboard at <a href="https://county.certassist.us">county.certassist.us</a> instantly. The report is flagged as escalated on your dashboard.
+    </div>
+  </div>
+
+  <div class="info">
+    <strong>County Dashboard PIN:</strong> CY2027..! — Share this only with authorized county coordinators.
+  </div>
+
+  <!-- SECTION 8 -->
+  <h2 class="section">8. Quick Reference — Keyboard Actions</h2>
+
+  <table>
+    <tr><th>Action</th><th>How To</th></tr>
+    <tr><td>Open a member detail</td><td>Click on the member card</td></tr>
+    <tr><td>Create sub-team</td><td>"Create Sub-Team" button, top of Sub-Teams section</td></tr>
+    <tr><td>Create task</td><td>"Create Task" button, top of Tasks section</td></tr>
+    <tr><td>Reply to report</td><td>Click report → type in Reply field → Send Reply</td></tr>
+    <tr><td>Escalate to county</td><td>Click report → Escalate to County button</td></tr>
+    <tr><td>Edit member name</td><td>Click member name text → edit inline</td></tr>
+    <tr><td>Remove member</td><td>Member card → delete/remove option</td></tr>
+  </table>
+
+  <!-- SECTION 9 -->
+  <h2 class="section">9. Troubleshooting</h2>
+
+  <table>
+    <tr><th>Problem</th><th>Solution</th></tr>
+    <tr><td>Member checked in but not showing</td><td>Hard refresh the dashboard (Shift+Refresh). If the server restarted, the member needs to re-check in.</td></tr>
+    <tr><td>Dashboard shows no data after restart</td><td>All in-memory data is cleared on restart. Have all members re-check in.</td></tr>
+    <tr><td>WebSocket disconnected (no live updates)</td><td>Refresh the page and re-enter your PIN. This reconnects the WebSocket.</td></tr>
+    <tr><td>Report not showing county escalation</td><td>Check that county server is running: county.certassist.us should load.</td></tr>
+    <tr><td>Locked out after wrong PIN</td><td>Wait 1 hour for automatic unlock, or contact the system administrator.</td></tr>
+  </table>
+
+  <!-- SECTION 10 -->
+  <h2 class="section">10. Activation Checklist</h2>
+
+  <table>
+    <tr><th>Step</th><th>Action</th><th>Done?</th></tr>
+    <tr><td>1</td><td>Open dashboard on laptop/tablet</td><td>☐</td></tr>
+    <tr><td>2</td><td>Confirm all members have the member portal URL and PIN</td><td>☐</td></tr>
+    <tr><td>3</td><td>Verify members are checking in and appearing on dashboard</td><td>☐</td></tr>
+    <tr><td>4</td><td>Create sub-teams as needed</td><td>☐</td></tr>
+    <tr><td>5</td><td>Assign members to sub-teams</td><td>☐</td></tr>
+    <tr><td>6</td><td>Create and assign initial tasks</td><td>☐</td></tr>
+    <tr><td>7</td><td>Monitor Reports section for incoming field reports</td><td>☐</td></tr>
+    <tr><td>8</td><td>Reply to reports promptly — members are waiting for guidance</td><td>☐</td></tr>
+    <tr><td>9</td><td>Escalate critical incidents to county as needed</td><td>☐</td></tr>
+  </table>
+
+  <footer>
+    CERT Assist &nbsp;·&nbsp; certassist.us &nbsp;·&nbsp; Team Leader Edition &nbsp;·&nbsp; 2026
+  </footer>
+
+</div>
+</body>
+</html>

@@ -68,7 +68,7 @@ struct ReportRow: View {
             // Type Icon
             Image(systemName: report.type.icon)
                 .font(.title2)
-                .foregroundStyle(Color(report.severity.color))
+                .foregroundStyle(report.severity.color)
                 .frame(width: 32)
             
             VStack(alignment: .leading, spacing: 4) {
@@ -84,14 +84,14 @@ struct ReportRow: View {
                 HStack(spacing: 8) {
                     Label(report.severity.rawValue, systemImage: report.severity.icon)
                         .font(.caption)
-                        .foregroundStyle(Color(report.severity.color))
+                        .foregroundStyle(report.severity.color)
                     
                     Text("•")
                         .foregroundStyle(.secondary)
                     
                     Label(report.status.rawValue, systemImage: report.status.icon)
                         .font(.caption)
-                        .foregroundStyle(Color(report.status.color))
+                        .foregroundStyle(report.status.color)
                     
                     Text("•")
                         .foregroundStyle(.secondary)
@@ -236,7 +236,7 @@ struct ReportDetailSheet: View {
                     HStack {
                         Image(systemName: report.type.icon)
                             .font(.title)
-                            .foregroundStyle(Color(report.severity.color))
+                            .foregroundStyle(report.severity.color)
                         
                         VStack(alignment: .leading, spacing: 4) {
                             Text(report.type.rawValue)

@@ -12,7 +12,7 @@ struct SubTeam: Content {
     var id: UUID?
     var color: TeamColor
     var memberIDs: [UUID]
-    var assignedTaskID: UUID?
+    var assignedTaskId: UUID?
     var createdAt: Date?
     var lastUpdated: Date?
 
@@ -51,7 +51,7 @@ struct CERTMember: Content {
     var status: MemberStatus
     var equipment: [String]
     var location: LocationData?
-    var subTeamID: UUID?
+    var subTeamId: UUID?
     var lastUpdated: Date
     var lentToTeam: String?       // team ID of the team that borrowed this member
     var lentRequestId: String?    // transfer request UUID — needed for recall
@@ -96,12 +96,20 @@ struct IncidentReport: Content {
     var status: ReportStatus
     var notes: String
     var reportedBy: UUID
-    var subTeamID: UUID?
+    var subTeamId: UUID?
     var acknowledgedByCounty: Bool?   // nil = false; set by county ack message
     var acknowledgedAt: Date?
     var escalatedToCounty: Bool?      // nil = auto (High/LS go up); true = forced up; false = suppressed
     var reportedAt: Date
     var lastUpdated: Date
+    // ICS-213 General Message fields
+    var subject: String?
+    var fromName: String?
+    var fromPosition: String?
+    var toName: String?
+    var replyText: String?
+    var repliedByName: String?
+    var repliedAt: Date?
 
     enum ReportType: String, Codable {
         case treeDown = "Tree Down"
@@ -139,11 +147,11 @@ struct CERTTask: Content {
     var title: String
     var description: String
     var assignedTo: [UUID]
-    var assignedSubTeamID: UUID?
+    var assignedSubTeamId: UUID?
     var status: TaskStatus
     var priority: String
     var location: LocationData?
-    var relatedReportID: UUID?
+    var relatedReportId: UUID?
     var createdAt: Date?
     var completedAt: Date?
     var notes: String
@@ -234,6 +242,18 @@ struct CountyMessage: Content {
         case transferRelease        // owning team: requesting team returned the member
         case transferRecallRequest  // requesting team: owning team wants their member back
     }
+}
+
+// MARK: - Team Flags (team → county upward)
+
+struct TeamFlag: Content {
+    var id: UUID
+    var teamId: String
+    var teamName: String
+    var text: String
+    var timestamp: Date
+    var acknowledged: Bool
+    var acknowledgedAt: Date?
 }
 
 // MARK: - County Transfer

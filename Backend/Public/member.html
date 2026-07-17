@@ -140,16 +140,100 @@
         .team-badge.none   { background: #8E8E93; }
 
         .task-box {
-            background: #fffbeb;
-            border: 1px solid #fcd34d;
+            border: 1.5px solid #fcd34d;
             border-radius: 10px;
             padding: 12px 14px;
-            margin-top: 12px;
+            margin-top: 10px;
+            background: #fffbeb;
         }
-        .task-label { font-size: 11px; font-weight: 700; color: #92400e; text-transform: uppercase; margin-bottom: 4px; }
+        .task-box + .task-box { margin-top: 10px; }
+        .task-box.p-critical { border-color: #FF3B30; background: #fff5f5; }
+        .task-box.p-high     { border-color: #FF9500; background: #fff9f0; }
+        .task-box.p-medium   { border-color: #fcd34d; background: #fffbeb; }
+        .task-box.p-low      { border-color: #34C759; background: #f0fff5; }
+
+        .task-priority-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+        .task-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 3px; }
+        .task-label.p-critical { color: #FF3B30; }
+        .task-label.p-high     { color: #c05a00; }
+        .task-label.p-medium   { color: #92400e; }
+        .task-label.p-low      { color: #166534; }
+
+        .tasks-count-header {
+            font-size: 11px; font-weight: 700; color: #8E8E93;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin: 14px 0 4px;
+        }
         .task-title { font-size: 16px; font-weight: 600; color: #1c1c1e; }
         .task-desc  { font-size: 13px; color: #555; margin-top: 4px; }
         .standby    { font-size: 14px; color: #8E8E93; margin-top: 12px; font-style: italic; }
+
+        .task-notes-log {
+            margin-top: 10px;
+            background: #f9f4e4;
+            border-radius: 7px;
+            padding: 8px 10px;
+            max-height: 110px;
+            overflow-y: auto;
+            font-size: 12px;
+            color: #5a4a1a;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .task-comment-row {
+            display: flex;
+            gap: 7px;
+            margin-top: 9px;
+            align-items: flex-end;
+        }
+        .task-comment-input {
+            flex: 1;
+            font-size: 14px;
+            border: 1px solid #e0c84a;
+            border-radius: 8px;
+            padding: 8px 10px;
+            background: white;
+            outline: none;
+            font-family: inherit;
+            resize: none;
+            min-height: 36px;
+            max-height: 80px;
+        }
+        .task-comment-btn {
+            flex-shrink: 0;
+            background: #92400e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .task-complete-btn {
+            display: block;
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            background: #34C759;
+            color: white;
+            border: none;
+            border-radius: 9px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            text-align: center;
+        }
+        .task-complete-btn:active { opacity: 0.8; }
 
         .session-note {
             font-size: 13px;
@@ -390,6 +474,15 @@
     </div>
 
     <div class="card">
+        <div class="card-title">Subject</div>
+        <div class="field">
+            <input id="rSubject" type="text"
+                   placeholder="e.g. Tree blocking Oak St at Main Ave"
+                   autocorrect="off">
+        </div>
+    </div>
+
+    <div class="card">
         <div class="card-title">Severity</div>
         <div class="sev-grid">
             <button class="sev-btn low"  id="sLow"  onclick="setSev('Low')">Low</button>
@@ -428,6 +521,7 @@
     let memberID   = localStorage.getItem('cert_mid');
     let memberName = localStorage.getItem('cert_mname');
     let memberRole = localStorage.getItem('cert_mrole');
+    const PRIORITY_ORDER = { Critical: 0, High: 1, Medium: 2, Low: 3 };
     let reportCount = parseInt(localStorage.getItem('cert_rcount') || '0');
     let severity = 'Medium';
     let gps = null;
@@ -470,6 +564,7 @@
     function showReport() {
         severity = 'Medium';
         renderSev();
+        document.getElementById('rSubject').value = '';
         document.getElementById('rNotes').value = '';
         document.getElementById('rAddress').value = '';
         gps = null;
@@ -544,39 +639,70 @@
         try {
             const d = await api('GET', '/api/dashboard');
 
-            const me = (d.members || []).find(m => m.id === memberID);
-            if (!me) return;
+            const me = (d.members || []).find(m =>
+                m.id && memberID && m.id.toLowerCase() === memberID.toLowerCase()
+            );
 
             const teamEl = document.getElementById('homeTeam');
             const taskEl = document.getElementById('homeTask');
 
-            const teamID = me.sub_team_id;
-            if (teamID) {
-                const team = (d.sub_teams || []).find(t => t.id === teamID);
-                if (team) {
-                    teamEl.innerHTML =
-                        `<span class="team-badge ${team.color.toLowerCase()}">${team.color} Team</span>`;
-
-                    const task = (d.tasks || []).find(t =>
-                        t.assigned_sub_team_id === team.id &&
-                        t.status !== 'Completed' && t.status !== 'Cancelled'
-                    );
-                    taskEl.innerHTML = task
-                        ? `<div class="task-box">
-                               <div class="task-label">Your Task</div>
-                               <div class="task-title">${esc(task.title)}</div>
-                               ${task.description ? `<div class="task-desc">${esc(task.description)}</div>` : ''}
-                           </div>`
-                        : '<p class="standby">No task assigned yet — stand by.</p>';
-                }
+            if (!me) {
+                console.warn('[member] refreshAssignment: member not found. memberID=', memberID,
+                    'members=', (d.members || []).map(m => m.id));
+                // Don't update team/task section, but still fall through to render reports
             } else {
-                teamEl.innerHTML = '<span class="team-badge none">Not yet assigned to a team</span>';
-                taskEl.innerHTML = '';
+                const teamID = me.sub_team_id;
+                if (teamID) {
+                    const team = (d.sub_teams || []).find(t =>
+                        t.id && t.id.toLowerCase() === teamID.toLowerCase()
+                    );
+                    if (team) {
+                        teamEl.innerHTML =
+                            `<span class="team-badge ${team.color.toLowerCase()}">${team.color} Team</span>`;
+
+                        const teamIdLower = team.id.toLowerCase();
+                        const teamTasks = (d.tasks || [])
+                            .filter(t =>
+                                t.assigned_sub_team_id &&
+                                t.assigned_sub_team_id.toLowerCase() === teamIdLower &&
+                                t.status !== 'Completed' && t.status !== 'Cancelled'
+                            )
+                            .sort((a, b) => {
+                                const pa = PRIORITY_ORDER[a.priority] ?? 4;
+                                const pb = PRIORITY_ORDER[b.priority] ?? 4;
+                                if (pa !== pb) return pa - pb;
+                                return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+                            });
+
+                        console.log('[member] team=', team.id, 'taskCount=', teamTasks.length,
+                            (d.tasks || []).map(t => ({ id: t.id, subTeam: t.assigned_sub_team_id, status: t.status, priority: t.priority })));
+
+                        if (teamTasks.length === 0) {
+                            taskEl.innerHTML = '<p class="standby">No task assigned yet — stand by.</p>';
+                        } else {
+                            const hdr = teamTasks.length > 1
+                                ? `<div class="tasks-count-header">📋 ${teamTasks.length} Tasks</div>`
+                                : '';
+                            taskEl.innerHTML = hdr + teamTasks.map(renderTaskItem).join('');
+                        }
+                    } else {
+                        console.warn('[member] sub-team not found. teamID=', teamID,
+                            'sub_teams=', (d.sub_teams || []).map(t => t.id));
+                    }
+                } else {
+                    teamEl.innerHTML = '<span class="team-badge none">Not yet assigned to a team</span>';
+                    taskEl.innerHTML = '';
+                }
             }
 
             // ── My Reports ────────────────────────────────────────────────────
+            // Always refresh reports regardless of whether member was found in server list.
+            // After a server restart, the member record is wiped but reports submitted
+            // during that session are also wiped, so this is a no-op. For active sessions
+            // this ensures replies appear on the next poll.
             const myReports = (d.reports || [])
-                .filter(r => r.reported_by === memberID)
+                .filter(r => r.reported_by && memberID &&
+                             r.reported_by.toLowerCase() === memberID.toLowerCase())
                 .sort((a, b) => new Date(b.reported_at) - new Date(a.reported_at))
                 .slice(0, 5);
 
@@ -597,12 +723,24 @@
                         const addr = r.location?.address
                             ? `<div class="report-row-addr">${esc(r.location.address)}</div>`
                             : '';
-                        return `<div class="report-row">
-                            <div>
-                                <div class="report-row-title">${esc(r.type)}</div>
-                                ${addr}
+                        const subject = r.subject
+                            ? `<div class="report-row-addr" style="font-style:normal;color:#555;">${esc(r.subject)}</div>`
+                            : '';
+                        const reply = r.reply_text
+                            ? `<div style="margin-top:6px;padding:7px 10px;background:#e8f4e8;border-left:3px solid #34C759;border-radius:6px;font-size:12px;color:#1c4a1c;">
+                                   <span style="font-weight:700;text-transform:uppercase;font-size:10px;color:#34C759;letter-spacing:0.4px;">Reply from Team Leader</span>
+                                   <div style="margin-top:2px;">${esc(r.reply_text)}</div>
+                               </div>`
+                            : '';
+                        return `<div class="report-row" style="flex-direction:column;align-items:stretch;gap:4px;">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                                <div>
+                                    <div class="report-row-title">${esc(r.type)}</div>
+                                    ${subject}${addr}
+                                </div>
+                                <div class="report-row-status ${s.cls}" style="flex-shrink:0;">${s.label}</div>
                             </div>
-                            <div class="report-row-status ${s.cls}">${s.label}</div>
+                            ${reply}
                         </div>`;
                     }).join('');
             }
@@ -642,9 +780,72 @@
         }
     }
 
+    function renderTaskItem(task) {
+        const pKey = (task.priority || 'Medium').toLowerCase();
+        const pClass = `p-${pKey}`;
+        const notesHtml = task.notes
+            ? `<div class="task-notes-log" id="taskNotes-${task.id}">${esc(task.notes)}</div>`
+            : `<div class="task-notes-log" id="taskNotes-${task.id}" style="display:none;"></div>`;
+        return `<div class="task-box ${pClass}" id="taskCard-${task.id}">
+            <div class="task-priority-row">
+                <span class="task-label ${pClass}">${esc(task.priority)}</span>
+            </div>
+            <div class="task-title">${esc(task.title)}</div>
+            ${task.description ? `<div class="task-desc">${esc(task.description)}</div>` : ''}
+            ${notesHtml}
+            <div class="task-comment-row">
+                <textarea class="task-comment-input" id="taskComment-${task.id}"
+                    placeholder="Add a comment…" rows="1"
+                    oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+                    onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();addComment('${task.id}');}"></textarea>
+                <button class="task-comment-btn" onclick="addComment('${task.id}')">Send</button>
+            </div>
+            <button class="task-complete-btn" onclick="completeTask('${task.id}')">✓ Mark as Completed</button>
+        </div>`;
+    }
+
+    async function addComment(taskId) {
+        const input = document.getElementById(`taskComment-${taskId}`);
+        const text = input?.value.trim();
+        if (!text) return;
+        input.disabled = true;
+        try {
+            const updated = await api('POST', `/api/tasks/${taskId}/comment`,
+                { text, author_name: memberName });
+            input.value = '';
+            input.style.height = 'auto';
+            const log = document.getElementById(`taskNotes-${taskId}`);
+            if (log) {
+                log.textContent = updated.notes;
+                log.style.display = '';
+                log.scrollTop = log.scrollHeight;
+            }
+            toast('Comment added ✓');
+        } catch (e) {
+            toast('Failed to add comment — check connection');
+        } finally {
+            if (input) input.disabled = false;
+        }
+    }
+
+    async function completeTask(taskId) {
+        if (!confirm('Mark this task as completed?')) return;
+        try {
+            await api('POST', `/api/tasks/${taskId}/complete`, {});
+            document.getElementById(`taskCard-${taskId}`)?.remove();
+            const taskEl = document.getElementById('homeTask');
+            if (taskEl && !taskEl.querySelector('.task-box')) {
+                taskEl.innerHTML = '<p class="standby">All tasks completed — well done!</p>';
+            }
+            toast('Task marked as completed ✓');
+        } catch (e) {
+            toast('Failed to complete task — check connection');
+        }
+    }
+
     function scheduleRefresh() {
         refreshAssignment();
-        refreshTimer = setInterval(refreshAssignment, 30000);
+        refreshTimer = setInterval(refreshAssignment, 10000);
     }
 
     // ── Severity ───────────────────────────────────────────────────────────────
@@ -672,14 +873,17 @@
         const notes   = document.getElementById('rNotes').value.trim();
         const now = isoNow();
 
+        const subject = document.getElementById('rSubject').value.trim();
         const payload = {
-            type:         document.getElementById('rType').value,
-            severity:     severity,
-            status:       'New',
-            notes:        notes,
-            reported_by:  memberID,
-            reported_at:  now,
-            last_updated: now,
+            type:          document.getElementById('rType').value,
+            subject:       subject || null,
+            severity:      severity,
+            status:        'New',
+            notes:         notes,
+            reported_by:   memberID,
+            to_name:       'Team Leader',
+            reported_at:   now,
+            last_updated:  now,
             location: {
                 latitude:  gps ? gps.lat : 0,
                 longitude: gps ? gps.lng : 0,
@@ -745,5 +949,8 @@
     // Render default severity on page load
     renderSev();
 </script>
+<footer style="text-align:center;padding:20px;color:#aaa;font-size:12px;">
+  CERT Assist v1.0 &nbsp;·&nbsp; <a href="/changelog.html" style="color:#c0392b;text-decoration:none;">What's new</a>
+</footer>
 </body>
 </html>

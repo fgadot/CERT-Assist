@@ -98,7 +98,7 @@ struct TaskRow: View {
         HStack(spacing: 12) {
             Image(systemName: task.status.icon)
                 .font(.title3)
-                .foregroundStyle(Color(task.status.color))
+                .foregroundStyle(task.status.color)
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 4) {
@@ -112,7 +112,7 @@ struct TaskRow: View {
                 HStack(spacing: 8) {
                     Label(task.priority.rawValue, systemImage: task.priority.icon)
                         .font(.caption)
-                        .foregroundStyle(Color(task.priority.color))
+                        .foregroundStyle(task.priority.color)
 
                     Text("•")
                         .foregroundStyle(.secondary)
@@ -285,7 +285,7 @@ struct TaskDetailSheet: View {
             HStack {
                 Image(systemName: task.status.icon)
                     .font(.title)
-                    .foregroundStyle(Color(task.status.color))
+                    .foregroundStyle(task.status.color)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(task.title).font(.headline)
                     Text(task.status.rawValue).font(.caption).foregroundStyle(.secondary)
