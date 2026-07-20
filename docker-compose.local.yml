@@ -8,7 +8,8 @@ services:
       - ./CountyServer/Public:/app/Public
     environment:
       - ENVIRONMENT=production
-      - COUNTY_PIN=
+      - COUNTY_PIN=localtest
+      - COUNTY_API_TOKEN=local-api
 
   team-sapphire:
     build:
@@ -23,6 +24,7 @@ services:
       - TEAM_ENDPOINT=http://localhost:8080
       - TEAM_PIN=1111
       - COUNTY_ENDPOINT=http://county:8080
+      - COUNTY_API_TOKEN=local-api
     volumes:
       - ./Backend/Public:/app/Public
       - ./local-test/sapphire/data:/app/data
@@ -43,6 +45,7 @@ services:
       - TEAM_ENDPOINT=http://localhost:8081
       - TEAM_PIN=2222
       - COUNTY_ENDPOINT=http://county:8080
+      - COUNTY_API_TOKEN=local-api
     volumes:
       - ./Backend/Public:/app/Public
       - ./local-test/glenn/data:/app/data
@@ -63,6 +66,7 @@ services:
       - TEAM_ENDPOINT=http://localhost:8082
       - TEAM_PIN=3333
       - COUNTY_ENDPOINT=http://county:8080
+      - COUNTY_API_TOKEN=local-api
     volumes:
       - ./Backend/Public:/app/Public
       - ./local-test/lakewood/data:/app/data
@@ -83,6 +87,7 @@ services:
       - TEAM_ENDPOINT=http://localhost:8083
       - TEAM_PIN=4444
       - COUNTY_ENDPOINT=http://county:8080
+      - COUNTY_API_TOKEN=local-api
     volumes:
       - ./Backend/Public:/app/Public
       - ./local-test/lorraine/data:/app/data
@@ -103,6 +108,7 @@ services:
       - TEAM_ENDPOINT=http://localhost:8084
       - TEAM_PIN=5555
       - COUNTY_ENDPOINT=http://county:8080
+      - COUNTY_API_TOKEN=local-api
     volumes:
       - ./Backend/Public:/app/Public
       - ./local-test/bayview/data:/app/data

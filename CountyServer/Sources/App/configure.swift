@@ -26,9 +26,11 @@ public func configure(_ app: Application) throws {
     )
     app.middleware.use(CORSMiddleware(configuration: corsConfiguration), at: .beginning)
 
-    if let pin = Environment.get("COUNTY_PIN"), !pin.isEmpty {
-        app.middleware.use(PINAuthMiddleware(pin: pin))
-        print("🔐 County PIN authentication enabled")
+    let dashboardPin: String? = Environment.get("COUNTY_PIN").flatMap      { $0.isEmpty ? nil : $0 }
+    let apiToken: String?     = Environment.get("COUNTY_API_TOKEN").flatMap { $0.isEmpty ? nil : $0 }
+    if dashboardPin != nil || apiToken != nil {
+        app.middleware.use(PINAuthMiddleware(dashboardPin: dashboardPin, apiToken: apiToken))
+        print("🔐 County auth enabled — dashboard=\(dashboardPin != nil ? "passphrase set" : "open"), api=\(apiToken != nil ? "token set" : "open")")
     }
 
     try routes(app)

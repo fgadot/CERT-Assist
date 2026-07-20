@@ -270,6 +270,28 @@
         .sev-btn.high.sel { background: #FF9500; color: white; }
         .sev-btn.crit.sel { background: #FF3B30; color: white; }
 
+        /* ── Status grid ────────────────────────────────────────── */
+        .status-btn {
+            padding: 13px 4px;
+            border: 2px solid;
+            border-radius: 10px;
+            background: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            font-family: inherit;
+            transition: background 0.15s, color 0.15s;
+        }
+        .status-btn[data-status="On Task"]     { border-color: #007AFF; color: #007AFF; }
+        .status-btn[data-status="Unavailable"] { border-color: #8E8E93; color: #8E8E93; }
+        .status-btn[data-status="Need Help"]   { border-color: #FF9500; color: #FF9500; }
+        .status-btn[data-status="Injured"]     { border-color: #FF3B30; color: #FF3B30; }
+        .status-btn[data-status="On Task"].active     { background: #007AFF; color: white; }
+        .status-btn[data-status="Unavailable"].active { background: #8E8E93; color: white; }
+        .status-btn[data-status="Need Help"].active   { background: #FF9500; color: white; }
+        .status-btn[data-status="Injured"].active     { background: #FF3B30; color: white; }
+
         /* ── Toast ──────────────────────────────────────────────── */
         .toast {
             position: fixed;
@@ -441,6 +463,16 @@
         <div id="homeReports"></div>
     </div>
 
+    <div class="card" style="margin-top:14px;">
+        <div class="card-title">My Status</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 16px 14px;">
+            <button class="status-btn" data-status="On Task"     onclick="confirmStatus('On Task')">On Task</button>
+            <button class="status-btn" data-status="Unavailable" onclick="confirmStatus('Unavailable')">Unavailable</button>
+            <button class="status-btn" data-status="Need Help"   onclick="confirmStatus('Need Help')">Need Help</button>
+            <button class="status-btn" data-status="Injured"     onclick="confirmStatus('Injured')">Injured</button>
+        </div>
+    </div>
+
     <button class="btn btn-report" onclick="showReport()">+ Submit Report</button>
 
     <p class="session-note" id="sessionNote"></p>
@@ -518,9 +550,10 @@
 
 <script>
     // ── State ──────────────────────────────────────────────────────────────────
-    let memberID   = localStorage.getItem('cert_mid');
-    let memberName = localStorage.getItem('cert_mname');
-    let memberRole = localStorage.getItem('cert_mrole');
+    let memberID     = localStorage.getItem('cert_mid');
+    let memberName   = localStorage.getItem('cert_mname');
+    let memberRole   = localStorage.getItem('cert_mrole');
+    let currentStatus = localStorage.getItem('cert_mstatus') || 'Available';
     const PRIORITY_ORDER = { Critical: 0, High: 1, Medium: 2, Low: 3 };
     let reportCount = parseInt(localStorage.getItem('cert_rcount') || '0');
     let severity = 'Medium';
@@ -545,6 +578,7 @@
     if (memberID && memberName) {
         populateHome();
         showScreen('homeScreen');
+        updateStatusButtons();
         scheduleRefresh();
     }
 
@@ -612,6 +646,33 @@
         }
     }
 
+    // ── Status ─────────────────────────────────────────────────────────────────
+    function updateStatusButtons() {
+        document.querySelectorAll('.status-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.status === currentStatus);
+        });
+    }
+
+    function confirmStatus(status) {
+        const isActive = currentStatus === status;
+        const action = isActive ? 'Disable' : 'Enable';
+        if (!confirm(`${action} ${status.toUpperCase()} status?`)) return;
+        setStatus(isActive ? 'Available' : status);
+    }
+
+    async function setStatus(status) {
+        if (!memberID) return;
+        try {
+            await api('PATCH', `/api/members/${memberID}/status`, { status });
+            currentStatus = status;
+            localStorage.setItem('cert_mstatus', status);
+            updateStatusButtons();
+            toast('Status updated ✓');
+        } catch(e) {
+            toast(e.status === 401 ? 'Incorrect PIN' : 'Failed to update status');
+        }
+    }
+
     function checkOut() {
         if (!confirm('End your session and check out?')) return;
         clearTimeout(refreshTimer);
@@ -622,6 +683,7 @@
         localStorage.removeItem('cert_mname');
         localStorage.removeItem('cert_mrole');
         localStorage.removeItem('cert_rcount');
+        localStorage.removeItem('cert_mstatus');
         memberID = memberName = memberRole = null;
         reportCount = 0;
         document.getElementById('ciName').value = '';
@@ -651,6 +713,11 @@
                     'members=', (d.members || []).map(m => m.id));
                 // Don't update team/task section, but still fall through to render reports
             } else {
+                if (me.status && me.status !== currentStatus) {
+                    currentStatus = me.status;
+                    localStorage.setItem('cert_mstatus', me.status);
+                    updateStatusButtons();
+                }
                 const teamID = me.sub_team_id;
                 if (teamID) {
                     const team = (d.sub_teams || []).find(t =>
@@ -925,7 +992,8 @@
             err.status = res.status;
             throw err;
         }
-        return res.json();
+        const text = await res.text();
+        return text ? JSON.parse(text) : null;
     }
 
     function esc(s) {

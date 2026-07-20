@@ -33,7 +33,7 @@ class IncidentManager {
     }
     
     var availableMembers: [CERTMember] {
-        members.filter { $0.status == .available || $0.status == .assigned }
+        members.filter { $0.status == .available || $0.status == .onTask }
     }
     
     var activeReports: [IncidentReport] {
@@ -74,17 +74,128 @@ class IncidentManager {
         currentIncident?.endDate = Date()
     }
     
+    // MARK: - Check-in State
+
+    var checkInError: String?
+    var isCheckingIn = false
+
+    // Saved after a successful check-in so subsequent API calls can reach the server
+    private(set) var serverURL: String = ""
+    private(set) var memberPIN: String = ""
+
     // MARK: - Member Management
-    
-    func checkIn(name: String, role: String, equipment: [Equipment]) {
-        let member = CERTMember(
+
+    @MainActor
+    func checkIn(name: String, role: String, equipment: [Equipment], serverURL: String, memberPIN: String) async {
+        isCheckingIn = true
+        checkInError = nil
+
+        let base = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+                            .trimmingCharacters(in: ["/"])
+        guard let url = URL(string: base + "/api/checkin") else {
+            checkInError = "Invalid server URL"
+            isCheckingIn = false
+            return
+        }
+
+        struct Payload: Encodable {
+            var name: String
+            var role: String
+            var status: String
+            var equipment: [String]
+            var lastUpdated: Date
+        }
+
+        struct CheckInResponse: Decodable {
+            var success: Bool
+            var message: String
+            var memberId: UUID?
+        }
+
+        let payload = Payload(
             name: name,
             role: role,
-            status: .available,
-            equipment: equipment
+            status: "Available",
+            equipment: equipment.map(\.rawValue),
+            lastUpdated: Date()
         )
-        currentMember = member
-        members.append(member)
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(memberPIN, forHTTPHeaderField: "X-CERT-Token")
+        request.timeoutInterval = 10
+
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.dateEncodingStrategy = .iso8601
+
+        guard let body = try? encoder.encode(payload) else {
+            checkInError = "Failed to encode request"
+            isCheckingIn = false
+            return
+        }
+        request.httpBody = body
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                checkInError = "Invalid server response"
+                isCheckingIn = false
+                return
+            }
+            if http.statusCode == 401 {
+                checkInError = "Incorrect PIN — try again"
+                isCheckingIn = false
+                return
+            }
+            guard http.statusCode == 200 else {
+                checkInError = "Server error (\(http.statusCode))"
+                isCheckingIn = false
+                return
+            }
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            let result = try decoder.decode(CheckInResponse.self, from: data)
+            let member = CERTMember(
+                id: result.memberId ?? UUID(),
+                name: name,
+                role: role,
+                status: .available,
+                equipment: equipment
+            )
+            currentMember = member
+            members.append(member)
+            self.serverURL = serverURL
+            self.memberPIN = memberPIN
+        } catch {
+            checkInError = "Could not reach server — check URL and connection"
+        }
+
+        isCheckingIn = false
+    }
+
+    @MainActor
+    private func pushStatusUpdate(memberID: UUID, status: MemberStatus) async {
+        guard !serverURL.isEmpty, !memberPIN.isEmpty else { return }
+        let base = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+                            .trimmingCharacters(in: ["/"])
+        guard let url = URL(string: "\(base)/api/members/\(memberID)/status") else { return }
+
+        struct StatusPayload: Encodable { var status: String }
+        let payload = StatusPayload(status: status.rawValue)
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(memberPIN, forHTTPHeaderField: "X-CERT-Token")
+        request.timeoutInterval = 8
+
+        let encoder = JSONEncoder()
+        guard let body = try? encoder.encode(payload) else { return }
+        request.httpBody = body
+
+        _ = try? await URLSession.shared.data(for: request)
     }
     
     func updateMemberStatus(_ status: MemberStatus) {
@@ -92,10 +203,13 @@ class IncidentManager {
         member.status = status
         member.lastUpdated = Date()
         currentMember = member
-        
+
         if let index = members.firstIndex(where: { $0.id == member.id }) {
             members[index] = member
         }
+
+        let memberID = member.id
+        Swift.Task { await self.pushStatusUpdate(memberID: memberID, status: status) }
     }
     
     func updateMemberLocation(_ location: LocationData) {

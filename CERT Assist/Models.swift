@@ -40,29 +40,32 @@ struct CERTMember: Identifiable, Codable, Hashable {
 }
 
 enum MemberStatus: String, Codable, CaseIterable {
-    case available = "Available"
-    case assigned = "Assigned"
+    case available  = "Available"
+    case onTask     = "On Task"
     case unavailable = "Unavailable"
-    case injured = "Injured"
-    case needsHelp = "Needs Help"
-    
+    case needHelp   = "Need Help"
+    case injured    = "Injured"
+
+    /// The 4 statuses shown as buttons — Available is the implicit default when none are active
+    static let actionCases: [MemberStatus] = [.onTask, .unavailable, .needHelp, .injured]
+
     var icon: String {
         switch self {
-        case .available: return "checkmark.circle.fill"
-        case .assigned: return "figure.walk"
+        case .available:   return "checkmark.circle.fill"
+        case .onTask:      return "figure.walk"
         case .unavailable: return "xmark.circle"
-        case .injured: return "cross.case.fill"
-        case .needsHelp: return "exclamationmark.triangle.fill"
+        case .needHelp:    return "exclamationmark.triangle.fill"
+        case .injured:     return "cross.case.fill"
         }
     }
-    
+
     var color: Color {
         switch self {
-        case .available: return .green
-        case .assigned: return .blue
+        case .available:   return Color(red: 0.224, green: 0.710, blue: 0.290)
+        case .onTask:      return .blue
         case .unavailable: return .gray
-        case .injured: return .red
-        case .needsHelp: return .orange
+        case .needHelp:    return .orange
+        case .injured:     return .red
         }
     }
 }

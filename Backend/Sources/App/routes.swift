@@ -149,7 +149,7 @@ actor DataStore {
         }.count
 
         let openTasks  = tasks.values.filter { $0.status == .open || $0.status == .assigned }.count
-        let activeMembers = members.values.filter { $0.status == .available || $0.status == .assigned }.count
+        let activeMembers = members.values.filter { $0.status == .available || $0.status == .onTask }.count
 
         return TeamSummary(
             teamID: teamID,
@@ -239,8 +239,6 @@ actor DataStore {
 
     private func pushToCounty() async {
         guard let countyEndpoint else { return }
-        // Don't push to county until at least one member is checked in
-        guard !members.isEmpty else { return }
         let summary = buildTeamSummary()
 
         guard let url = URL(string: "\(countyEndpoint)/api/teams/summary") else { return }
@@ -255,6 +253,9 @@ actor DataStore {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
         request.timeoutInterval = 5
+        if let apiToken = Environment.get("COUNTY_API_TOKEN"), !apiToken.isEmpty {
+            request.setValue(apiToken, forHTTPHeaderField: "X-CERT-API-Token")
+        }
 
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             URLSession.shared.dataTask(with: request) { _, _, _ in
@@ -372,8 +373,8 @@ actor DataStore {
         for memberID in subTeam.memberIDs {
             if var m = members[memberID] {
                 let oldStatus = m.status
-                m.subTeamId = subTeam.id; m.status = .assigned; members[memberID] = m
-                log("  ↳ Assigned: \(m.name) (\(oldStatus.rawValue) → Assigned)")
+                m.subTeamId = subTeam.id; m.status = .onTask; members[memberID] = m
+                log("  ↳ Assigned: \(m.name) (\(oldStatus.rawValue) → On Task)")
             }
         }
 
@@ -395,7 +396,7 @@ actor DataStore {
         subTeams[subTeam.id!] = subTeam
         for memberID in subTeam.memberIDs {
             if var m = members[memberID] {
-                m.subTeamId = subTeam.id; m.status = .assigned; members[memberID] = m
+                m.subTeamId = subTeam.id; m.status = .onTask; members[memberID] = m
                 log("  ↳ Assigned: \(m.name)")
             }
         }
@@ -481,8 +482,8 @@ private func countyRequest(
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = body
     }
-    if let pin = Environment.get("COUNTY_PIN"), !pin.isEmpty {
-        req.setValue(pin, forHTTPHeaderField: "X-CERT-Token")
+    if let apiToken = Environment.get("COUNTY_API_TOKEN"), !apiToken.isEmpty {
+        req.setValue(apiToken, forHTTPHeaderField: "X-CERT-API-Token")
     }
     return await withCheckedContinuation { cont in
         URLSession.shared.dataTask(with: req) { d, _, _ in cont.resume(returning: d) }.resume()
@@ -509,22 +510,20 @@ let dataStore = DataStore()
 func routes(_ app: Application) throws {
 
     app.get { req -> Response in
-        let html = """
-        <!DOCTYPE html><html><head><title>CERT Field Board API</title>
-        <style>body{font-family:-apple-system,sans-serif;padding:40px}h1{color:#007AFF}
-        .ep{background:#f5f5f5;padding:10px;margin:10px 0;border-radius:5px}
-        code{background:#e0e0e0;padding:2px 6px;border-radius:3px}</style></head>
-        <body><h1>🚨 CERT Field Board API</h1><p>Server running.</p>
-        <div class="ep"><strong>POST</strong> <code>/api/checkin</code></div>
-        <div class="ep"><strong>GET/POST</strong> <code>/api/reports</code></div>
-        <div class="ep"><strong>GET/POST/PUT</strong> <code>/api/tasks</code></div>
-        <div class="ep"><strong>GET</strong> <code>/api/dashboard</code></div>
-        <div class="ep"><strong>GET</strong> <code>/dashboard</code> — Team leader dashboard</div>
-        <div class="ep"><strong>GET</strong> <code>/member</code> — Member portal</div>
-        </body></html>
-        """
         var headers = HTTPHeaders()
         headers.add(name: .contentType, value: "text/html; charset=utf-8")
+        let html = """
+        <!DOCTYPE html><html lang="en"><head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Field Operations</title>
+        <style>
+          body { margin: 0; background: #f4f4f4; display: flex; align-items: center;
+                 justify-content: center; height: 100vh; font-family: -apple-system, sans-serif; }
+          p { color: #aaa; font-size: 14px; }
+        </style>
+        </head><body><p>This site is not publicly available.</p></body></html>
+        """
         return Response(status: .ok, headers: headers, body: .init(string: html))
     }
 
@@ -957,5 +956,10 @@ func routes(_ app: Application) throws {
 
     app.get("member") { req -> Response in
         return req.fileio.streamFile(at: app.directory.publicDirectory + "member.html")
+    }
+
+    // Changelog only accessible with dashboard PIN
+    app.grouped(DashboardPINMiddleware()).get("changelog") { req -> Response in
+        return req.fileio.streamFile(at: app.directory.publicDirectory + "changelog.html")
     }
 }

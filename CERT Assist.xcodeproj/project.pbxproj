@@ -12,7 +12,6 @@
 		0111BDA32FF71151008C1D85 /* docker-compose.local.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = "docker-compose.local.yml"; sourceTree = "<group>"; };
 		0111BDA42FF71151008C1D85 /* pins.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = pins.json; sourceTree = "<group>"; };
 		0111BDAC2FF71151008C1D85 /* runall.test */ = {isa = PBXFileReference; lastKnownFileType = text; path = runall.test; sourceTree = "<group>"; };
-		0111BDBE30099493008C1D85 /* certassist.conf */ = {isa = PBXFileReference; lastKnownFileType = text; path = certassist.conf; sourceTree = "<group>"; };
 		0111BDC030099493008C1D85 /* fail2ban-filter-certassist.conf */ = {isa = PBXFileReference; lastKnownFileType = text; path = "fail2ban-filter-certassist.conf"; sourceTree = "<group>"; };
 		0111BDC130099493008C1D85 /* fail2ban-jail-certassist.conf */ = {isa = PBXFileReference; lastKnownFileType = text; path = "fail2ban-jail-certassist.conf"; sourceTree = "<group>"; };
 		0111BDC63009953E008C1D85 /* build-push.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "build-push.sh"; sourceTree = "<group>"; };
@@ -23,6 +22,8 @@
 		0111BDCF300997E2008C1D85 /* teamleader-manual.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "teamleader-manual.html"; sourceTree = "<group>"; };
 		0150D2C92FD89590003A00CC /* CERT Assist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CERT Assist.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		01C583782FDCC69A007BE0B1 /* Backend */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Backend; sourceTree = "<group>"; };
+		01D28180300D1B5C00828086 /* certassist.conf */ = {isa = PBXFileReference; lastKnownFileType = text; path = certassist.conf; sourceTree = "<group>"; };
+		01D28181300D1B5C00828086 /* maintenance.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = maintenance.html; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -105,14 +106,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		0111BDBF30099493008C1D85 /* nginx */ = {
-			isa = PBXGroup;
-			children = (
-				0111BDBE30099493008C1D85 /* certassist.conf */,
-			);
-			path = nginx;
-			sourceTree = "<group>";
-		};
 		0111BDC230099493008C1D85 /* server-config */ = {
 			isa = PBXGroup;
 			children = (
@@ -134,6 +127,7 @@
 		0150D2C02FD89590003A00CC = {
 			isa = PBXGroup;
 			children = (
+				01D28182300D1B5C00828086 /* nginx */,
 				0111BDD0300997E2008C1D85 /* docs */,
 				0111BDCC30099558008C1D85 /* docker-compose.prod.yml */,
 				0111BDC63009953E008C1D85 /* build-push.sh */,
@@ -144,7 +138,6 @@
 				0111BDA32FF71151008C1D85 /* docker-compose.local.yml */,
 				0111BDAB2FF71151008C1D85 /* local-test */,
 				0111BDAC2FF71151008C1D85 /* runall.test */,
-				0111BDBF30099493008C1D85 /* nginx */,
 				0111BDC230099493008C1D85 /* server-config */,
 				01C583782FDCC69A007BE0B1 /* Backend */,
 				0150D2CB2FD89590003A00CC /* CERT Assist */,
@@ -158,6 +151,15 @@
 				0150D2C92FD89590003A00CC /* CERT Assist.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		01D28182300D1B5C00828086 /* nginx */ = {
+			isa = PBXGroup;
+			children = (
+				01D28180300D1B5C00828086 /* certassist.conf */,
+				01D28181300D1B5C00828086 /* maintenance.html */,
+			);
+			path = nginx;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

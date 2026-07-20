@@ -91,6 +91,9 @@ private func pollCountyMessages(countyEndpoint: String, teamID: String) async {
             var req = URLRequest(url: confirmURL)
             req.httpMethod = "POST"
             req.timeoutInterval = 5
+            if let apiToken = Environment.get("COUNTY_API_TOKEN"), !apiToken.isEmpty {
+                req.setValue(apiToken, forHTTPHeaderField: "X-CERT-API-Token")
+            }
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 URLSession.shared.dataTask(with: req) { _, _, _ in
                     continuation.resume()

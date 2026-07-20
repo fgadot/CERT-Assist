@@ -106,6 +106,48 @@
     <p>CERT Assist — Release history and updates</p>
   </div>
 
+  <!-- v1.1 -->
+  <div class="version-block">
+    <div class="version-header">
+      <div>
+        <div class="version-tag">v1.1</div>
+        <div class="version-date">July 2026</div>
+      </div>
+      <span class="version-badge">Update</span>
+    </div>
+    <div class="change-list">
+
+      <div class="change-group">
+        <div class="change-group-label">Member Status</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Redesigned status buttons: On Task · Unavailable · Need Help · Injured</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Confirmation dialog required before activating or deactivating any status</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Tap an active status button again to cancel it (returns to Available)</div>
+        <div class="change-item"><span class="change-icon">🗑️</span>Removed "Available" and "Assigned" buttons — Available is now the implicit default</div>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label">App &amp; Design</div>
+        <div class="change-item"><span class="change-icon">🎨</span>App icon and accent color updated to CERT green (#39B54A)</div>
+        <div class="change-item"><span class="change-icon">🎨</span>Dark navy splash screen with animated CERT shield</div>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label">County Integration</div>
+        <div class="change-item"><span class="change-icon">🔧</span>County dashboard WebSocket now stable — no more periodic disconnects</div>
+        <div class="change-item"><span class="change-icon">🔧</span>Member check-out now correctly deactivates team on county dashboard</div>
+        <div class="change-item"><span class="change-icon">🔧</span>Separated human dashboard PIN from machine-to-machine API token</div>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label">Security</div>
+        <div class="change-item"><span class="change-icon">🔒</span>Root subdomain URL now returns a harmless page — no API hints exposed</div>
+        <div class="change-item"><span class="change-icon">🔒</span>Changelog access restricted to logged-in dashboard users</div>
+        <div class="change-item"><span class="change-icon">🔒</span>Internal .md documentation files blocked from public access</div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- v1.0 -->
   <div class="version-block">
     <div class="version-header">

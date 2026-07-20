@@ -57,11 +57,11 @@ struct CERTMember: Content {
     var lentRequestId: String?    // transfer request UUID — needed for recall
 
     enum MemberStatus: String, Codable {
-        case available = "Available"
-        case assigned = "Assigned"
+        case available   = "Available"
+        case onTask      = "On Task"
         case unavailable = "Unavailable"
-        case injured = "Injured"
-        case needsHelp = "Needs Help"
+        case needHelp    = "Need Help"
+        case injured     = "Injured"
     }
 }
 

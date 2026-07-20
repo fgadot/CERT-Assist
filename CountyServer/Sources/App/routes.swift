@@ -497,6 +497,13 @@ func routes(_ app: Application) throws {
                let jsonString = String(data: jsonData, encoding: .utf8) {
                 try? await ws.send(jsonString)
             }
+            // Keepalive ping every 25s — prevents nginx and browser from closing idle connections
+            Task {
+                while !ws.isClosed {
+                    try? await Task.sleep(nanoseconds: 25_000_000_000)
+                    try? await ws.sendPing()
+                }
+            }
         }
         ws.onClose.whenComplete { _ in
             Task { await countyStore.removeWebSocket(ws) }
