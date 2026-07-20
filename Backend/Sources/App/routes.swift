@@ -623,6 +623,14 @@ func routes(_ app: Application) throws {
         if member.id == nil { member.id = UUID() }
         member.lastUpdated = Date()
         await dataStore.addMember(member)
+        try? await req.logAudit(
+            action: "member_checkin",
+            actorID: member.id?.uuidString,
+            actorName: member.name,
+            targetType: "member",
+            targetID: member.id?.uuidString,
+            details: ["role": member.role, "equipment": member.equipment.joined(separator: ", "), "added_by": "Team Leader"]
+        )
         return member
     }
 
@@ -677,12 +685,18 @@ func routes(_ app: Application) throws {
         if task.id == nil { task.id = UUID() }
         task.createdAt = Date()
         await dataStore.addTask(task)
+        var taskDetails: [String: Any] = ["title": task.title, "priority": task.priority]
+        if let subTeamId = task.assignedSubTeamId,
+           let subTeam = await dataStore.subTeams[subTeamId] {
+            taskDetails["assigned_team"] = subTeam.color.rawValue
+        }
+        if !task.notes.isEmpty { taskDetails["notes"] = task.notes }
         try? await req.logAudit(
             action: "task_created",
             actorName: "Team Leader",
             targetType: "task",
             targetID: task.id?.uuidString,
-            details: ["title": task.title, "priority": task.priority]
+            details: taskDetails
         )
         return task
     }
@@ -693,10 +707,34 @@ func routes(_ app: Application) throws {
 
     adminApi.put("tasks", ":id") { req async throws -> CERTTask in
         let id = try req.parameters.require("id", as: UUID.self)
+        let oldTask = await dataStore.tasks[id]
         var task = try req.content.decode(CERTTask.self)
         task.id = id
         if task.status == .completed && task.completedAt == nil { task.completedAt = Date() }
         await dataStore.updateTask(task)
+        let action: String
+        if task.status == .completed && oldTask?.status != .completed {
+            action = "task_completed"
+        } else {
+            action = "task_updated"
+        }
+        var taskDetails: [String: Any] = [
+            "title": task.title,
+            "priority": task.priority,
+            "status": task.status.rawValue
+        ]
+        if let subTeamId = task.assignedSubTeamId,
+           let subTeam = await dataStore.subTeams[subTeamId] {
+            taskDetails["assigned_team"] = subTeam.color.rawValue
+        }
+        if !task.notes.isEmpty { taskDetails["notes"] = task.notes }
+        try? await req.logAudit(
+            action: action,
+            actorName: "Team Leader",
+            targetType: "task",
+            targetID: id.uuidString,
+            details: taskDetails
+        )
         return task
     }
 
@@ -715,20 +753,36 @@ func routes(_ app: Application) throws {
         let newEntry = "[\(timeStr)] \(author): \(body.text)"
         task.notes = task.notes.isEmpty ? newEntry : task.notes + "\n" + newEntry
         await dataStore.updateTask(task)
+        try? await req.logAudit(
+            action: "task_comment",
+            actorName: author,
+            targetType: "task",
+            targetID: id.uuidString,
+            details: ["title": task.title, "comment": body.text]
+        )
         return task
     }
 
     memberApi.post("tasks", ":id", "complete") { req async throws -> CERTTask in
         let id = try req.parameters.require("id", as: UUID.self)
         guard var task = await dataStore.tasks[id] else { throw Abort(.notFound) }
+        // Identify who completed it — use sub-team name if assigned, otherwise "Team Member"
+        var fromName = "Team Member"
+        var taskDetails: [String: Any] = ["title": task.title, "priority": task.priority]
+        if let subTeamId = task.assignedSubTeamId,
+           let subTeam = await dataStore.subTeams[subTeamId] {
+            fromName = "\(subTeam.color.rawValue) Team"
+            taskDetails["assigned_team"] = subTeam.color.rawValue
+        }
         task.status = .completed
         task.completedAt = Date()
         await dataStore.updateTask(task)
         try? await req.logAudit(
             action: "task_completed",
+            actorName: fromName,
             targetType: "task",
             targetID: id.uuidString,
-            details: ["title": task.title, "priority": task.priority]
+            details: taskDetails
         )
         return task
     }
@@ -736,7 +790,15 @@ func routes(_ app: Application) throws {
     adminApi.post("incident") { req async throws -> Incident in
         var incident = try req.content.decode(Incident.self)
         if incident.id == nil { incident.id = UUID() }
+        let isNew = await dataStore.currentIncident == nil
         await dataStore.setIncident(incident)
+        try? await req.logAudit(
+            action: isNew ? "incident_started" : "incident_updated",
+            actorName: "Team Leader",
+            targetType: "incident",
+            targetID: incident.id?.uuidString,
+            details: ["name": incident.name, "active": incident.isActive ? "Yes" : "No"]
+        )
         return incident
     }
 
@@ -753,12 +815,14 @@ func routes(_ app: Application) throws {
         subTeam.createdAt = now
         subTeam.lastUpdated = now
         await dataStore.createSubTeam(subTeam)
+        let allMembers = await dataStore.getAllMembers()
+        let memberNames = allMembers.filter { m in m.id.map { subTeam.memberIDs.contains($0) } ?? false }.map { $0.name }
         try? await req.logAudit(
             action: "subteam_created",
             actorName: "Team Leader",
             targetType: "subteam",
             targetID: subTeam.id?.uuidString,
-            details: ["color": subTeam.color.rawValue, "member_count": subTeam.memberIDs.count]
+            details: ["color": subTeam.color.rawValue, "members": memberNames.joined(separator: ", ")]
         )
         return subTeam
     }
@@ -772,18 +836,43 @@ func routes(_ app: Application) throws {
         var subTeam = try req.content.decode(SubTeam.self)
         subTeam.id = id
         await dataStore.updateSubTeam(subTeam)
+        let allMembers = await dataStore.getAllMembers()
+        let memberNames = allMembers.filter { m in m.id.map { subTeam.memberIDs.contains($0) } ?? false }.map { $0.name }
+        try? await req.logAudit(
+            action: "subteam_updated",
+            actorName: "Team Leader",
+            targetType: "subteam",
+            targetID: id.uuidString,
+            details: ["color": subTeam.color.rawValue, "members": memberNames.joined(separator: ", ")]
+        )
         return subTeam
     }
 
     adminApi.delete("subteams", ":id") { req async throws -> HTTPStatus in
         let id = try req.parameters.require("id", as: UUID.self)
+        let subTeam = await dataStore.subTeams[id]
         await dataStore.deleteSubTeam(id)
+        try? await req.logAudit(
+            action: "subteam_dissolved",
+            actorName: "Team Leader",
+            targetType: "subteam",
+            targetID: id.uuidString,
+            details: ["color": subTeam?.color.rawValue ?? "Unknown"]
+        )
         return .ok
     }
 
     adminApi.post("members", ":id", "free") { req async throws -> HTTPStatus in
         let id = try req.parameters.require("id", as: UUID.self)
+        let member = await dataStore.members[id]
         await dataStore.freeMember(id)
+        try? await req.logAudit(
+            action: "member_freed",
+            actorName: "Team Leader",
+            targetType: "member",
+            targetID: id.uuidString,
+            details: ["name": member?.name ?? "Unknown", "role": member?.role ?? ""]
+        )
         return .ok
     }
 
@@ -829,9 +918,18 @@ func routes(_ app: Application) throws {
         guard var report = await dataStore.getAllReports().first(where: { $0.id == id }) else {
             throw Abort(.notFound, reason: "Report not found")
         }
+        let oldSeverity = report.severity
         report.severity = update.severity
         report.lastUpdated = Date()
         await dataStore.updateReport(report)
+        try? await req.logAudit(
+            action: "report_severity_changed",
+            actorName: "Team Leader",
+            targetType: "report",
+            targetID: id.uuidString,
+            details: ["type": report.type.rawValue, "from": oldSeverity.rawValue, "to": update.severity.rawValue,
+                      "reporter": report.fromName ?? "Member"]
+        )
         return report
     }
 

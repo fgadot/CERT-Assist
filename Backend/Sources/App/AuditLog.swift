@@ -254,11 +254,34 @@ private func describeAction(action: String, actor: String?, details: [String: St
     case "report_replied":
         return "Replied to \(details["report_type"] ?? "report") from \(details["reporter"] ?? "member")"
     case "task_created":
-        return "Task created: \(details["title"] ?? "") [\(details["priority"] ?? "") priority]"
+        let teamStr = details["assigned_team"].map { " → \($0) Team" } ?? ""
+        return "Task created: \(details["title"] ?? "") [\(details["priority"] ?? "") priority]\(teamStr)"
+    case "task_updated":
+        let teamStr2 = details["assigned_team"].map { " → \($0) Team" } ?? ""
+        return "Task updated: \(details["title"] ?? "") [\(details["status"] ?? "")]\(teamStr2)"
     case "task_completed":
-        return "Task completed: \(details["title"] ?? "")"
+        let teamStr3 = details["assigned_team"].map { " (\($0) Team)" } ?? ""
+        return "Task completed: \(details["title"] ?? "")\(teamStr3)"
+    case "task_comment":
+        return "Member update on \"\(details["title"] ?? "task")\": \(details["comment"] ?? "")"
     case "subteam_created":
-        return "Sub-team created: \(details["color"] ?? "") (\(details["member_count"] ?? "0") members)"
+        return "Sub-team created: \(details["color"] ?? "") — \(details["members"] ?? "")"
+    case "subteam_updated":
+        return "Sub-team updated: \(details["color"] ?? "") — \(details["members"] ?? "")"
+    case "subteam_dissolved":
+        return "Sub-team dissolved: \(details["color"] ?? "")"
+    case "member_freed":
+        return "\(details["name"] ?? "Member") freed from sub-team"
+    case "task_updated":
+        let title = details["title"] ?? ""
+        let status = details["status"] ?? ""
+        return "Task updated: \(title) [now \(status)]"
+    case "incident_started":
+        return "Incident started: \(details["name"] ?? "")"
+    case "incident_updated":
+        return "Incident updated: \(details["name"] ?? "") (active: \(details["active"] ?? ""))"
+    case "report_severity_changed":
+        return "Report severity override: \(details["from"] ?? "") → \(details["to"] ?? "") (\(details["type"] ?? ""))"
     default:
         return action.replacingOccurrences(of: "_", with: " ").capitalized
     }

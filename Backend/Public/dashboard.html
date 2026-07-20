@@ -98,11 +98,29 @@
             to { opacity: 1; transform: translateX(0); }
         }
         
-        .member-item.available { border-left-color: #34C759; }
-        .member-item.assigned { border-left-color: #007AFF; }
-        .member-item.unavailable { border-left-color: #8E8E93; opacity: 0.45; filter: grayscale(0.6); }
-        .member-item.injured { border-left-color: #FF3B30; }
-        .member-item.needshelp { border-left-color: #FF9500; }
+        .member-item.available    { border-left-color: #34C759; }
+        .member-item.ontask       { border-left-color: #007AFF; }
+        .member-item.unavailable  { border-left-color: #8E8E93; opacity: 0.45; filter: grayscale(0.6); }
+
+        @keyframes pulse-alert {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 149, 0, 0.5); }
+            50%       { box-shadow: 0 0 0 6px rgba(255, 149, 0, 0); }
+        }
+        @keyframes pulse-critical {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.6); }
+            50%       { box-shadow: 0 0 0 8px rgba(255, 59, 48, 0); }
+        }
+
+        .member-item.needhelp {
+            border-left: 5px solid #FF9500;
+            background: #FFF4E0;
+            animation: pulse-alert 1.4s ease-in-out infinite;
+        }
+        .member-item.injured {
+            border-left: 5px solid #FF3B30;
+            background: #FFF0EF;
+            animation: pulse-critical 1s ease-in-out infinite;
+        }
 
         .equip-tooltip {
             display: none;
@@ -147,11 +165,14 @@
             margin-right: 4px;
         }
         
-        .badge.available { background: #34C759; color: white; }
-        .badge.assigned { background: #007AFF; color: white; }
+        .badge.available   { background: #34C759; color: white; }
+        .badge.ontask      { background: #007AFF; color: white; }
+        .badge.assigned    { background: #007AFF; color: white; }
         .badge.unavailable { background: #8E8E93; color: white; }
-        .badge.new { background: #007AFF; color: white; }
-        .badge.resolved { background: #34C759; color: white; }
+        .badge.needhelp    { background: #FF9500; color: white; }
+        .badge.injured     { background: #FF3B30; color: white; }
+        .badge.new         { background: #007AFF; color: white; }
+        .badge.resolved    { background: #34C759; color: white; }
         
         .empty-state {
             text-align: center;
@@ -552,7 +573,10 @@
                 style="background:rgba(255,255,255,0.2);border:none;color:white;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px;margin-left:12px;">⚙️</button>
         </div>
     </header>
-    
+
+    <!-- Urgent member alert banner — shown when any member is in Need Help or Injured state -->
+    <div id="urgentAlertBanner" style="display:none;margin-bottom:12px;border-radius:10px;overflow:hidden;"></div>
+
     <div class="status-bar">
         <div class="stat-card" id="memberCard">
             <h3>Total CERTs</h3>
@@ -1708,7 +1732,33 @@
             console.log('✅ Dashboard update complete');
         }
         
+        function updateUrgentBanner(members) {
+            const banner = document.getElementById('urgentAlertBanner');
+            const injured  = members.filter(m => m.status === 'Injured');
+            const needHelp = members.filter(m => m.status === 'Need Help');
+            if (!injured.length && !needHelp.length) { banner.style.display = 'none'; return; }
+
+            let html = '';
+            if (injured.length) {
+                const names = injured.map(m => `<strong>${esc(m.name)}</strong>`).join(', ');
+                html += `<div style="background:#FF3B30;color:white;padding:12px 20px;display:flex;align-items:center;gap:12px;animation:pulse-critical 1s ease-in-out infinite;">
+                    <span style="font-size:22px;">🚨</span>
+                    <span style="font-size:15px;font-weight:700;">INJURED — ${names} — Notify medical immediately</span>
+                </div>`;
+            }
+            if (needHelp.length) {
+                const names = needHelp.map(m => `<strong>${esc(m.name)}</strong>`).join(', ');
+                html += `<div style="background:#FF9500;color:white;padding:12px 20px;display:flex;align-items:center;gap:12px;animation:pulse-alert 1.4s ease-in-out infinite;">
+                    <span style="font-size:22px;">⚠️</span>
+                    <span style="font-size:15px;font-weight:700;">NEEDS HELP — ${names}</span>
+                </div>`;
+            }
+            banner.innerHTML = html;
+            banner.style.display = 'block';
+        }
+
         function updateMemberList(members, subTeams, loanableMembers = [], borrows = []) {
+            updateUrgentBanner(members);
             console.log('Updating member list with', members.length, 'members,', borrows.length, 'borrowed');
             const container = document.getElementById('memberList');
 
@@ -1757,17 +1807,25 @@
                            title="Check out this member">✕ Out</button>`
                     : '';
 
+                const statusKey = member.status.toLowerCase().replace(' ', '');
+                const urgentLabel = member.status === 'Need Help'
+                    ? `<div style="font-size:13px;font-weight:700;color:#FF9500;margin-top:4px;">⚠️ NEEDS HELP</div>`
+                    : member.status === 'Injured'
+                    ? `<div style="font-size:13px;font-weight:700;color:#FF3B30;margin-top:4px;">🚨 INJURED</div>`
+                    : '';
+
                 return `
-                <div class="member-item ${isLent ? 'lent' : member.status.toLowerCase().replace(' ', '')}">
+                <div class="member-item ${isLent ? 'lent' : statusKey}">
                     ${equip}
                     <div class="item-header" style="display:flex;justify-content:space-between;align-items:center;">
                         <span>${teamBadge}${esc(member.name)}</span>
                         <span style="display:flex;align-items:center;gap:4px;">${actionEl}${checkoutBtn}</span>
                     </div>
                     <div class="item-meta">
-                        <span class="badge ${isLent ? 'lent' : member.status.toLowerCase().replace(' ', '')}">${isLent ? 'On Loan' : esc(member.status)}</span>
+                        <span class="badge ${isLent ? 'lent' : statusKey}">${isLent ? 'On Loan' : esc(member.status)}</span>
                         ${esc(member.role)}
                     </div>
+                    ${urgentLabel}
                 </div>`;
             }).join('');
 
@@ -1870,6 +1928,11 @@
                         <button class="btn-sm cancel" onclick="cancelTask('${task.id}', event)">Cancel</button>
                     </div>`;
 
+                const notesHtml = task.notes ? `
+                    <div style="margin-top:8px;padding:7px 10px;background:#FFF8E6;border-left:3px solid #FF9500;border-radius:4px;font-size:12px;white-space:pre-wrap;line-height:1.5;">
+                        <span style="font-weight:700;color:#FF9500;">💬 Member update</span><br>${esc(task.notes)}
+                    </div>` : '';
+
                 return `
                 <div class="task-item ${pClass}${isCancelled ? ' cancelled' : ''}">
                     <div class="item-header">${teamBadge}${esc(task.title)}</div>
@@ -1877,6 +1940,7 @@
                         ${pLabel}
                         <span class="badge ${task.status.toLowerCase()}" style="margin-left:6px;">${esc(task.status)}</span>
                     </div>
+                    ${notesHtml}
                     ${actions}
                 </div>`;
             }).join('');
@@ -1920,6 +1984,7 @@
                                             <span class="badge ${task.status.toLowerCase()}">${esc(task.status)}</span>
                                             <span style="background: ${getPriorityColor(task.priority)}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 4px;">${esc(task.priority)}</span>
                                         </div>
+                                        ${task.notes ? `<div style="margin-top:6px;padding:5px 8px;background:#FFF8E6;border-left:2px solid #FF9500;border-radius:3px;font-size:11px;white-space:pre-wrap;">💬 ${esc(task.notes)}</div>` : ''}
                                     </div>
                                     <button class="btn-sm done"   onclick="completeTask('${task.id}', event)">✓ Complete</button>
                                     <button class="btn-sm cancel" onclick="cancelTask('${task.id}', event)">✕ Cancel</button>
@@ -2626,28 +2691,44 @@
                            d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
                 };
                 const actionLabels = {
-                    member_checkin:   {icon:'✅', label:'Checked In'},
-                    member_checkout:  {icon:'👋', label:'Checked Out'},
-                    status_change:    {icon:'🔄', label:'Status Changed'},
-                    report_submitted: {icon:'📋', label:'Report Submitted'},
-                    report_replied:   {icon:'💬', label:'Report Replied'},
-                    task_created:     {icon:'📝', label:'Task Created'},
-                    task_completed:   {icon:'✔️', label:'Task Completed'},
-                    subteam_created:  {icon:'🎨', label:'Sub-team Created'},
+                    member_checkin:          {icon:'✅', label:'Checked In'},
+                    member_checkout:         {icon:'👋', label:'Checked Out'},
+                    member_freed:            {icon:'🆓', label:'Released from Team'},
+                    status_change:           {icon:'🔄', label:'Status Changed'},
+                    report_submitted:        {icon:'📋', label:'Report Submitted'},
+                    report_replied:          {icon:'💬', label:'Report Replied'},
+                    report_severity_changed: {icon:'⚠️', label:'Severity Override'},
+                    task_created:            {icon:'📝', label:'Task Created'},
+                    task_updated:            {icon:'✏️', label:'Task Updated'},
+                    task_completed:          {icon:'✔️', label:'Task Completed'},
+                    task_comment:            {icon:'💬', label:'Member Update'},
+                    subteam_created:         {icon:'🎨', label:'Sub-team Created'},
+                    subteam_updated:         {icon:'🔀', label:'Sub-team Updated'},
+                    subteam_dissolved:       {icon:'🗑️', label:'Sub-team Dissolved'},
+                    incident_started:        {icon:'🚨', label:'Incident Started'},
+                    incident_updated:        {icon:'📌', label:'Incident Updated'},
                 };
                 const rows = entries.map(e => {
                     const lbl = actionLabels[e.action] || {icon:'•', label: e.action.replace(/_/g,' ')};
                     let det = '';
                     try {
                         const d = JSON.parse(e.details || '{}');
-                        if      (e.action === 'status_change')    det = `${d.from} → ${d.to}`;
-                        else if (e.action === 'report_submitted') det = `${d.severity||''} ${d.type||''}${d.location?' · '+d.location:''}`.trim();
-                        else if (e.action === 'task_created' ||
-                                 e.action === 'task_completed')   det = d.title || '';
-                        else if (e.action === 'subteam_created')  det = `${d.color} (${d.member_count} members)`;
-                        else if (e.action === 'member_checkin')   det = d.role || '';
-                        else if (e.action === 'member_checkout')  det = `Role: ${d.role||'—'} · Status at checkout: ${d.status_at_checkout||'—'}`;
-                        else if (e.action === 'report_replied')   det = `${d.report_type||''} from ${d.reporter||'member'}`;
+                        if      (e.action === 'status_change')           det = `${d.from} → ${d.to}`;
+                        else if (e.action === 'report_submitted')        det = `${d.severity||''} ${d.type||''}${d.location?' · '+d.location:''}`.trim();
+                        else if (e.action === 'task_created')   { det = `${d.priority||''} priority: ${d.title||''}`; if (d.assigned_team) det += ` → ${d.assigned_team} Team`; }
+                        else if (e.action === 'task_completed') { det = d.title || ''; if (d.assigned_team) det += ` (${d.assigned_team} Team)`; }
+                        else if (e.action === 'task_comment')   { det = `"${d.title||''}" — ${d.comment||''}`; }
+                        else if (e.action === 'task_updated')   { det = `${d.title||''} [${d.status||''}]`; if (d.assigned_team) det += ` → ${d.assigned_team} Team`; }
+                        else if (e.action === 'subteam_created' ||
+                                 e.action === 'subteam_updated')         det = `${d.color} — ${d.members||''}`;
+                        else if (e.action === 'subteam_dissolved')       det = d.color || '';
+                        else if (e.action === 'member_checkin')          det = `${d.role||''}${d.added_by==='Team Leader'?' (manual)':''}`;
+                        else if (e.action === 'member_checkout')         det = `Role: ${d.role||'—'} · Status: ${d.status_at_checkout||'—'}`;
+                        else if (e.action === 'member_freed')            det = `${d.name||''} · ${d.role||''}`;
+                        else if (e.action === 'report_replied')          det = `${d.report_type||''} from ${d.reporter||'member'}`;
+                        else if (e.action === 'report_severity_changed') det = `${d.from} → ${d.to} (${d.type||''})`;
+                        else if (e.action === 'incident_started' ||
+                                 e.action === 'incident_updated')        det = d.name || '';
                     } catch(ex) {}
                     return `<tr style="border-bottom:1px solid #f5f5f5;">
                         <td style="white-space:nowrap;font-size:12px;color:#888;padding:6px 8px;">${fmt(e.timestamp)}</td>
@@ -2662,7 +2743,7 @@
                         <thead><tr style="border-bottom:2px solid #e0e0e0;">
                             <th style="text-align:left;padding:6px 8px;font-size:12px;color:#888;font-weight:600;">Time</th>
                             <th style="text-align:left;padding:6px 8px;font-size:12px;color:#888;font-weight:600;">Event</th>
-                            <th style="text-align:left;padding:6px 8px;font-size:12px;color:#888;font-weight:600;">Person</th>
+                            <th style="text-align:left;padding:6px 8px;font-size:12px;color:#888;font-weight:600;">From</th>
                             <th style="text-align:left;padding:6px 8px;font-size:12px;color:#888;font-weight:600;">Detail</th>
                         </tr></thead>
                         <tbody>${rows}</tbody>
