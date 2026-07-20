@@ -2583,9 +2583,120 @@
             });
         };
         console.log('💡 Debug: Type testUpdate() in console to test rendering');
+
+        // ── Incident Log (ICS-214) ─────────────────────────────────────────────────
+        let incidentLogExpanded = false;
+
+        function openExport(event) {
+            event.stopPropagation();
+            const pin = localStorage.getItem('cert_pin') || '';
+            // Opens the export page; the DashboardPINMiddleware reads the X-Dashboard-PIN header,
+            // but a direct window.open can't set headers — use a query param fallback or just open
+            // the page and let the user handle the PIN prompt if needed.
+            window.open('/api/auditlog/export', '_blank');
+        }
+
+        function toggleIncidentLog() {
+            incidentLogExpanded = !incidentLogExpanded;
+            const body  = document.getElementById('incidentLogBody');
+            const arrow = document.getElementById('incidentLogToggleArrow');
+            body.style.display = incidentLogExpanded ? 'block' : 'none';
+            arrow.style.transform = incidentLogExpanded ? 'rotate(90deg)' : 'none';
+            if (incidentLogExpanded) loadIncidentLog();
+        }
+
+        async function loadIncidentLog() {
+            const container = document.getElementById('incidentLogTable');
+            container.innerHTML = '<div style="color:#aaa;text-align:center;padding:20px;">Loading…</div>';
+            try {
+                const res = await apiCall('GET', '/api/auditlog?limit=200');
+                if (!res.ok) {
+                    container.innerHTML = '<div style="color:#FF3B30;padding:20px;text-align:center;">Failed to load log (session may have expired — refresh page)</div>';
+                    return;
+                }
+                const entries = await res.json();
+                if (!entries.length) {
+                    container.innerHTML = '<div style="color:#aaa;font-style:italic;padding:20px;text-align:center;">No events recorded yet — events will appear here as the team checks in, changes status, submits reports, etc.</div>';
+                    return;
+                }
+                const fmt = ts => {
+                    if (!ts) return '—';
+                    const d = new Date(ts);
+                    return d.toLocaleDateString([], {month:'numeric',day:'numeric'}) + ' ' +
+                           d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+                };
+                const actionLabels = {
+                    member_checkin:   {icon:'✅', label:'Checked In'},
+                    member_checkout:  {icon:'👋', label:'Checked Out'},
+                    status_change:    {icon:'🔄', label:'Status Changed'},
+                    report_submitted: {icon:'📋', label:'Report Submitted'},
+                    report_replied:   {icon:'💬', label:'Report Replied'},
+                    task_created:     {icon:'📝', label:'Task Created'},
+                    task_completed:   {icon:'✔️', label:'Task Completed'},
+                    subteam_created:  {icon:'🎨', label:'Sub-team Created'},
+                };
+                const rows = entries.map(e => {
+                    const lbl = actionLabels[e.action] || {icon:'•', label: e.action.replace(/_/g,' ')};
+                    let det = '';
+                    try {
+                        const d = JSON.parse(e.details || '{}');
+                        if      (e.action === 'status_change')    det = `${d.from} → ${d.to}`;
+                        else if (e.action === 'report_submitted') det = `${d.severity||''} ${d.type||''}${d.location?' · '+d.location:''}`.trim();
+                        else if (e.action === 'task_created' ||
+                                 e.action === 'task_completed')   det = d.title || '';
+                        else if (e.action === 'subteam_created')  det = `${d.color} (${d.member_count} members)`;
+                        else if (e.action === 'member_checkin')   det = d.role || '';
+                        else if (e.action === 'member_checkout')  det = `Role: ${d.role||'—'} · Status at checkout: ${d.status_at_checkout||'—'}`;
+                        else if (e.action === 'report_replied')   det = `${d.report_type||''} from ${d.reporter||'member'}`;
+                    } catch(ex) {}
+                    return `<tr style="border-bottom:1px solid #f5f5f5;">
+                        <td style="white-space:nowrap;font-size:12px;color:#888;padding:6px 8px;">${fmt(e.timestamp)}</td>
+                        <td style="padding:6px 8px;font-size:13px;">${lbl.icon} ${lbl.label}</td>
+                        <td style="padding:6px 8px;font-size:13px;font-weight:500;">${esc(e.actor_name||'System')}</td>
+                        <td style="padding:6px 8px;font-size:12px;color:#666;">${esc(det)}</td>
+                    </tr>`;
+                }).join('');
+                container.innerHTML = `
+                    <div style="font-size:12px;color:#888;margin-bottom:8px;">${entries.length} event${entries.length===1?'':'s'} recorded · Most recent first</div>
+                    <table style="width:100%;border-collapse:collapse;">
+                        <thead><tr style="border-bottom:2px solid #e0e0e0;">
+                            <th style="text-align:left;padding:6px 8px;font-size:12px;color:#888;font-weight:600;">Time</th>
+                            <th style="text-align:left;padding:6px 8px;font-size:12px;color:#888;font-weight:600;">Event</th>
+                            <th style="text-align:left;padding:6px 8px;font-size:12px;color:#888;font-weight:600;">Person</th>
+                            <th style="text-align:left;padding:6px 8px;font-size:12px;color:#888;font-weight:600;">Detail</th>
+                        </tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>`;
+            } catch(err) {
+                container.innerHTML = `<div style="color:#FF3B30;padding:20px;text-align:center;">Error loading log: ${esc(err.message)}</div>`;
+            }
+        }
     </script>
+<!-- ── Incident Log (ICS-214 / ICS-211) ─────────────────────────────────────── -->
+<div id="incidentLogPanel" style="background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);margin:20px 0;overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;cursor:pointer;border-bottom:1px solid #f0f0f0;" onclick="toggleIncidentLog()">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <h2 style="margin:0;font-size:18px;">📋 Incident Log</h2>
+            <span style="background:#e8f4fd;color:#0051D5;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;">ICS-214</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <a id="exportLogBtn" href="#" target="_blank" onclick="openExport(event)"
+               style="background:#34C759;color:white;border:none;padding:6px 14px;border-radius:6px;font-size:13px;font-weight:500;text-decoration:none;display:inline-block;cursor:pointer;">
+                🖨️ Export PDF
+            </a>
+            <button onclick="event.stopPropagation();loadIncidentLog()" style="background:#f5f5f5;border:none;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">⟳ Refresh</button>
+            <span id="incidentLogToggleArrow" style="font-size:20px;color:#aaa;transition:transform 0.2s;">›</span>
+        </div>
+    </div>
+    <div id="incidentLogBody" style="display:none;padding:0 20px 20px;">
+        <div id="incidentLogTable" style="margin-top:14px;">
+            <div style="color:#aaa;font-style:italic;padding:20px 0;text-align:center;">Click ⟳ Refresh or expand the panel to load events</div>
+        </div>
+    </div>
+</div>
+
 <footer style="text-align:center;padding:20px;color:#aaa;font-size:12px;">
-  CERT Assist v1.0 &nbsp;·&nbsp; <a href="/changelog.html" style="color:#007AFF;text-decoration:none;">What's new</a>
+  CERT Assist v1.1 &nbsp;·&nbsp; <a href="/changelog.html" style="color:#007AFF;text-decoration:none;">What's new</a>
 </footer>
 </body>
 </html>

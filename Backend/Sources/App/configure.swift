@@ -38,6 +38,9 @@ public func configure(_ app: Application) throws {
     )
     app.middleware.use(CORSMiddleware(configuration: corsConfiguration), at: .beginning)
 
+    app.migrations.add(CreateAuditLog())
+    try app.autoMigrate().wait()
+
     try routes(app)
 
     // ── County message polling (Option 2: teams poll county, not county push to teams) ──

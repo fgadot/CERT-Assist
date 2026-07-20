@@ -4,6 +4,7 @@
 //
 
 import Vapor
+import Fluent
 import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
@@ -574,6 +575,14 @@ func routes(_ app: Application) throws {
         var member = try req.content.decode(CERTMember.self)
         if member.id == nil { member.id = UUID() }
         await dataStore.addMember(member)
+        try? await req.logAudit(
+            action: "member_checkin",
+            actorID: member.id?.uuidString,
+            actorName: member.name,
+            targetType: "member",
+            targetID: member.id?.uuidString,
+            details: ["role": member.role, "equipment": member.equipment.joined(separator: ", ")]
+        )
         return CheckInResponse(success: true, message: "Checked in successfully", memberID: member.id)
     }
 
@@ -591,6 +600,15 @@ func routes(_ app: Application) throws {
         }
         if report.toName == nil { report.toName = "Team Leader" }
         await dataStore.addReport(report)
+        try? await req.logAudit(
+            action: "report_submitted",
+            actorID: report.reportedBy.uuidString,
+            actorName: report.fromName,
+            targetType: "report",
+            targetID: report.id?.uuidString,
+            details: ["type": report.type.rawValue, "severity": report.severity.rawValue,
+                      "location": report.location.address ?? "", "subject": report.subject ?? ""]
+        )
         return report
     }
 
@@ -610,8 +628,16 @@ func routes(_ app: Application) throws {
 
     adminApi.delete("members", ":id") { req async throws -> HTTPStatus in
         let id = try req.parameters.require("id", as: UUID.self)
-        guard await dataStore.members[id] != nil else { throw Abort(.notFound) }
+        guard let member = await dataStore.members[id] else { throw Abort(.notFound) }
         await dataStore.removeMember(id: id)
+        try? await req.logAudit(
+            action: "member_checkout",
+            actorID: id.uuidString,
+            actorName: member.name,
+            targetType: "member",
+            targetID: id.uuidString,
+            details: ["role": member.role, "status_at_checkout": member.status.rawValue]
+        )
         return .noContent
     }
 
@@ -629,11 +655,20 @@ func routes(_ app: Application) throws {
         struct ReplyBody: Content { var replyText: String; var repliedByName: String? }
         let body = try req.content.decode(ReplyBody.self)
         guard var report = await dataStore.reports[id] else { throw Abort(.notFound) }
+        let reportType = report.type.rawValue
+        let reporterName = report.fromName ?? "Member"
         report.replyText = body.replyText
         report.repliedByName = body.repliedByName
         report.repliedAt = Date()
         report.lastUpdated = Date()
         await dataStore.updateReport(report)
+        try? await req.logAudit(
+            action: "report_replied",
+            actorName: body.repliedByName ?? "Team Leader",
+            targetType: "report",
+            targetID: id.uuidString,
+            details: ["report_type": reportType, "reporter": reporterName]
+        )
         return report
     }
 
@@ -642,6 +677,13 @@ func routes(_ app: Application) throws {
         if task.id == nil { task.id = UUID() }
         task.createdAt = Date()
         await dataStore.addTask(task)
+        try? await req.logAudit(
+            action: "task_created",
+            actorName: "Team Leader",
+            targetType: "task",
+            targetID: task.id?.uuidString,
+            details: ["title": task.title, "priority": task.priority]
+        )
         return task
     }
 
@@ -682,6 +724,12 @@ func routes(_ app: Application) throws {
         task.status = .completed
         task.completedAt = Date()
         await dataStore.updateTask(task)
+        try? await req.logAudit(
+            action: "task_completed",
+            targetType: "task",
+            targetID: id.uuidString,
+            details: ["title": task.title, "priority": task.priority]
+        )
         return task
     }
 
@@ -705,6 +753,13 @@ func routes(_ app: Application) throws {
         subTeam.createdAt = now
         subTeam.lastUpdated = now
         await dataStore.createSubTeam(subTeam)
+        try? await req.logAudit(
+            action: "subteam_created",
+            actorName: "Team Leader",
+            targetType: "subteam",
+            targetID: subTeam.id?.uuidString,
+            details: ["color": subTeam.color.rawValue, "member_count": subTeam.memberIDs.count]
+        )
         return subTeam
     }
 
@@ -752,9 +807,18 @@ func routes(_ app: Application) throws {
         guard var member = await dataStore.getAllMembers().first(where: { $0.id == id }) else {
             throw Abort(.notFound, reason: "Member not found")
         }
+        let oldStatus = member.status
         member.status = update.status
         member.lastUpdated = Date()
         await dataStore.updateMember(member)
+        try? await req.logAudit(
+            action: "status_change",
+            actorID: id.uuidString,
+            actorName: member.name,
+            targetType: "member",
+            targetID: id.uuidString,
+            details: ["from": oldStatus.rawValue, "to": update.status.rawValue]
+        )
         return .ok
     }
 
@@ -926,6 +990,29 @@ func routes(_ app: Application) throws {
         let teamId = await dataStore.getTeamID()
         return await countyDecode([TeamFlag].self, method: "GET", endpoint: endpoint,
                                    path: "/api/team-flags?team=\(teamId)") ?? []
+    }
+
+    // ── Incident Log (FEMA ICS-214) ───────────────────────────────────────────────
+
+    adminApi.get("auditlog") { req async throws -> [AuditLog] in
+        let limit = (try? req.query.get(Int.self, at: "limit")) ?? 500
+        return try await AuditLog.query(on: req.db)
+            .sort(\.$timestamp, .descending)
+            .limit(limit)
+            .all()
+    }
+
+    adminApi.get("auditlog", "export") { req async throws -> Response in
+        let entries = try await AuditLog.query(on: req.db)
+            .sort(\.$timestamp, .ascending)
+            .all()
+        let teamName = await dataStore.getTeamName()
+        let incident = await dataStore.currentIncident
+        let incidentName = incident?.name ?? "CERT Activation"
+        let html = buildICS214HTML(teamName: teamName, incidentName: incidentName, entries: entries)
+        var headers = HTTPHeaders()
+        headers.add(name: .contentType, value: "text/html; charset=utf-8")
+        return Response(status: .ok, headers: headers, body: .init(string: html))
     }
 
     // ── WebSocket ─────────────────────────────────────────────────────────────────
