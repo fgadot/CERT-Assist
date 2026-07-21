@@ -772,8 +772,12 @@ func routes(_ app: Application) throws {
 
         var memberTasks: [CERTTask]? = nil
         if let m = member, let memberId = m.id {
-            let assigned = await dataStore.tasks.values.filter {
-                ($0.status == .open || $0.status == .assigned) && $0.assignedTo.contains(memberId)
+            let memberSubTeamId = m.subTeamId
+            let assigned = await dataStore.tasks.values.filter { task in
+                guard task.status == .open || task.status == .assigned else { return false }
+                if task.assignedTo.contains(memberId) { return true }
+                if let stId = task.assignedSubTeamId, let mstId = memberSubTeamId, stId == mstId { return true }
+                return false
             }
             memberTasks = Array(assigned)
         }
