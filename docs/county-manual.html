@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CERT Command — County EOC Guide</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, Helvetica Neue, Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: white; }
+
+  @media print {
+    .page-break { page-break-after: always; }
+    body { font-size: 12px; }
+  }
+
+  .cover {
+    height: 100vh;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    background: linear-gradient(160deg, #1a1a3a 0%, #4a0080 60%, #7b1fa2 100%);
+    color: white; text-align: center; padding: 40px;
+  }
+  .cover .logo { font-size: 64px; margin-bottom: 20px; }
+  .cover h1 { font-size: 36px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .cover h2 { font-size: 20px; font-weight: 400; opacity: 0.85; margin-bottom: 40px; }
+  .cover .badge {
+    background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 20px; padding: 8px 20px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+  }
+  .cover .version { margin-top: 60px; opacity: 0.5; font-size: 11px; }
+
+  .content { max-width: 680px; margin: 0 auto; padding: 48px 32px; }
+
+  h2.section { font-size: 22px; color: #6a0dad; margin: 40px 0 16px; border-bottom: 2px solid #f3e5f5; padding-bottom: 8px; }
+  h3.step { font-size: 15px; font-weight: 600; color: #1a1a1a; margin: 24px 0 8px; }
+
+  .intro-box {
+    background: #f3e5f5; border-left: 4px solid #7b1fa2; border-radius: 6px;
+    padding: 16px 20px; margin: 24px 0;
+  }
+  .intro-box p { line-height: 1.6; color: #4a0072; }
+
+  .step-block {
+    display: flex; gap: 16px; margin: 12px 0; align-items: flex-start;
+  }
+  .step-num {
+    min-width: 32px; height: 32px; background: #7b1fa2; color: white;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; flex-shrink: 0; margin-top: 2px;
+  }
+  .step-body { line-height: 1.6; }
+  .step-body strong { display: block; margin-bottom: 2px; }
+  .step-body small { color: #666; }
+
+  .tip {
+    background: #fff8e1; border-left: 4px solid #f9a825; border-radius: 6px;
+    padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #5a4000; line-height: 1.6;
+  }
+  .tip::before { content: "💡 Tip: "; font-weight: 700; }
+
+  .warning {
+    background: #ffeaea; border-left: 4px solid #e53935; border-radius: 6px;
+    padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #5a0000; line-height: 1.6;
+  }
+  .warning::before { content: "⚠️ Important: "; font-weight: 700; }
+
+  .info {
+    background: #e8eaf6; border-left: 4px solid #3949ab; border-radius: 6px;
+    padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #1a237e; line-height: 1.6;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12px; }
+  th { background: #7b1fa2; color: white; padding: 10px 12px; text-align: left; }
+  td { padding: 9px 12px; border-bottom: 1px solid #eee; vertical-align: top; }
+  tr:nth-child(even) td { background: #fdf5ff; }
+
+  .badge-pill {
+    display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  }
+  .badge-red    { background: #fce4ec; color: #b71c1c; }
+  .badge-orange { background: #fff3e0; color: #e65100; }
+  .badge-yellow { background: #fff8e1; color: #f57f17; }
+  .badge-green  { background: #e8f5e9; color: #2e7d32; }
+  .badge-gray   { background: #eeeeee; color: #424242; }
+
+  .urgency-strip {
+    display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0;
+  }
+  .urgency-item {
+    display: flex; align-items: center; gap: 7px; font-size: 12px; line-height: 1.4;
+  }
+  .urgency-bar {
+    width: 5px; height: 32px; border-radius: 3px; flex-shrink: 0;
+  }
+
+  footer {
+    margin-top: 60px; padding: 24px 0; border-top: 1px solid #eee;
+    text-align: center; color: #999; font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover page-break">
+  <div class="logo">🏛</div>
+  <h1>CERT Command</h1>
+  <h2>County EOC Coordinator Guide</h2>
+  <div class="badge">County Edition</div>
+  <div class="version">certcommand.org &nbsp;·&nbsp; v1.3 &nbsp;·&nbsp; 2026</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <div class="intro-box">
+    <p>This guide covers the County EOC (Emergency Operations Center) dashboard — the unified view of all CERT field teams. From here you can monitor every team's status, receive escalated incident reports, send alerts and messages to individual teams or all teams at once, and reply to field reports that have been forwarded to county level.</p>
+  </div>
+
+  <!-- SECTION 1 -->
+  <h2 class="section">1. Accessing the County Dashboard</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">Open a browser on your laptop or tablet and navigate to:</p>
+  <div style="background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:12px 16px;font-family:monospace;font-size:14px;color:#4a0080;margin:8px 0;">
+    https://county.certcommand.org
+  </div>
+
+  <p style="line-height:1.6; margin-top:12px; margin-bottom:8px;">Enter the county coordinator PIN when prompted. The PIN is case-sensitive.</p>
+
+  <div class="warning">The county PIN provides access to all five team feeds simultaneously. Only share it with authorized county-level coordinators — never with field members or team leaders.</div>
+
+  <div class="tip">Use a large monitor or laptop in landscape mode. The county dashboard shows all five teams side by side and benefits from a wide display.</div>
+
+  <!-- SECTION 2 -->
+  <h2 class="section">2. Dashboard Overview</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">The county dashboard is divided into two areas:</p>
+
+  <table>
+    <tr><th>Area</th><th>What It Shows</th></tr>
+    <tr><td><strong>Team Cards (left/main panel)</strong></td><td>One card per activated team showing member count, open task count, active reports by severity, and last-update time. Click any card to open the team's full detail view.</td></tr>
+    <tr><td><strong>Detail Panel (right/overlay)</strong></td><td>After clicking a team card: their full member roster, task list, and all reports. Also includes the "Send Message to Team" form.</td></tr>
+  </table>
+
+  <p style="line-height:1.6; margin-top:12px;">The dashboard updates automatically — no refresh needed.</p>
+
+  <div class="info"><strong>Teams must be explicitly activated to appear here.</strong> A team only shows on the county dashboard after the team leader clicks <strong>ACTIVATE CERT</strong> on their own dashboard. Teams that haven't been activated — or that have deactivated at incident end — are not shown, even if they have members checked in.</div>
+
+  <!-- SECTION 3 -->
+  <h2 class="section">3. Reading the Team Cards</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">Each team card is color-coded on its left border to indicate the highest-severity open report from that team:</p>
+
+  <div class="urgency-strip">
+    <div class="urgency-item">
+      <div class="urgency-bar" style="background:#FF3B30;"></div>
+      <div><strong>Red border</strong><br>Life-safety report — immediate action needed</div>
+    </div>
+    <div class="urgency-item">
+      <div class="urgency-bar" style="background:#FF9500;"></div>
+      <div><strong>Orange border</strong><br>High-severity report open</div>
+    </div>
+    <div class="urgency-item">
+      <div class="urgency-bar" style="background:#ffc107;"></div>
+      <div><strong>Yellow border</strong><br>Medium-severity report open</div>
+    </div>
+    <div class="urgency-item">
+      <div class="urgency-bar" style="background:#34C759;"></div>
+      <div><strong>Green border</strong><br>Low-severity report or no reports</div>
+    </div>
+    <div class="urgency-item">
+      <div class="urgency-bar" style="background:#555;"></div>
+      <div><strong>Gray / dimmed card</strong><br>Team server unreachable — no recent data</div>
+    </div>
+  </div>
+
+  <p style="line-height:1.6; margin-top:12px;">Each card also shows:</p>
+  <ul style="margin-left:20px; line-height:1.8;">
+    <li><strong>Member count</strong> — how many members are currently checked in</li>
+    <li><strong>Open task count</strong> — tasks not yet completed or cancelled</li>
+    <li><strong>Report counts</strong> — number of open reports by severity level</li>
+    <li><strong>Pending messages</strong> — messages you've sent to this team that haven't been confirmed yet</li>
+    <li><strong>Last updated</strong> — timestamp of the most recent data received from this team</li>
+  </ul>
+
+  <!-- SECTION 4 -->
+  <h2 class="section">4. Viewing a Team's Detail</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">Click on any team card to open its full detail panel.</p>
+
+  <div class="step-block">
+    <div class="step-num">⚠</div>
+    <div class="step-body">
+      <strong>Priority Reports</strong>
+      Reports that need acknowledgment appear at the top in red/orange. These are the reports that have been escalated by the team leader or that are critical/high severity.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">📋</div>
+    <div class="step-body">
+      <strong>Other Reports</strong>
+      All other open reports for this team, sorted by severity.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">✅</div>
+    <div class="step-body">
+      <strong>Open Tasks</strong>
+      Tasks currently assigned within this team.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">👥</div>
+    <div class="step-body">
+      <strong>Members</strong>
+      All checked-in members with their name, role, and current status.
+    </div>
+  </div>
+
+  <!-- SECTION 5 -->
+  <h2 class="section">5. Receiving Escalated Reports</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">Team leaders can escalate any incident report up to the county level. When a report is escalated:</p>
+
+  <ul style="margin-left:20px; line-height:1.8; margin-bottom:12px;">
+    <li>The report appears in the team's detail panel under <strong>Priority Reports</strong></li>
+    <li>The team card's border updates to reflect the escalated report's severity</li>
+    <li>The originating team's dashboard shows the report as "Escalated"</li>
+  </ul>
+
+  <div class="info">Escalated reports remain visible on both the team dashboard and the county dashboard until acknowledged or resolved. They are not removed from the team's view when the county receives them.</div>
+
+  <!-- SECTION 6 -->
+  <h2 class="section">6. Sending Messages to Teams</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">You can send messages to a single team or to all teams at once. Messages are delivered within 30 seconds and appear as a banner notification on the team leader's dashboard.</p>
+
+  <h3 class="step">Send a message to one team</h3>
+
+  <div class="step-block">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Click on the team's card</strong>
+      Open the team's detail panel.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Scroll to "Send Message to Team"</strong>
+      This section is at the bottom of the detail panel.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>Choose the message type</strong>
+    </div>
+  </div>
+
+  <table>
+    <tr><th>Type</th><th>When to Use</th></tr>
+    <tr><td><span class="badge-pill badge-red">⚠️ Alert</span></td><td>Urgent operational message requiring immediate team attention. Displayed prominently on the team dashboard.</td></tr>
+    <tr><td><span class="badge-pill badge-yellow">ℹ️ Info</span></td><td>General information, situational update, or non-urgent coordination message.</td></tr>
+    <tr><td><span class="badge-pill badge-green">✅ Ack / Reply</span></td><td>Acknowledgment of a report or response to something the team has submitted.</td></tr>
+  </table>
+
+  <div class="step-block">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <strong>Type your message and click Send</strong>
+      The message is queued for delivery. The team leader's dashboard will show it within 30 seconds, when the team's server next polls the county for messages.
+    </div>
+  </div>
+
+  <h3 class="step" style="margin-top:24px;">Send a message to all teams at once</h3>
+  <p style="line-height:1.6; margin-bottom:8px;">Use the broadcast message section at the top of the county dashboard (outside any team detail panel) to send the same message to all five teams simultaneously. This is useful for county-wide alerts, activation updates, or stand-down notices.</p>
+
+  <div class="tip">Delivery is not instantaneous — each team's server polls county every 30 seconds. For truly time-critical information, follow up by radio or phone if immediate acknowledgment is needed.</div>
+
+  <!-- SECTION 7 -->
+  <h2 class="section">7. Replying to Escalated Reports</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">When a team leader escalates a report to county, you can send a reply that goes back to that team leader's dashboard.</p>
+
+  <div class="step-block">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Open the team that escalated the report</strong>
+      Click the team's card.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Find the escalated report in Priority Reports</strong>
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>Use "Send Message to Team" with type "Ack / Reply"</strong>
+      Reference the report subject so the team leader understands what you're responding to.
+    </div>
+  </div>
+
+  <div class="info">County replies appear as a message on the team leader's dashboard. The original field member who submitted the report also sees the team leader's reply on their own phone (if the team leader chose to forward it).</div>
+
+  <!-- SECTION 8 -->
+  <h2 class="section">8. Exporting ICS-213 General Message Forms</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">Any incident report visible in a team's detail panel can be exported as a FEMA <strong>ICS-213 General Message</strong> form — the standard written communication record used in ICS documentation. This is useful for after-action review, legal/insurance documentation, or printing a paper record of county–team communications.</p>
+
+  <h3 class="step">How to export an ICS-213</h3>
+
+  <div class="step-block">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Open a team's detail panel</strong>
+      Click any team card to open their full report view.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Find the report and click <span style="font-family:monospace;font-size:12px;">📋 ICS-213</span></strong>
+      Each report row — both in Priority Reports and Other Reports — has a small ICS-213 button on the right side.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>A new tab opens with the completed form</strong>
+      The ICS-213 is pre-filled with the report's data. Click <strong>🖨️ Print / Save as PDF</strong> at the bottom of the page to print or save.
+    </div>
+  </div>
+
+  <p style="line-height:1.6; margin: 16px 0 12px;">The form is populated as follows:</p>
+
+  <table>
+    <tr><th>ICS-213 Box</th><th>Filled From</th></tr>
+    <tr><td><strong>1 — Incident Name</strong></td><td>Team name + "CERT Incident"</td></tr>
+    <tr><td><strong>2 — To</strong></td><td>County EOC (Emergency Operations Center)</td></tr>
+    <tr><td><strong>3 — From</strong></td><td>Reporter name and position (from the team leader's report)</td></tr>
+    <tr><td><strong>4 — Subject</strong></td><td>Report subject if set, otherwise report type and severity</td></tr>
+    <tr><td><strong>7 — Message</strong></td><td>Report type, severity, location, and full notes</td></tr>
+    <tr><td><strong>8 — Approved By</strong></td><td>Signature line (blank for handwritten signature on printed copy)</td></tr>
+    <tr><td><strong>9 — Reply</strong></td><td>Team leader's written reply if one was submitted; otherwise notes if county acknowledged</td></tr>
+    <tr><td><strong>10/11 — Replied By / Date</strong></td><td>Reply author name and date/time if available</td></tr>
+  </table>
+
+  <div class="info">If your browser blocks the pop-up, allow pop-ups for <strong>county.certcommand.org</strong> and click the ICS-213 button again.</div>
+
+  <div class="info">The team leader can also export ICS-213 forms from their dashboard for any report they have open. Both sides produce the same form from the same data.</div>
+
+  <!-- SECTION 9 (was 8) -->
+  <h2 class="section">9. Monitoring Team Status</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">The county dashboard is designed for continuous passive monitoring. Keep it open throughout the activation and watch for:</p>
+
+  <table>
+    <tr><th>Signal</th><th>What It Means</th></tr>
+    <tr><td>Team card border turns red</td><td>A life-safety report has been opened. Click the card immediately.</td></tr>
+    <tr><td>Team card is dimmed/gray</td><td>The team's server isn't responding. Contact the team leader by radio.</td></tr>
+    <tr><td>Member count drops to 0</td><td>All members have checked out — team may have stood down or the server restarted.</td></tr>
+    <tr><td>Pending message badge on card</td><td>A message you sent hasn't been confirmed by that team's server yet — may still be in transit.</td></tr>
+  </table>
+
+  <div class="warning">A dimmed (gray) team card does not necessarily mean an emergency — the team server may have restarted or lost connectivity. Always confirm via radio before drawing conclusions from a gray card.</div>
+
+  <!-- SECTION 10 (was 9) -->
+  <h2 class="section">10. Troubleshooting</h2>
+
+  <table>
+    <tr><th>Problem</th><th>Solution</th></tr>
+    <tr><td>Team card is gray / stale</td><td>The county server can't reach that team's server. Try refreshing the county dashboard. If still gray, contact the team leader by radio — their server may need to be restarted.</td></tr>
+    <tr><td>Message shows as pending for more than 2 minutes</td><td>The team server polls every 30 seconds. If pending longer, the team server may be down. Confirm by radio.</td></tr>
+    <tr><td>Escalated report not appearing</td><td>Hard-refresh the county dashboard (Shift+Refresh). Escalated reports may take up to 30 seconds to appear after the team leader sends them.</td></tr>
+    <tr><td>Dashboard not updating</td><td>Refresh the page and re-enter the county PIN. The WebSocket may have disconnected.</td></tr>
+    <tr><td>Locked out after wrong PIN</td><td>Wait 1 hour for automatic unlock, or contact the system administrator.</td></tr>
+  </table>
+
+  <!-- SECTION 11 (was 10) -->
+  <h2 class="section">11. County EOC Activation Checklist</h2>
+
+  <table>
+    <tr><th>Step</th><th>Action</th><th>Done?</th></tr>
+    <tr><td>1</td><td>Open county.certcommand.org and log in</td><td>☐</td></tr>
+    <tr><td>2</td><td>Confirm each team leader has clicked <strong>ACTIVATE CERT</strong> on their dashboard — teams won't appear here until activated</td><td>☐</td></tr>
+    <tr><td>3</td><td>Verify all activated team cards are showing (not gray/stale); confirm member counts are growing</td><td>☐</td></tr>
+    <tr><td>4</td><td>Send an "Info" message to all teams confirming county is monitoring</td><td>☐</td></tr>
+    <tr><td>5</td><td>Monitor for red/orange team card borders indicating priority reports</td><td>☐</td></tr>
+    <tr><td>6</td><td>Respond to escalated reports within 5 minutes of receipt</td><td>☐</td></tr>
+    <tr><td>7</td><td>At activation end: send "Info" stand-down message to all teams</td><td>☐</td></tr>
+    <tr><td>8</td><td>Export ICS-213 forms for any priority reports requiring formal documentation</td><td>☐</td></tr>
+  </table>
+
+  <footer>
+    CERT Command &nbsp;·&nbsp; certcommand.org &nbsp;·&nbsp; County EOC Edition &nbsp;·&nbsp; v1.4 &nbsp;·&nbsp; 2026
+  </footer>
+
+</div>
+</body>
+</html>

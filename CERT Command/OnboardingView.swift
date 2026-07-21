@@ -1,6 +1,6 @@
 //
 //  OnboardingView.swift
-//  CERT Assist
+//  CERT Command
 //
 
 import SwiftUI
@@ -17,7 +17,7 @@ private let certGreen = Color(red: 0.224, green: 0.710, blue: 0.290)
 private let slides: [OnboardingSlide] = [
     .init(icon: "shield.fill",
           iconColor: certGreen,
-          title: "Welcome to CERT Assist",
+          title: "Welcome to CERT Command",
           body: "Coordinate with your CERT team during emergency activations — directly from your iPhone."),
     .init(icon: "network",
           iconColor: certGreen,

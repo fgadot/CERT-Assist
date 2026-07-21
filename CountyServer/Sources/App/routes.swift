@@ -203,7 +203,7 @@ actor CountyDataStore {
 
     func getDashboardData() -> CountyDashboardData {
         // Only show teams that have at least one checked-in member
-        let activeTeams = teams.values.filter { $0.memberCount > 0 }
+        let activeTeams = teams.values.filter { $0.isActivated }
         // Sort teams by urgency: life safety first, then unacked high, then by name
         let sorted = activeTeams.sorted { a, b in
             let aScore = a.reportCounts.lifeSafety * 10000

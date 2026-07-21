@@ -20,7 +20,7 @@ services:
       - ENVIRONMENT=production
       - TEAM_ID=sapphire-point
       - TEAM_NAME=Sapphire Point
-      - TEAM_ENDPOINT=https://sapphire.certassist.us
+      - TEAM_ENDPOINT=https://sapphire.certcommand.org
       - TEAM_PIN=ST2027..!
       - MEMBER_PIN=001789
       - COUNTY_ENDPOINT=http://county:8080
@@ -41,7 +41,7 @@ services:
       - ENVIRONMENT=production
       - TEAM_ID=glenn-lakes
       - TEAM_NAME=Glenn Lakes
-      - TEAM_ENDPOINT=https://glenn.certassist.us
+      - TEAM_ENDPOINT=https://glenn.certcommand.org
       - TEAM_PIN=GS2027..!
       - MEMBER_PIN=001789
       - COUNTY_ENDPOINT=http://county:8080
@@ -62,7 +62,7 @@ services:
       - ENVIRONMENT=production
       - TEAM_ID=lakewood-ranch
       - TEAM_NAME=Lakewood Ranch
-      - TEAM_ENDPOINT=https://lakewood.certassist.us
+      - TEAM_ENDPOINT=https://lakewood.certcommand.org
       - TEAM_PIN=LH2027..!
       - MEMBER_PIN=001789
       - COUNTY_ENDPOINT=http://county:8080
@@ -83,7 +83,7 @@ services:
       - ENVIRONMENT=production
       - TEAM_ID=lorraine-lakes
       - TEAM_NAME=Lorraine Lakes
-      - TEAM_ENDPOINT=https://lorraine.certassist.us
+      - TEAM_ENDPOINT=https://lorraine.certcommand.org
       - TEAM_PIN=LS2027..!
       - MEMBER_PIN=001789
       - COUNTY_ENDPOINT=http://county:8080
@@ -104,7 +104,7 @@ services:
       - ENVIRONMENT=production
       - TEAM_ID=bayview
       - TEAM_NAME=Bayview
-      - TEAM_ENDPOINT=https://bayview.certassist.us
+      - TEAM_ENDPOINT=https://bayview.certcommand.org
       - TEAM_PIN=BW2027..!
       - MEMBER_PIN=001789
       - COUNTY_ENDPOINT=http://county:8080

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CERT Assist — Changelog</title>
+<title>CERT Command — Changelog</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -103,7 +103,43 @@
 
   <div class="page-header">
     <h1>Changelog</h1>
-    <p>CERT Assist — Release history and updates</p>
+    <p>CERT Command — Release history and updates</p>
+  </div>
+
+  <!-- v1.4 -->
+  <div class="version-block">
+    <div class="version-header">
+      <div>
+        <div class="version-tag">v1.4</div>
+        <div class="version-date">July 21, 2026</div>
+      </div>
+      <span class="version-badge">Update</span>
+    </div>
+    <div class="change-list">
+
+      <div class="change-group">
+        <div class="change-group-label">CERT Activation</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Team leaders now explicitly activate their team with an <strong>ACTIVATE CERT</strong> button at the top of the dashboard</div>
+        <div class="change-item"><span class="change-icon">🆕</span>County EOC only sees teams that have been explicitly activated — no longer based on member check-in count</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Activation state persists through dashboard restarts and server reboots — remains active until team leader deactivates</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Both activation and deactivation require a confirmation prompt to prevent accidental changes</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Team leader can deactivate at the end of an incident to remove the team from the county view</div>
+        <div class="change-item"><span class="change-icon">🆕</span>A team flag sent to county is now possible even when no members are checked in, as long as the team is activated</div>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label">Sub-Team Assignment</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Replaced text-entry prompt for adding a member to a sub-team with a proper checkbox modal</div>
+        <div class="change-item"><span class="change-icon">🆕</span>New <strong>→ Team</strong> button on each member card lets team leader assign a member to a sub-team directly from the roster</div>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label">ICS-213 Export</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Any incident report can now be exported as a FEMA ICS-213 General Message form — printable from both the team dashboard and county EOC</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Form auto-fills To, From, Subject, Date/Time, Message, Reply, and Replied By from existing report data</div>
+      </div>
+
+    </div>
   </div>
 
   <!-- v1.3 -->
@@ -268,7 +304,7 @@
   </div>
 
   <footer>
-    CERT Assist &nbsp;·&nbsp; certassist.us &nbsp;·&nbsp;
+    CERT Command &nbsp;·&nbsp; certcommand.org &nbsp;·&nbsp;
     <a href="/dashboard.html">Dashboard</a> &nbsp;·&nbsp;
     <a href="/member">Member Portal</a>
   </footer>

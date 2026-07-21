@@ -1,4 +1,4 @@
-# CERT Assist — Roadmap & Future Enhancements
+# CERT Command — Roadmap & Future Enhancements
 
 **Created:** July 10, 2026  
 **Purpose:** Track ideas, planned features, and scaling considerations. Update this file as decisions are made.

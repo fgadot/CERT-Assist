@@ -1,6 +1,6 @@
 //
 //  LocationManager.swift
-//  CERT Assist
+//  CERT Command
 //
 
 import Foundation

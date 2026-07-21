@@ -1,6 +1,6 @@
 //
 //  HelpView.swift
-//  CERT Assist
+//  CERT Command
 //
 
 import SwiftUI
@@ -71,8 +71,8 @@ struct ManualView: View {
               content: """
               Check in when your team activation begins:
 
-              1. Open CERT Assist and tap Check In.
-              2. Enter your team's server URL (e.g., https://sapphire.certassist.us).
+              1. Open CERT Command and tap Check In.
+              2. Enter your team's server URL (e.g., https://sapphire.certcommand.org).
               3. Enter the member PIN provided by your team leader.
               4. Fill in your name, role, and available equipment.
               5. Tap Check In — you appear on the dashboard immediately.

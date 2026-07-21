@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CERT Assist — Member Guide</title>
+<title>CERT Command — Member Guide</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, Helvetica Neue, Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: white; }
@@ -31,6 +31,7 @@
 
   h2.section { font-size: 22px; color: #0d6efd; margin: 40px 0 16px; border-bottom: 2px solid #e8f0fe; padding-bottom: 8px; }
   h3.step { font-size: 15px; font-weight: 600; color: #1a1a1a; margin: 24px 0 8px; }
+  h4.sub { font-size: 13px; font-weight: 700; color: #444; margin: 20px 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
 
   .intro-box {
     background: #f0f6ff; border-left: 4px solid #0d6efd; border-radius: 6px;
@@ -38,8 +39,16 @@
   }
   .intro-box p { line-height: 1.6; color: #2a4a7f; }
 
+  .method-box {
+    border: 1.5px solid #dde8ff; border-radius: 8px; padding: 16px 20px; margin: 16px 0;
+  }
+  .method-box .method-title {
+    font-size: 15px; font-weight: 700; color: #0d6efd; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
   .step-block {
-    display: flex; gap: 16px; margin: 16px 0; align-items: flex-start;
+    display: flex; gap: 16px; margin: 12px 0; align-items: flex-start;
   }
   .step-num {
     min-width: 32px; height: 32px; background: #0d6efd; color: white;
@@ -62,11 +71,33 @@
   }
   .warning::before { content: "⚠️ Important: "; font-weight: 700; }
 
+  .info {
+    background: #e3f2fd; border-left: 4px solid #1565c0; border-radius: 6px;
+    padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #0d2a5e; line-height: 1.6;
+  }
+
+  .new {
+    background: #e8f5e9; border-left: 4px solid #2e7d32; border-radius: 6px;
+    padding: 12px 16px; margin: 16px 0; font-size: 12px; color: #1b5e20; line-height: 1.6;
+  }
+  .new::before { content: "📱 iPhone App: "; font-weight: 700; }
+
   .url-box {
     background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px;
     padding: 12px 16px; font-family: monospace; font-size: 13px;
     color: #0d6efd; margin: 8px 0;
   }
+
+  .team-badge {
+    display: inline-block; padding: 3px 12px; border-radius: 12px;
+    font-size: 11px; font-weight: 700; color: white; margin: 2px 3px;
+  }
+  .badge-red    { background: #dc3545; }
+  .badge-blue   { background: #0d6efd; }
+  .badge-green  { background: #198754; }
+  .badge-orange { background: #fd7e14; }
+  .badge-purple { background: #6f42c1; }
+  .badge-teal   { background: #20c997; }
 
   table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 12px; }
   th { background: #0d6efd; color: white; padding: 10px 12px; text-align: left; }
@@ -75,11 +106,6 @@
 
   .field-label { font-weight: 600; color: #1a1a1a; }
   .field-desc { color: #555; }
-
-  .screenshot-placeholder {
-    border: 2px dashed #ccc; border-radius: 8px; padding: 32px;
-    text-align: center; color: #999; margin: 16px 0; font-size: 12px;
-  }
 
   footer {
     margin-top: 60px; padding: 24px 0; border-top: 1px solid #eee;
@@ -92,43 +118,48 @@
 <!-- COVER -->
 <div class="cover page-break">
   <div class="logo">🦺</div>
-  <h1>CERT Assist</h1>
+  <h1>CERT Command</h1>
   <h2>Member Check-In Guide</h2>
   <div class="badge">Field Member Edition</div>
-  <div class="version">certassist.us &nbsp;·&nbsp; 2026</div>
+  <div class="version">certcommand.org &nbsp;·&nbsp; v1.3 &nbsp;·&nbsp; 2026</div>
 </div>
 
 <!-- CONTENT -->
 <div class="content">
 
   <div class="intro-box">
-    <p>This guide walks you through checking in with your CERT team, viewing your assignment, and submitting incident reports during an activation. You only need a smartphone or computer with a browser — no app download required.</p>
+    <p>This guide walks you through checking in with your CERT team, viewing your assignment, and submitting incident reports during an activation. You can check in two ways: using any browser on your phone or computer (no download needed), or using the <strong>CERT Command iPhone app</strong>.</p>
   </div>
 
   <!-- SECTION 1 -->
   <h2 class="section">1. Getting Started</h2>
 
-  <h3 class="step">Open the Member Portal</h3>
-  <p style="line-height:1.6; margin-bottom:8px;">Open any browser on your phone or computer and go to your team's URL:</p>
+  <p style="line-height:1.6; margin-bottom:12px;">Your team leader will give you two things before an activation:</p>
+  <ul style="margin-left:20px; line-height:1.8; margin-bottom:16px;">
+    <li>Your team's <strong>URL</strong> (web browser) or <strong>server address</strong> (iPhone app)</li>
+    <li>The <strong>member PIN</strong></li>
+  </ul>
 
   <table>
-    <tr><th>Team</th><th>URL</th><th>Member PIN</th></tr>
-    <tr><td>Sapphire Point</td><td>https://sapphire.certassist.us/member.html</td><td>001789</td></tr>
-    <tr><td>Glenn Lakes</td><td>https://glenn.certassist.us/member.html</td><td>001789</td></tr>
-    <tr><td>Lakewood Ranch</td><td>https://lakewood.certassist.us/member.html</td><td>001789</td></tr>
-    <tr><td>Lorraine Lakes</td><td>https://lorraine.certassist.us/member.html</td><td>001789</td></tr>
-    <tr><td>Bayview</td><td>https://bayview.certassist.us/member.html</td><td>001789</td></tr>
+    <tr><th>Team</th><th>Web Browser URL</th><th>Member PIN</th></tr>
+    <tr><td>Sapphire Point</td><td>https://sapphire.certcommand.org/member</td><td>001789</td></tr>
+    <tr><td>Glenn Lakes</td><td>https://glenn.certcommand.org/member</td><td>001789</td></tr>
+    <tr><td>Lakewood Ranch</td><td>https://lakewood.certcommand.org/member</td><td>001789</td></tr>
+    <tr><td>Lorraine Lakes</td><td>https://lorraine.certcommand.org/member</td><td>001789</td></tr>
+    <tr><td>Bayview</td><td>https://bayview.certcommand.org/member</td><td>001789</td></tr>
   </table>
 
-  <div class="info" style="background:#e3f2fd;border-left:4px solid #1565c0;border-radius:6px;padding:12px 16px;margin:16px 0;font-size:12px;color:#0d2a5e;line-height:1.6;">
-    <strong>All teams use the same member PIN: 001789</strong><br>
-    This is different from the team leader dashboard PIN. Do not share the dashboard PIN with field members.
+  <div class="info">
+    <strong>All teams share the same member PIN: 001789.</strong><br>
+    This is different from the team leader's dashboard PIN. Do not share the dashboard PIN.
   </div>
 
   <div class="tip">Bookmark your team's URL now so you can find it quickly during an activation.</div>
 
   <!-- SECTION 2 -->
-  <h2 class="section">2. Checking In</h2>
+  <h2 class="section">2. Checking In via Web Browser</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">Open any browser on your phone or computer and navigate to your team's URL (table above).</p>
 
   <div class="step-block">
     <div class="step-num">1</div>
@@ -141,8 +172,8 @@
   <div class="step-block">
     <div class="step-num">2</div>
     <div class="step-body">
-      <strong>Enter the team PIN</strong>
-      Use the PIN provided by your team leader (shown in the table above). The PIN is case-sensitive.
+      <strong>Enter the member PIN</strong>
+      Use the PIN from the table above. The PIN is case-sensitive.
     </div>
   </div>
 
@@ -150,7 +181,7 @@
     <div class="step-num">3</div>
     <div class="step-body">
       <strong>Select your ICS role</strong>
-      Choose your assigned role from the dropdown (e.g., Field Rescuer, Medical, Search, etc.).
+      Choose your assigned role from the dropdown (e.g., Field Rescuer, Medical, Search).
     </div>
   </div>
 
@@ -162,18 +193,79 @@
     </div>
   </div>
 
-  <div class="warning">Keep your browser tab open throughout the activation. Your assignment and messages update automatically every 10 seconds — you don't need to refresh.</div>
+  <div class="warning">Keep your browser tab open throughout the activation. Your assignment updates automatically every 10 seconds — do not close the tab or your session will be lost.</div>
 
   <!-- SECTION 3 -->
-  <h2 class="section">3. Viewing Your Assignment</h2>
+  <h2 class="section">3. Checking In via iPhone App</h2>
 
-  <p style="line-height:1.6; margin-bottom:16px;">After check-in, the page shows your current status. This updates automatically as your team leader makes assignments.</p>
+  <p style="line-height:1.6; margin-bottom:12px;">The CERT Command app (installed by your organization) provides the same check-in experience with added GPS location sharing.</p>
 
   <div class="step-block">
-    <div class="step-num">📋</div>
+    <div class="step-num">1</div>
     <div class="step-body">
-      <strong>Sub-Team</strong>
-      Shows which sub-team you've been assigned to (e.g., "Alpha Team", "Medical Unit"). If blank, you haven't been assigned yet — check back in a minute.
+      <strong>Open CERT Command and tap "Check In"</strong>
+      On the app's main screen, tap the Check In button to open the check-in form.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Enter the server address</strong>
+      Type your team's server address (ask your team leader). Example: <code>sapphire.certcommand.org</code> — you don't need to type https://.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>Enter the member PIN</strong>
+      Use the PIN from the table above (001789 for all teams).
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <strong>Enter your name and role</strong>
+      Type your full name, choose your ICS role, and check any equipment you have with you.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">5</div>
+    <div class="step-body">
+      <strong>Tap Check In</strong>
+      The app saves your server and PIN so you won't need to re-enter them next time.
+    </div>
+  </div>
+
+  <h4 class="sub">Location Sharing (iPhone App Only)</h4>
+  <p style="line-height:1.6; margin-bottom:10px;">After check-in, your My Status screen shows a Location Sharing toggle:</p>
+
+  <table>
+    <tr><th>Mode</th><th>What It Does</th></tr>
+    <tr><td><strong>Auto</strong></td><td>Sends your GPS location to the dashboard every 30 seconds. Your pin appears on the team leader's live map.</td></tr>
+    <tr><td><strong>Manual</strong></td><td>Location is not sent automatically. Tap "Share My Location Now" whenever you want to update your position.</td></tr>
+  </table>
+
+  <div class="tip">Auto mode is recommended during an activation so your team leader can see your position on the map at all times.</div>
+
+  <!-- SECTION 4 -->
+  <h2 class="section">4. Viewing Your Assignment</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">After check-in, your screen shows your current assignment. This updates automatically as your team leader makes changes — no refresh needed.</p>
+
+  <div class="step-block">
+    <div class="step-num">🎨</div>
+    <div class="step-body">
+      <strong>Sub-Team Badge</strong>
+      When your team leader assigns you to a sub-team, a colored badge appears on your screen:
+      <span class="team-badge badge-red">Red Team</span>
+      <span class="team-badge badge-blue">Blue Team</span>
+      <span class="team-badge badge-green">Green Team</span>
+      <span class="team-badge badge-orange">Orange Team</span>
+      <br><small>On the web portal it appears below your name. On the iPhone app it appears under your role. If blank, you haven't been assigned yet — check back in a minute.</small>
     </div>
   </div>
 
@@ -181,39 +273,37 @@
     <div class="step-num">✅</div>
     <div class="step-body">
       <strong>Current Task</strong>
-      Your current assigned task appears here with its status (Pending, In Progress, Completed). If you have no task yet, this section will be empty.
+      Your current assigned task appears here with title and priority. If no task yet, you'll see "No task assigned — stand by."
     </div>
   </div>
 
-  <div class="tip">If your assignment doesn't appear after 30 seconds, try a hard refresh (hold Shift and tap Refresh in your browser).</div>
+  <div class="tip">Assignment updates take up to 10 seconds to appear. If your assignment still doesn't show, try a hard refresh on the browser, or wait for the next auto-poll on the app.</div>
 
-  <!-- SECTION 4 -->
-  <h2 class="section">4. Updating Your Status</h2>
+  <!-- SECTION 5 -->
+  <h2 class="section">5. Updating Your Status</h2>
 
-  <p style="line-height:1.6; margin-bottom:16px;">After check-in your status is <strong>Available</strong>. Use the four status buttons to let your team leader know what you're doing. Tapping a button shows a confirmation before applying the change — tapping an active button again cancels it and returns you to Available.</p>
+  <p style="line-height:1.6; margin-bottom:12px;">After check-in your status is <strong>Available</strong>. Use the status buttons to let your team leader know your current situation. Tapping a button always asks for confirmation before applying the change. Tap an active button again to return to Available.</p>
 
   <table>
     <tr><th>Status</th><th>When to use it</th></tr>
     <tr><td class="field-label" style="color:#007AFF;">On Task</td><td class="field-desc">You are actively working an assignment.</td></tr>
-    <tr><td class="field-label" style="color:#8E8E93;">Unavailable</td><td class="field-desc">You are temporarily unable to take assignments (break, personal need, etc.).</td></tr>
-    <tr><td class="field-label" style="color:#FF9500;">Need Help</td><td class="field-desc">Your task requires additional members — you need more people at your location.</td></tr>
-    <tr><td class="field-label" style="color:#FF3B30;">Injured</td><td class="field-desc">You have been injured and need medical attention. Use immediately.</td></tr>
+    <tr><td class="field-label" style="color:#8E8E93;">Unavailable</td><td class="field-desc">Temporarily unable to take assignments (break, personal need, etc.).</td></tr>
+    <tr><td class="field-label" style="color:#FF9500;">Need Help</td><td class="field-desc">You need additional members at your location.</td></tr>
+    <tr><td class="field-label" style="color:#FF3B30;">Injured</td><td class="field-desc">You have been injured and need medical attention.</td></tr>
   </table>
 
   <div class="warning">The Injured status alerts your team leader immediately. Set it as soon as you are safe to do so — do not wait.</div>
 
-  <div class="tip">Tap an already-active button to cancel it and return to Available. Each tap requires one confirmation tap.</div>
+  <!-- SECTION 6 -->
+  <h2 class="section">6. Submitting an Incident Report (ICS-213)</h2>
 
-  <!-- SECTION 5 -->
-  <h2 class="section">5. Submitting an Incident Report (ICS-213)</h2>
-
-  <p style="line-height:1.6; margin-bottom:16px;">Use this to report an incident, hazard, resource need, or any situation requiring your team leader's attention.</p>
+  <p style="line-height:1.6; margin-bottom:12px;">Use this to report a hazard, incident, or situation requiring your team leader's attention.</p>
 
   <div class="step-block">
     <div class="step-num">1</div>
     <div class="step-body">
-      <strong>Tap "Submit Report" button</strong>
-      Located in the Reports section at the bottom of the page.
+      <strong>Tap the "Submit Report" button</strong>
+      Located in the Reports section at the bottom of the page (web) or in the Reports tab (app).
     </div>
   </div>
 
@@ -221,7 +311,6 @@
     <div class="step-num">2</div>
     <div class="step-body">
       <strong>Fill in the report fields</strong>
-      Complete the form fields as described below.
     </div>
   </div>
 
@@ -238,31 +327,77 @@
     <div class="step-num">3</div>
     <div class="step-body">
       <strong>Tap Submit</strong>
-      Your report is sent immediately to your team leader's dashboard. Your name and position are attached automatically.
+      Your report goes to your team leader's dashboard immediately. Your name and position are attached automatically.
     </div>
   </div>
 
-  <!-- SECTION 6 -->
-  <h2 class="section">6. Receiving Replies</h2>
-
-  <p style="line-height:1.6; margin-bottom:16px;">Your team leader can reply to your reports. Replies appear directly below the report in your Reports list, shown in a green box.</p>
-
-  <div class="tip">Check your reports section regularly during an activation. Replies may contain updated instructions or resource confirmations.</div>
-
   <!-- SECTION 7 -->
-  <h2 class="section">7. Troubleshooting</h2>
+  <h2 class="section">7. Receiving Replies</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">Your team leader can reply to your reports. Replies appear in a green box directly below the report in your Reports list.</p>
+
+  <div class="tip">Check your Reports section regularly during an activation. Replies may contain updated instructions or resource confirmations.</div>
+
+  <!-- SECTION 8 -->
+  <h2 class="section">8. Checking Out</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">When your assignment is complete and you are leaving the scene, check out so your team leader knows you're no longer available.</p>
+
+  <div class="step-block">
+    <div class="step-num">🌐</div>
+    <div class="step-body">
+      <strong>Web browser</strong>
+      Scroll to the bottom of the member portal and tap <strong>Check Out</strong>. Confirm when prompted.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">📱</div>
+    <div class="step-body">
+      <strong>iPhone app</strong>
+      Scroll to the bottom of the My Status screen and tap <strong>Check Out</strong>. A confirmation dialog will appear — tap "Check Out" again to confirm, or "Cancel" if you tapped it by accident.
+    </div>
+  </div>
+
+  <div class="info">Checking out removes you from the team leader's roster immediately. If you need to return to the scene, you can check back in again with the same process.</div>
+
+  <!-- SECTION 9 -->
+  <h2 class="section">9. If Your Team Leader Checks You Out</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">A team leader can check you out remotely from the dashboard (for example, when an activation ends or you've left the scene).</p>
+
+  <div class="step-block">
+    <div class="step-num">🔔</div>
+    <div class="step-body">
+      <strong>Web browser</strong>
+      An alert box will appear saying "Your Team Leader has checked you out." The page returns to the check-in screen automatically.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">📱</div>
+    <div class="step-body">
+      <strong>iPhone app</strong>
+      A notification will appear on your screen: <em>"Your Team Leader has checked you out."</em> Tap OK. The app returns to the check-in screen. If the app was closed when this happened, the message will appear the next time you open it.
+    </div>
+  </div>
+
+  <!-- SECTION 10 -->
+  <h2 class="section">10. Troubleshooting</h2>
 
   <table>
     <tr><th>Problem</th><th>Solution</th></tr>
-    <tr><td>"Incorrect PIN" error</td><td>Double-check the PIN — it is case-sensitive. Try typing it manually rather than copy-pasting.</td></tr>
-    <tr><td>Assignment not showing</td><td>Wait 30 seconds — the page polls every 10s. If still blank, do a hard refresh (Shift+Refresh).</td></tr>
+    <tr><td>"Incorrect PIN" error</td><td>Double-check the PIN — it is case-sensitive. Type it manually rather than copy-pasting.</td></tr>
+    <tr><td>Assignment not showing</td><td>Wait 30 seconds — updates poll every 10s. If still blank, do a hard refresh (Shift+Refresh on browser) or wait for the next poll on the app.</td></tr>
     <tr><td>Page won't load</td><td>Check your internet connection. Try switching between WiFi and cellular data.</td></tr>
-    <tr><td>Accidentally checked in with wrong name</td><td>Check in again with the correct name — notify your team leader to remove the duplicate.</td></tr>
-    <tr><td>Locked out after wrong PIN attempts</td><td>Wait 1 hour. The system automatically unlocks. Contact your team leader if urgent.</td></tr>
+    <tr><td>Checked in with wrong name</td><td>Check in again with the correct name and ask your team leader to remove the duplicate.</td></tr>
+    <tr><td>Locked out after wrong PIN attempts</td><td>Wait 1 hour for automatic unlock. Contact your team leader if urgent.</td></tr>
+    <tr><td>App shows "Update Required"</td><td>You need a newer version of the CERT Command app. Contact your team leader to receive the update.</td></tr>
+    <tr><td>Location not appearing on dashboard</td><td>Make sure the app has permission to access Location ("While Using App" is sufficient). Check Settings → Privacy → Location Services → CERT Command.</td></tr>
   </table>
 
   <footer>
-    CERT Assist &nbsp;·&nbsp; certassist.us &nbsp;·&nbsp; For support contact your Team Leader
+    CERT Command &nbsp;·&nbsp; certcommand.org &nbsp;·&nbsp; v1.3 &nbsp;·&nbsp; For support contact your Team Leader
   </footer>
 
 </div>

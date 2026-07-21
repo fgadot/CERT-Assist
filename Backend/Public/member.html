@@ -675,9 +675,10 @@
 
     function checkOut() {
         if (!confirm('End your session and check out?')) return;
-        clearTimeout(refreshTimer);
+        clearInterval(refreshTimer);
+        refreshTimer = null;
         if (memberID) {
-            api('PATCH', `/api/members/${memberID}/status`, { status: 'Unavailable' }).catch(() => {});
+            api('POST', '/api/checkout', { member_id: memberID }).catch(() => {});
         }
         localStorage.removeItem('cert_mid');
         localStorage.removeItem('cert_mname');
@@ -1030,7 +1031,13 @@
     renderSev();
 </script>
 <footer style="text-align:center;padding:20px;color:#aaa;font-size:12px;">
-  CERT Assist v1.2 &nbsp;·&nbsp; <a href="/changelog" style="color:#c0392b;text-decoration:none;">What's new</a>
+  CERT Command <span id="cert-version">v1.3</span> &nbsp;·&nbsp; <a href="/changelog" style="color:#c0392b;text-decoration:none;">What's new</a>
 </footer>
+<script>
+fetch('/changelog').then(r=>r.text()).then(html=>{
+    const m = html.match(/<div class="version-tag">([^<]+)<\/div>/);
+    if (m) { const el = document.getElementById('cert-version'); if (el) el.textContent = m[1]; }
+}).catch(()=>{});
+</script>
 </body>
 </html>

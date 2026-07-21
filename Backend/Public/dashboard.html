@@ -22,6 +22,47 @@
             margin-bottom: 20px;
             box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
         }
+
+        .activation-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 15px;
+            gap: 16px;
+        }
+        .activation-banner.inactive {
+            background: #f5f5f5;
+            border: 2px solid #ddd;
+            color: #666;
+        }
+        .activation-banner.active {
+            background: #d4f1dc;
+            border: 2px solid #34C759;
+            color: #1a7a35;
+        }
+        .activation-banner .btn-activate {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .activation-banner.inactive .btn-activate {
+            background: #34C759;
+            color: white;
+        }
+        .activation-banner.active .btn-activate {
+            background: #fff;
+            color: #FF3B30;
+            border: 1.5px solid #FF3B30;
+        }
         
         h1 { font-size: 32px; margin-bottom: 10px; }
         
@@ -576,6 +617,12 @@
         </div>
     </header>
 
+    <!-- CERT Activation Banner -->
+    <div id="activationBanner" class="activation-banner inactive" style="display:none;">
+        <span id="activationLabel">⚪ CERT INACTIVE — Not visible to County EOC</span>
+        <button class="btn-activate" id="activationBtn" onclick="toggleActivation()">ACTIVATE CERT</button>
+    </div>
+
     <!-- Urgent member alert banner — shown when any member is in Need Help or Injured state -->
     <div id="urgentAlertBanner" style="display:none;margin-bottom:12px;border-radius:10px;overflow:hidden;"></div>
 
@@ -618,7 +665,7 @@
             <div class="subteam-header">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <h2>💬 County Messages</h2>
-                    <span id="countyMsgBadge" style="display:none;background:#FF3B30;color:white;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;"></span>
+                    <span id="countyMsgBadge" onclick="markCountyMessagesSeen()" title="Click to mark as read" style="display:none;background:#FF3B30;color:white;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;cursor:pointer;"></span>
                 </div>
                 <button class="btn" style="background:#FF9500;color:white;border:none;font-size:13px;"
                     onclick="openFlagModal()">📣 Flag for County</button>
@@ -771,6 +818,36 @@
         </div>
     </div>
     
+    <!-- Add Member to Sub-Team Modal -->
+    <div class="modal" id="addMemberModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="addMemberModalTitle">Add Member to Team</h2>
+                <button class="close-btn" onclick="closeAddMemberModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Select Member(s) to Add</label>
+                <div class="checkbox-group" id="addMemberCheckboxList">
+                    <div class="empty-state">No available members</div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="confirmAddMembers()" style="width:100%;">Add Selected</button>
+        </div>
+    </div>
+
+    <!-- Assign Member to Team Modal -->
+    <div class="modal" id="assignToTeamModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="assignToTeamModalTitle">Assign to Team</h2>
+                <button class="close-btn" onclick="closeAssignToTeamModal()">&times;</button>
+            </div>
+            <div id="assignToTeamList" style="display:flex;flex-direction:column;gap:10px;">
+                <div class="empty-state">No teams available</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Create Task Modal -->
     <div class="modal" id="createTaskModal">
         <div class="modal-content">
@@ -1160,6 +1237,7 @@
         let previousInboxCount = 0;
         let sentFlags = [];        // flags this team has sent to county
         let previousAckedIds = new Set();
+        let seenCountyMessageIds = new Set(); // inbox message IDs already seen — badge turns grey once seen
 
         function updateCountyMessages(inbox) {
             const panel = document.getElementById('countyMessagesPanel');
@@ -1181,9 +1259,15 @@
             }
             previousInboxCount = inbox.length;
 
-            const totalBadge = inbox.length + sentFlags.filter(f => !f.acknowledged).length;
-            if (totalBadge > 0) {
-                badge.textContent = totalBadge;
+            const unseenCount = inbox.filter(m => m.id && !seenCountyMessageIds.has(m.id)).length;
+            const unackedFlags = sentFlags.filter(f => !f.acknowledged).length;
+            if (unseenCount > 0 || unackedFlags > 0) {
+                badge.textContent = unseenCount + unackedFlags;
+                badge.style.background = '#FF3B30';
+                badge.style.display = 'inline';
+            } else if (inbox.length > 0) {
+                badge.textContent = inbox.length;
+                badge.style.background = '#8E8E93';
                 badge.style.display = 'inline';
             } else {
                 badge.style.display = 'none';
@@ -1233,6 +1317,11 @@
             }
         }
 
+        function markCountyMessagesSeen() {
+            (currentData?.county_inbox || []).forEach(m => { if (m.id) seenCountyMessageIds.add(m.id); });
+            if (currentData) updateCountyMessages(currentData.county_inbox || []);
+        }
+
         function syncSentFlags(countyFlags) {
             if (!countyFlags || !countyFlags.length) return;
             // Detect newly acknowledged flags and notify
@@ -1280,11 +1369,25 @@
         }
 
         async function checkoutMember(memberId, memberName) {
-            if (!confirm(`Check out ${memberName}?\n\nThis removes them from the roster.`)) return;
+            const subTeam = (currentData?.sub_teams || []).find(
+                st => st.member_ids && st.member_ids.includes(memberId)
+            );
+            const isLastInSubTeam = subTeam && subTeam.member_ids?.length === 1;
+
+            let msg = `Check out ${memberName}?\n\nThis removes them from the roster.`;
+            if (isLastInSubTeam) {
+                msg = `Check out ${memberName}?\n\n⚠️ This is the last member of ${subTeam.color} Team — the team will be disbanded.`;
+            }
+            if (!confirm(msg)) return;
+
             try {
                 const res = await apiCall('DELETE', `/api/members/${memberId}`);
                 if (!res.ok && res.status !== 204) {
                     alert('Failed to check out member: ' + await res.text());
+                    return;
+                }
+                if (isLastInSubTeam && subTeam.id) {
+                    await apiCall('DELETE', `/api/subteams/${subTeam.id}`);
                 }
             } catch (err) { alert('Error: ' + err.message); }
         }
@@ -1721,6 +1824,7 @@
                 document.getElementById('incidentStatus').textContent = data.incident.name;
             }
             
+            updateActivationBanner(data.is_activated === true);
             updateMemberList(data.members || [], data.sub_teams || [], data.loanable_members || [], currentBorrows);
             updateReportList(data.reports || [], data.sub_teams || []);
             updateTaskList(data.tasks || [], data.sub_teams || []);
@@ -1734,6 +1838,41 @@
             console.log('✅ Dashboard update complete');
         }
         
+        function updateActivationBanner(activated) {
+            const banner = document.getElementById('activationBanner');
+            const label  = document.getElementById('activationLabel');
+            const btn    = document.getElementById('activationBtn');
+            if (!banner) return;
+            banner.style.display = 'flex';
+            if (activated) {
+                banner.className = 'activation-banner active';
+                label.textContent = '🟢 CERT ACTIVATED — Visible to County EOC';
+                btn.textContent = 'DEACTIVATE CERT';
+            } else {
+                banner.className = 'activation-banner inactive';
+                label.textContent = '⚪ CERT INACTIVE — Not visible to County EOC';
+                btn.textContent = 'ACTIVATE CERT';
+            }
+        }
+
+        async function toggleActivation() {
+            const isActive = document.getElementById('activationBanner').classList.contains('active');
+            if (isActive) {
+                const ok = confirm('Deactivate CERT?\n\nYour team will be removed from the County EOC dashboard. Member data and reports are preserved.');
+                if (!ok) return;
+            } else {
+                const ok = confirm('Activate CERT?\n\nYour team will become visible to County EOC. This indicates your team is operational.');
+                if (!ok) return;
+            }
+            try {
+                const endpoint = isActive ? 'deactivate' : 'activate';
+                const res = await apiCall('POST', `/api/${endpoint}`, {});
+                if (!res.ok) { alert('Failed to update activation status.'); }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
         function updateUrgentBanner(members) {
             const banner = document.getElementById('urgentAlertBanner');
             const injured  = members.filter(m => m.status === 'Injured');
@@ -1809,6 +1948,12 @@
                            title="Check out this member">✕ Out</button>`
                     : '';
 
+                const teamBtn = !isLent
+                    ? `<button class="btn-sm" style="color:#5856D6;border-color:#c5c4f7;font-size:10px;margin-left:4px;"
+                           onclick="openAssignToTeamModal('${member.id}', '${esc(member.name)}', event)"
+                           title="Assign to sub-team">→ Team</button>`
+                    : '';
+
                 const locationBtn = member.location
                     ? `<button class="btn-sm" style="color:#007AFF;border-color:#b3d7ff;font-size:10px;margin-left:4px;"
                            onclick="focusMemberOnMap(${member.location.latitude}, ${member.location.longitude}, '${esc(member.name)}', '${member.status}')"
@@ -1830,7 +1975,7 @@
                     ${equip}
                     <div class="item-header" style="display:flex;justify-content:space-between;align-items:center;">
                         <span>${teamBadge}${esc(member.name)}</span>
-                        <span style="display:flex;align-items:center;gap:4px;">${locationBtn}${actionEl}${checkoutBtn}</span>
+                        <span style="display:flex;align-items:center;gap:4px;">${locationBtn}${actionEl}${teamBtn}${checkoutBtn}</span>
                     </div>
                     <div class="item-meta">
                         <span class="badge ${isLent ? 'lent' : statusKey}">${isLent ? 'On Loan' : esc(member.status)}</span>
@@ -2187,57 +2332,105 @@
             }
         }
         
+        // State for the add-member modal
+        let _addMemberTargetTeamId = null;
+        let _addMemberTargetTeamColor = null;
+
         function addMemberToTeam(teamId, teamColor, event) {
             event.stopPropagation();
-            
             if (!currentData || !currentData.members || !currentData.sub_teams) {
                 alert('Data not loaded yet. Please wait.');
                 return;
             }
-
-            // Get the current team
             const team = (currentData.sub_teams || []).find(st => st.id === teamId);
-            if (!team) {
-                alert('Team not found');
-                return;
-            }
-            
-            // Get available members (not in this team)
+            if (!team) { alert('Team not found'); return; }
+
             const availableMembers = currentData.members.filter(m => {
                 const status = m.status.toLowerCase();
                 return (status === 'available' || status === 'assigned') && m.sub_team_id !== teamId;
             });
+            if (availableMembers.length === 0) { alert('No available members to add'); return; }
 
-            if (availableMembers.length === 0) {
-                alert('No available members to add');
-                return;
-            }
+            _addMemberTargetTeamId = teamId;
+            _addMemberTargetTeamColor = teamColor;
 
-            // Create a simple selection dialog
-            const memberOptions = availableMembers.map((m, idx) => {
-                const currentTeamName = m.sub_team_id ?
-                    (currentData.sub_teams || []).find(st => st.id === m.sub_team_id)?.color + ' Team' :
-                    'Available';
-                return `${idx + 1}. ${m.name} (${currentTeamName})`;
-            }).join('\n');
-            
-            const selection = prompt(`Select member to add to ${teamColor} Team:\n\n${memberOptions}\n\nEnter number (1-${availableMembers.length}):`);
-            
-            if (!selection) return; // User cancelled
-            
-            const index = parseInt(selection) - 1;
-            if (isNaN(index) || index < 0 || index >= availableMembers.length) {
-                alert('Invalid selection');
-                return;
+            document.getElementById('addMemberModalTitle').textContent = `Add Member to ${teamColor} Team`;
+            const list = document.getElementById('addMemberCheckboxList');
+            list.innerHTML = availableMembers.map(m => {
+                const currentTeamName = m.sub_team_id
+                    ? (currentData.sub_teams.find(st => st.id === m.sub_team_id)?.color + ' Team')
+                    : 'Available';
+                return `<label class="checkbox-item">
+                    <input type="checkbox" value="${m.id}" data-name="${esc(m.name)}">
+                    <span>${esc(m.name)} <span style="color:#888;font-size:12px;">(${currentTeamName})</span></span>
+                </label>`;
+            }).join('');
+            document.getElementById('addMemberModal').classList.add('show');
+        }
+
+        function closeAddMemberModal() {
+            document.getElementById('addMemberModal').classList.remove('show');
+            _addMemberTargetTeamId = null;
+            _addMemberTargetTeamColor = null;
+        }
+
+        function confirmAddMembers() {
+            const checked = [...document.querySelectorAll('#addMemberCheckboxList input[type="checkbox"]:checked')];
+            if (checked.length === 0) { alert('Please select at least one member.'); return; }
+            const team = (currentData.sub_teams || []).find(st => st.id === _addMemberTargetTeamId);
+            if (!team) { alert('Team not found'); return; }
+            const updatedMemberIDs = [...team.memberIDs, ...checked.map(cb => cb.value)];
+            closeAddMemberModal();
+            updateTeamMembers(_addMemberTargetTeamId, updatedMemberIDs, _addMemberTargetTeamColor);
+        }
+
+        // State for the assign-to-team modal
+        let _assignMemberId = null;
+        let _assignMemberName = null;
+
+        function openAssignToTeamModal(memberId, memberName, event) {
+            event.stopPropagation();
+            if (!currentData || !currentData.sub_teams) { alert('Data not loaded yet.'); return; }
+            const teams = currentData.sub_teams || [];
+            if (teams.length === 0) { alert('No sub-teams exist. Create a team first.'); return; }
+
+            _assignMemberId = memberId;
+            _assignMemberName = memberName;
+            document.getElementById('assignToTeamModalTitle').textContent = `Assign ${memberName} to Team`;
+
+            const teamColors = {
+                red:'#dc3545', blue:'#0a6efd', green:'#198754', yellow:'#ffc107',
+                purple:'#6f42c1', orange:'#fd7e14', teal:'#20c997', pink:'#d63384'
+            };
+            const list = document.getElementById('assignToTeamList');
+            list.innerHTML = teams.map(team => {
+                const color = teamColors[team.color.toLowerCase()] || '#666';
+                const alreadyIn = team.memberIDs && team.memberIDs.includes(memberId);
+                if (alreadyIn) return '';
+                return `<button class="btn" onclick="confirmAssignToTeam('${team.id}', '${esc(team.color)}')"
+                    style="background:${color};color:white;border:none;border-radius:8px;padding:12px 16px;
+                           font-size:15px;font-weight:600;cursor:pointer;text-align:left;">
+                    ${team.color} Team <span style="opacity:0.8;font-size:12px;font-weight:400;">(${(team.memberIDs||[]).length} members)</span>
+                </button>`;
+            }).join('');
+            if (!list.innerHTML.trim()) {
+                list.innerHTML = '<div class="empty-state">Member is already in all teams</div>';
             }
-            
-            const selectedMember = availableMembers[index];
-            
-            // Create updated team with new member
-            const updatedMemberIDs = [...team.memberIDs, selectedMember.id];
-            
-            // Call the backend to update the team
-            updateTeamMembers(teamId, updatedMemberIDs, teamColor);
+            document.getElementById('assignToTeamModal').classList.add('show');
+        }
+
+        function closeAssignToTeamModal() {
+            document.getElementById('assignToTeamModal').classList.remove('show');
+            _assignMemberId = null;
+            _assignMemberName = null;
+        }
+
+        async function confirmAssignToTeam(teamId, teamColor) {
+            const team = (currentData.sub_teams || []).find(st => st.id === teamId);
+            if (!team) { alert('Team not found'); return; }
+            const updatedMemberIDs = [...(team.memberIDs || []), _assignMemberId];
+            closeAssignToTeamModal();
+            await updateTeamMembers(teamId, updatedMemberIDs, teamColor);
         }
         
         async function updateTeamMembers(teamId, memberIDs, teamColor) {
@@ -2554,6 +2747,8 @@
                 actions.push(`<button class="btn" style="flex:1;background:#f5f5f5;color:#333;" onclick="reopenReport()">Re-open</button>`);
             }
 
+            actions.push(`<button class="btn" style="flex:1;background:#f0f0f0;color:#333;border:1px solid #ccc;" onclick="exportReportAsICS213()" title="Export as ICS-213 General Message">📋 ICS-213</button>`);
+
             document.getElementById('reportModalActions').innerHTML =
                 actions.length ? `<div style="display:flex;gap:8px;">${actions.join('')}</div>` : '';
 
@@ -2563,6 +2758,113 @@
         function closeReportModal() {
             document.getElementById('reportDetailModal').classList.remove('show');
             currentReportId = null;
+        }
+
+        function exportReportAsICS213() {
+            const report = currentData?.reports?.find(r => r.id === currentReportId);
+            if (!report) { alert('Report data not available.'); return; }
+
+            const reporter = currentData?.members?.find(m => m.id === report.reported_by);
+            const location = report.location;
+            const locationStr = location?.address ||
+                (location ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : 'Unknown');
+            const dt = report.reported_at ? new Date(report.reported_at).toLocaleString() : 'Unknown';
+            const replyDt = report.replied_at
+                ? new Date(report.replied_at).toLocaleString()
+                : (report.acknowledged_at ? new Date(report.acknowledged_at).toLocaleString() : '');
+
+            const isEscalated = report.escalated_to_county !== false &&
+                (report.severity === 'High' || report.severity === 'Life Safety' || report.escalated_to_county === true);
+
+            openICS213Window({
+                incidentName: currentData?.incident?.name || 'CERT Incident',
+                toName: report.to_name || (isEscalated ? 'County EOC' : 'Team Leader'),
+                toPosition: isEscalated ? 'Emergency Operations Center' : 'CERT Team Leader',
+                toOrg: isEscalated ? 'County Emergency Operations Center' : 'CERT Team',
+                fromName: report.from_name || reporter?.name || 'CERT Member',
+                fromPosition: report.from_position || reporter?.role || 'CERT Member',
+                fromOrg: 'CERT Team',
+                subject: report.subject || (report.type + ' — ' + report.severity),
+                datetime: dt,
+                message: ['Type: ' + report.type, 'Severity: ' + report.severity, 'Location: ' + locationStr, '', report.notes || ''].join('\n').trim(),
+                approvedByPosition: report.from_position || reporter?.role || 'CERT Member',
+                reply: report.reply_text || (report.acknowledged_by_county ? '(Acknowledged by County EOC — no written reply on file)' : ''),
+                repliedBy: report.replied_by_name || (report.acknowledged_by_county ? 'County EOC' : ''),
+                replyDatetime: replyDt
+            });
+        }
+
+        function openICS213Window(d) {
+            const h = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const now = new Date().toLocaleString();
+            const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>ICS-213 — ${h(d.subject)}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:12px;padding:24px 32px;background:#fff;color:#000}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px}
+.hdr-l{font-size:13px;font-weight:bold}.hdr-c{font-size:16px;font-weight:bold}.hdr-r{font-size:11px;color:#555}
+.form{border:2px solid #000}
+.row{display:flex;border-bottom:1px solid #000}.row:last-child{border-bottom:none}
+.cell{padding:5px 8px;border-right:1px solid #000;flex:1;min-width:0}.cell:last-child{border-right:none}
+.bn{float:right;font-size:9px;font-weight:bold;color:#777;margin-left:4px}
+.lbl{font-size:9px;font-weight:bold;text-transform:uppercase;letter-spacing:.3px;color:#444;display:block;margin-bottom:3px}
+.val{font-size:13px;min-height:18px;white-space:pre-wrap;word-break:break-word}
+.sig-row{display:flex;gap:16px;margin-top:16px;padding-top:6px;border-top:1px solid #bbb}
+.sig-f{flex:1}.sig-line{border-bottom:1px solid #000;min-height:24px;padding-top:4px;font-size:12px}
+.reply-bg{background:#fafafa}
+.print-btn{display:block;margin:20px auto 0;padding:8px 28px;background:#28a745;color:#fff;border:none;border-radius:5px;font-size:13px;cursor:pointer}
+.footer{text-align:center;margin-top:8px;font-size:9px;color:#888}
+@media print{.print-btn{display:none!important}body{padding:12px}}
+</style></head><body>
+<div class="hdr"><div class="hdr-l">ICS 213</div><div class="hdr-c">GENERAL MESSAGE</div><div class="hdr-r">Incident Command System</div></div>
+<div class="form">
+  <div class="row">
+    <div class="cell" style="flex:3"><span class="bn">1</span><span class="lbl">Incident Name</span><div class="val">${h(d.incidentName)}</div></div>
+    <div class="cell" style="flex:2"><span class="lbl">Date / Time</span><div class="val">${h(d.datetime)}</div></div>
+  </div>
+  <div class="row">
+    <div class="cell" style="flex:2"><span class="bn">2</span><span class="lbl">To — Name</span><div class="val">${h(d.toName)}</div></div>
+    <div class="cell" style="flex:2"><span class="lbl">Position / Title</span><div class="val">${h(d.toPosition)}</div></div>
+    <div class="cell" style="flex:2"><span class="lbl">Organization</span><div class="val">${h(d.toOrg)}</div></div>
+  </div>
+  <div class="row">
+    <div class="cell" style="flex:2"><span class="bn">3</span><span class="lbl">From — Name</span><div class="val">${h(d.fromName)}</div></div>
+    <div class="cell" style="flex:2"><span class="lbl">Position / Title</span><div class="val">${h(d.fromPosition)}</div></div>
+    <div class="cell" style="flex:2"><span class="lbl">Organization</span><div class="val">${h(d.fromOrg)}</div></div>
+  </div>
+  <div class="row">
+    <div class="cell"><span class="bn">4</span><span class="lbl">Subject</span><div class="val">${h(d.subject)}</div></div>
+  </div>
+  <div class="row">
+    <div class="cell" style="padding:8px 10px">
+      <span class="bn">7</span><span class="lbl">Message</span>
+      <div class="val" style="min-height:110px">${h(d.message)}</div>
+      <div class="sig-row">
+        <div class="sig-f" style="flex:2"><span class="lbl">8 — Approved By (Signature)</span><div class="sig-line"></div></div>
+        <div class="sig-f" style="flex:2"><span class="lbl">Position / Title</span><div class="sig-line">${h(d.approvedByPosition)}</div></div>
+        <div class="sig-f" style="flex:1"><span class="lbl">Date / Time</span><div class="sig-line">${h(d.datetime)}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="row reply-bg">
+    <div class="cell" style="padding:8px 10px">
+      <span class="bn">9</span><span class="lbl">Reply</span>
+      <div class="val" style="min-height:80px">${h(d.reply)}</div>
+      <div class="sig-row">
+        <div class="sig-f" style="flex:2"><span class="lbl">10 — Replied By (Signature)</span><div class="sig-line">${h(d.repliedBy)}</div></div>
+        <div class="sig-f" style="flex:2"><span class="lbl">Position / Title</span><div class="sig-line"></div></div>
+        <div class="sig-f" style="flex:1"><span class="lbl">11 — Date / Time</span><div class="sig-line">${h(d.replyDatetime)}</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="footer">ICS 213 (rev. 2017) &nbsp;·&nbsp; Generated by CERT Command &nbsp;·&nbsp; ${h(now)}</div>
+<button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+</body></html>`;
+            const w = window.open('', '_blank');
+            if (w) { w.document.write(html); w.document.close(); }
+            else { alert('Pop-up blocked. Please allow pop-ups for this page to export ICS-213.'); }
         }
 
         async function acknowledgeReport() {
@@ -2805,8 +3107,14 @@
 </div>
 
 <footer style="text-align:center;padding:20px;color:#aaa;font-size:12px;">
-  CERT Assist v1.2 &nbsp;·&nbsp; <a href="/changelog" style="color:#007AFF;text-decoration:none;">What's new</a>
+  CERT Command <span id="cert-version">v1.3</span> &nbsp;·&nbsp; <a href="/changelog" style="color:#007AFF;text-decoration:none;">What's new</a>
 </footer>
+<script>
+fetch('/changelog').then(r=>r.text()).then(html=>{
+    const m = html.match(/<div class="version-tag">([^<]+)<\/div>/);
+    if (m) { const el = document.getElementById('cert-version'); if (el) el.textContent = m[1]; }
+}).catch(()=>{});
+</script>
 
 <script>
 // ── Member Map (Leaflet) ───────────────────────────────────────────────────────

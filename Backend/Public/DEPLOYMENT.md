@@ -333,7 +333,7 @@ docker-compose up -d
 Use `docker-compose.local.yml` at the repo root to spin up all three services:
 
 ```bash
-# From repo root "CERT Assist/"
+# From repo root "CERT Command/"
 docker compose -f docker-compose.local.yml up --build
 
 # Services:

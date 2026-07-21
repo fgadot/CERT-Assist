@@ -1,6 +1,6 @@
 //
 //  UpdateRequiredView.swift
-//  CERT Assist
+//  CERT Command
 //
 
 import SwiftUI
@@ -26,7 +26,7 @@ struct UpdateRequiredView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
 
-                    Text("A newer version of CERT Assist is required to connect to this server. Please update to continue.")
+                    Text("A newer version of CERT Command is required to connect to this server. Please update to continue.")
                         .font(.body)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

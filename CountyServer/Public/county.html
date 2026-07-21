@@ -733,11 +733,20 @@
         selectedTeamID = null;
     }
 
+    // Cache current team reports for ICS-213 export
+    let currentTeamReports = {};
+    let currentTeamNameForExport = '';
+
     function renderTeamDetail(teamSummary, teamData) {
         const members = teamData.members || [];
         const reports = teamData.reports || [];
         const tasks   = teamData.tasks   || [];
         const teamId  = teamSummary.team_id;
+
+        // Populate export cache
+        currentTeamNameForExport = teamSummary.team_name || teamId;
+        currentTeamReports = {};
+        reports.forEach(r => { currentTeamReports[r.id] = r; });
 
         // ── Reports ──
         const priorityReports = reports.filter(r =>
@@ -751,9 +760,13 @@
 
         const reportHtml = (r) => {
             const alreadyAcked = r.acknowledged_by_county || ackedReports.has(r.id);
-            const actions = alreadyAcked
+            const ackBtn = alreadyAcked
                 ? `<span class="acked-tag">✓ Acked</span>`
                 : `<button class="ack-btn" onclick="acknowledgeReport('${teamId}','${r.id}',this)">Acknowledge</button>`;
+            const ics213Btn = `<button onclick="exportICS213County('${r.id}')"
+                style="padding:4px 8px;background:none;border:1px solid #555;border-radius:4px;
+                       color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap;margin-left:6px;"
+                title="Export as ICS-213 General Message">📋 ICS-213</button>`;
 
             return `
                 <div class="report-row ${sevClass(r.severity)}">
@@ -761,8 +774,10 @@
                         <div class="report-type">${esc(r.type)}</div>
                         <div class="report-detail">${esc(r.notes || '—')} · ${esc(r.location?.address || 'No address')} · ${timeAgo(r.reported_at)}</div>
                     </div>
-                    <span class="sev-tag ${sevClass(r.severity)}">${esc(r.severity)}</span>
-                    ${actions}
+                    <div style="display:flex;align-items:center;flex-shrink:0;">
+                        <span class="sev-tag ${sevClass(r.severity)}">${esc(r.severity)}</span>
+                        ${ackBtn}${ics213Btn}
+                    </div>
                 </div>`;
         };
 
@@ -937,6 +952,112 @@
         } catch { btn.disabled = false; btn.textContent = 'Acknowledge'; }
     }
 
+    // ── ICS-213 Export ───────────────────────────────────────────────────────────
+
+    function exportICS213County(reportId) {
+        const r = currentTeamReports[reportId];
+        if (!r) { alert('Report data not available.'); return; }
+
+        const location = r.location;
+        const locationStr = location?.address ||
+            (location ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : 'Unknown');
+
+        const dt = r.reported_at ? new Date(r.reported_at).toLocaleString() : 'Unknown';
+        const replyDt = r.replied_at
+            ? new Date(r.replied_at).toLocaleString()
+            : (r.acknowledged_at ? new Date(r.acknowledged_at).toLocaleString() : '');
+
+        openICS213Window({
+            incidentName: currentTeamNameForExport + ' — CERT Incident',
+            toName: r.to_name || 'County EOC',
+            toPosition: 'Emergency Operations Center',
+            toOrg: 'County Emergency Operations Center',
+            fromName: r.from_name || currentTeamNameForExport + ' Team Leader',
+            fromPosition: r.from_position || 'CERT Team Leader',
+            fromOrg: currentTeamNameForExport + ' CERT Team',
+            subject: r.subject || (r.type + ' — ' + r.severity),
+            datetime: dt,
+            message: ['Type: ' + r.type, 'Severity: ' + r.severity, 'Location: ' + locationStr, '', r.notes || ''].join('\n').trim(),
+            approvedByPosition: r.from_position || 'CERT Team Leader',
+            reply: r.reply_text || (r.acknowledged_by_county ? '(Acknowledged by County EOC — no written reply on file)' : ''),
+            repliedBy: r.replied_by_name || (r.acknowledged_by_county ? 'County EOC' : ''),
+            replyDatetime: replyDt
+        });
+    }
+
+    function openICS213Window(d) {
+        const h = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const now = new Date().toLocaleString();
+        const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>ICS-213 — ${h(d.subject)}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;font-size:12px;padding:24px 32px;background:#fff;color:#000}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:6px}
+.hdr-l{font-size:13px;font-weight:bold}.hdr-c{font-size:16px;font-weight:bold}.hdr-r{font-size:11px;color:#555}
+.form{border:2px solid #000}
+.row{display:flex;border-bottom:1px solid #000}.row:last-child{border-bottom:none}
+.cell{padding:5px 8px;border-right:1px solid #000;flex:1;min-width:0}.cell:last-child{border-right:none}
+.bn{float:right;font-size:9px;font-weight:bold;color:#777;margin-left:4px}
+.lbl{font-size:9px;font-weight:bold;text-transform:uppercase;letter-spacing:.3px;color:#444;display:block;margin-bottom:3px}
+.val{font-size:13px;min-height:18px;white-space:pre-wrap;word-break:break-word}
+.sig-row{display:flex;gap:16px;margin-top:16px;padding-top:6px;border-top:1px solid #bbb}
+.sig-f{flex:1}.sig-line{border-bottom:1px solid #000;min-height:24px;padding-top:4px;font-size:12px}
+.reply-bg{background:#fafafa}
+.print-btn{display:block;margin:20px auto 0;padding:8px 28px;background:#c0392b;color:#fff;border:none;border-radius:5px;font-size:13px;cursor:pointer}
+.footer{text-align:center;margin-top:8px;font-size:9px;color:#888}
+@media print{.print-btn{display:none!important}body{padding:12px}}
+</style></head><body>
+<div class="hdr"><div class="hdr-l">ICS 213</div><div class="hdr-c">GENERAL MESSAGE</div><div class="hdr-r">Incident Command System</div></div>
+<div class="form">
+  <div class="row">
+    <div class="cell" style="flex:3"><span class="bn">1</span><span class="lbl">Incident Name</span><div class="val">${h(d.incidentName)}</div></div>
+    <div class="cell" style="flex:2"><span class="lbl">Date / Time</span><div class="val">${h(d.datetime)}</div></div>
+  </div>
+  <div class="row">
+    <div class="cell" style="flex:2"><span class="bn">2</span><span class="lbl">To — Name</span><div class="val">${h(d.toName)}</div></div>
+    <div class="cell" style="flex:2"><span class="lbl">Position / Title</span><div class="val">${h(d.toPosition)}</div></div>
+    <div class="cell" style="flex:2"><span class="lbl">Organization</span><div class="val">${h(d.toOrg)}</div></div>
+  </div>
+  <div class="row">
+    <div class="cell" style="flex:2"><span class="bn">3</span><span class="lbl">From — Name</span><div class="val">${h(d.fromName)}</div></div>
+    <div class="cell" style="flex:2"><span class="lbl">Position / Title</span><div class="val">${h(d.fromPosition)}</div></div>
+    <div class="cell" style="flex:2"><span class="lbl">Organization</span><div class="val">${h(d.fromOrg)}</div></div>
+  </div>
+  <div class="row">
+    <div class="cell"><span class="bn">4</span><span class="lbl">Subject</span><div class="val">${h(d.subject)}</div></div>
+  </div>
+  <div class="row">
+    <div class="cell" style="padding:8px 10px">
+      <span class="bn">7</span><span class="lbl">Message</span>
+      <div class="val" style="min-height:110px">${h(d.message)}</div>
+      <div class="sig-row">
+        <div class="sig-f" style="flex:2"><span class="lbl">8 — Approved By (Signature)</span><div class="sig-line"></div></div>
+        <div class="sig-f" style="flex:2"><span class="lbl">Position / Title</span><div class="sig-line">${h(d.approvedByPosition)}</div></div>
+        <div class="sig-f" style="flex:1"><span class="lbl">Date / Time</span><div class="sig-line">${h(d.datetime)}</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="row reply-bg">
+    <div class="cell" style="padding:8px 10px">
+      <span class="bn">9</span><span class="lbl">Reply</span>
+      <div class="val" style="min-height:80px">${h(d.reply)}</div>
+      <div class="sig-row">
+        <div class="sig-f" style="flex:2"><span class="lbl">10 — Replied By (Signature)</span><div class="sig-line">${h(d.repliedBy)}</div></div>
+        <div class="sig-f" style="flex:2"><span class="lbl">Position / Title</span><div class="sig-line"></div></div>
+        <div class="sig-f" style="flex:1"><span class="lbl">11 — Date / Time</span><div class="sig-line">${h(d.replyDatetime)}</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="footer">ICS 213 (rev. 2017) &nbsp;·&nbsp; Generated by CERT Command &nbsp;·&nbsp; ${h(now)}</div>
+<button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+</body></html>`;
+        const w = window.open('', '_blank');
+        if (w) { w.document.write(html); w.document.close(); }
+        else { alert('Pop-up blocked. Please allow pop-ups for this page to export ICS-213.'); }
+    }
+
     // ── Utilities ────────────────────────────────────────────────────────────────
     function esc(s) {
         return String(s ?? '')
@@ -952,7 +1073,13 @@
     checkAuthAndConnect();
 </script>
 <footer style="text-align:center;padding:20px;color:#555;font-size:12px;">
-  CERT Assist v1.0 &nbsp;·&nbsp; <a href="/changelog.html" style="color:#c0392b;text-decoration:none;">What's new</a>
+  CERT Command <span id="cert-version">v1.3</span> &nbsp;·&nbsp; <a href="/changelog.html" style="color:#c0392b;text-decoration:none;">What's new</a>
 </footer>
+<script>
+fetch('/changelog.html').then(r=>r.text()).then(html=>{
+    const m = html.match(/<div class="version-tag">([^<]+)<\/div>/);
+    if (m) { const el = document.getElementById('cert-version'); if (el) el.textContent = m[1]; }
+}).catch(()=>{});
+</script>
 </body>
 </html>

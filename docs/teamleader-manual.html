@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>CERT Assist — Team Leader Guide</title>
+<title>CERT Command — Team Leader Guide</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, Helvetica Neue, Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: white; }
@@ -39,7 +39,7 @@
   .intro-box p { line-height: 1.6; color: #1b5e20; }
 
   .step-block {
-    display: flex; gap: 16px; margin: 16px 0; align-items: flex-start;
+    display: flex; gap: 16px; margin: 12px 0; align-items: flex-start;
   }
   .step-num {
     min-width: 32px; height: 32px; background: #2e7d32; color: white;
@@ -75,15 +75,19 @@
   .badge-pill {
     display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
   }
-  .badge-green { background: #e8f5e9; color: #2e7d32; }
+  .badge-green  { background: #e8f5e9; color: #2e7d32; }
   .badge-orange { background: #fff3e0; color: #e65100; }
-  .badge-red { background: #fce4ec; color: #b71c1c; }
-  .badge-blue { background: #e3f2fd; color: #0d47a1; }
+  .badge-red    { background: #fce4ec; color: #b71c1c; }
+  .badge-blue   { background: #e3f2fd; color: #0d47a1; }
 
-  .url-box {
-    background: #f5f5f5; border: 1px solid #ddd; border-radius: 6px;
-    padding: 12px 16px; font-family: monospace; font-size: 13px;
-    color: #2e7d32; margin: 8px 0;
+  .map-legend {
+    display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0;
+  }
+  .map-legend-item {
+    display: flex; align-items: center; gap: 6px; font-size: 12px;
+  }
+  .map-dot {
+    width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
   }
 
   .section-divider { border: none; border-top: 1px solid #e0e0e0; margin: 32px 0; }
@@ -99,17 +103,17 @@
 <!-- COVER -->
 <div class="cover page-break">
   <div class="logo">📋</div>
-  <h1>CERT Assist</h1>
+  <h1>CERT Command</h1>
   <h2>Team Leader Dashboard Guide</h2>
   <div class="badge">Team Leader Edition</div>
-  <div class="version">certassist.us &nbsp;·&nbsp; 2026</div>
+  <div class="version">certcommand.org &nbsp;·&nbsp; v1.3 &nbsp;·&nbsp; 2026</div>
 </div>
 
 <!-- CONTENT -->
 <div class="content">
 
   <div class="intro-box">
-    <p>This guide covers everything you need to manage your team during a CERT activation — from opening the dashboard and tracking member check-ins, to creating sub-teams, assigning tasks, and responding to field reports.</p>
+    <p>This guide covers everything you need to manage your team during a CERT activation — from opening the dashboard and tracking member check-ins, to creating sub-teams, assigning tasks, monitoring the live map, and responding to field reports.</p>
   </div>
 
   <!-- SECTION 1 -->
@@ -119,75 +123,136 @@
 
   <table>
     <tr><th>Team</th><th>Dashboard URL</th><th>Dashboard PIN</th><th>Member PIN</th></tr>
-    <tr><td>Sapphire Point</td><td>https://sapphire.certassist.us</td><td>ST2027..!</td><td>001789</td></tr>
-    <tr><td>Glenn Lakes</td><td>https://glenn.certassist.us</td><td>GS2027..!</td><td>001789</td></tr>
-    <tr><td>Lakewood Ranch</td><td>https://lakewood.certassist.us</td><td>LH2027..!</td><td>001789</td></tr>
-    <tr><td>Lorraine Lakes</td><td>https://lorraine.certassist.us</td><td>LS2027..!</td><td>001789</td></tr>
-    <tr><td>Bayview</td><td>https://bayview.certassist.us</td><td>BW2027..!</td><td>001789</td></tr>
+    <tr><td>Sapphire Point</td><td>https://sapphire.certcommand.org</td><td>ST2027..!</td><td>001789</td></tr>
+    <tr><td>Glenn Lakes</td><td>https://glenn.certcommand.org</td><td>GS2027..!</td><td>001789</td></tr>
+    <tr><td>Lakewood Ranch</td><td>https://lakewood.certcommand.org</td><td>LH2027..!</td><td>001789</td></tr>
+    <tr><td>Lorraine Lakes</td><td>https://lorraine.certcommand.org</td><td>LS2027..!</td><td>001789</td></tr>
+    <tr><td>Bayview</td><td>https://bayview.certcommand.org</td><td>BW2027..!</td><td>001789</td></tr>
   </table>
 
   <div class="info">
-    <strong>Two separate PINs:</strong> Your dashboard PIN is unique to your team and grants full administrative access. The member PIN (001789) is shared across all teams and allows field members to check in and submit reports only. Never give your dashboard PIN to field members.
+    <strong>Two separate PINs:</strong> Your dashboard PIN is unique to your team and grants full administrative access. The member PIN (001789) allows field members to check in and submit reports only. Never share your dashboard PIN with field members.
   </div>
 
   <p style="line-height:1.6; margin-top:12px;">Enter your PIN and click <strong>Enter Dashboard</strong>. The PIN is case-sensitive.</p>
 
-  <div class="tip">Use a tablet or laptop in landscape mode for the best dashboard experience. The dashboard works on phones but the layout is optimized for larger screens.</div>
+  <div class="tip">Use a tablet or laptop in landscape mode for the best experience. The dashboard works on phones but the layout is optimized for larger screens.</div>
 
-  <div class="warning">The dashboard data is stored in memory on the server. If the server restarts, all check-in data is cleared. Members will need to re-check in.</div>
+  <div class="warning">Dashboard data is stored in memory on the server. If the server restarts, all check-in data (members, tasks, sub-teams) is cleared. The audit log (ICS-214) is permanently saved and survives restarts.</div>
 
   <!-- SECTION 2 -->
-  <h2 class="section">2. Dashboard Overview</h2>
+  <h2 class="section">2. Activating and Deactivating CERT</h2>
 
-  <p style="line-height:1.6; margin-bottom:16px;">The dashboard has four main sections:</p>
+  <p style="line-height:1.6; margin-bottom:12px;">Before your team is visible to the County EOC, you must explicitly <strong>activate</strong> your team. This tells the county that your team is operational and should appear on the county dashboard.</p>
+
+  <div class="step-block">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <strong>Click ACTIVATE CERT at the top of the dashboard</strong>
+      A gray banner reads "⚪ CERT INACTIVE — Not visible to County EOC" when your team is not yet activated. Click the green <strong>ACTIVATE CERT</strong> button.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <strong>Confirm the activation prompt</strong>
+      A confirmation dialog appears. Click OK to activate. The banner turns green: <strong>🟢 CERT ACTIVATED — Visible to County EOC</strong>.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <strong>At incident end: click DEACTIVATE CERT</strong>
+      When your team stands down, click <strong>DEACTIVATE CERT</strong> and confirm. Your team will be removed from the county EOC view. Member data, reports, and tasks are preserved.
+    </div>
+  </div>
+
+  <div class="info"><strong>Activation is persistent.</strong> If you close the dashboard browser and come back, your team's activation status is maintained — you do not need to re-activate unless the server container was restarted.</div>
+
+  <div class="warning"><strong>No activation = not visible to county.</strong> If you forget to activate, the county coordinator will not see your team on the county dashboard even if members are checked in.</div>
+
+  <!-- SECTION 3 -->
+  <h2 class="section">3. Dashboard Overview</h2>
+
+  <p style="line-height:1.6; margin-bottom:16px;">The dashboard has five main sections, visible after logging in:</p>
 
   <table>
     <tr><th>Section</th><th>What It Shows</th></tr>
-    <tr><td><strong>Members</strong></td><td>All checked-in members with their name, ICS role, check-in time, and current assignment</td></tr>
-    <tr><td><strong>Sub-Teams</strong></td><td>Sub-teams you've created and which members are in each one</td></tr>
-    <tr><td><strong>Tasks</strong></td><td>All tasks — who they're assigned to, status, and priority</td></tr>
+    <tr><td><strong>Members</strong></td><td>All checked-in members with name, ICS role, check-in time, sub-team, location timestamp, and status</td></tr>
+    <tr><td><strong>Live Map</strong></td><td>GPS pins for all members who have shared their location via the iPhone app</td></tr>
+    <tr><td><strong>Sub-Teams</strong></td><td>Sub-teams you've created and which members are in each</td></tr>
+    <tr><td><strong>Tasks</strong></td><td>All tasks — assignee, status, and priority</td></tr>
     <tr><td><strong>Reports</strong></td><td>ICS-213 incident reports submitted by field members</td></tr>
   </table>
 
-  <p style="line-height:1.6; margin-top:12px;">The dashboard updates in real time via WebSocket — you don't need to refresh.</p>
+  <p style="line-height:1.6; margin-top:12px;">The dashboard updates in real time via WebSocket — no refresh needed.</p>
 
-  <!-- SECTION 3 -->
-  <h2 class="section">3. Managing Member Check-Ins</h2>
+  <!-- SECTION 4 -->
+  <h2 class="section">4. Live Member Map</h2>
 
-  <p style="line-height:1.6; margin-bottom:12px;">Members check in via their phone at <code>[team].certassist.us/member.html</code>. They appear in your Members list within seconds of checking in.</p>
+  <p style="line-height:1.6; margin-bottom:12px;">Members using the iPhone app can share their GPS location with the dashboard. Their position appears as a color-coded pin on the live map.</p>
+
+  <h3 class="step">Pin Colors by Status</h3>
+
+  <div class="map-legend">
+    <div class="map-legend-item"><div class="map-dot" style="background:#198754;"></div> Available</div>
+    <div class="map-legend-item"><div class="map-dot" style="background:#0d6efd;"></div> On Task</div>
+    <div class="map-legend-item"><div class="map-dot" style="background:#FF9500;"></div> Need Help</div>
+    <div class="map-legend-item"><div class="map-dot" style="background:#FF3B30;"></div> Injured</div>
+    <div class="map-legend-item"><div class="map-dot" style="background:#8E8E93;"></div> Unavailable</div>
+  </div>
 
   <div class="step-block">
-    <div class="step-num">👁</div>
+    <div class="step-num">📍</div>
     <div class="step-body">
-      <strong>Viewing members</strong>
-      Each member card shows: name, ICS role, check-in time, current sub-team, and assigned task.
+      <strong>Zoom to a member's location</strong>
+      In the Members list, each member with location data shows a 📍 button next to their name. Tap it to center the map on that member instantly.
     </div>
   </div>
+
+  <div class="step-block">
+    <div class="step-num">🕐</div>
+    <div class="step-body">
+      <strong>Location freshness</strong>
+      The member roster shows when each location was last updated (e.g., "📍 2 minutes ago"). Automatic mode updates every 30 seconds; manual mode updates only when the member taps "Share My Location Now."
+    </div>
+  </div>
+
+  <div class="tip">Members who check in via the web browser do not appear on the map — the GPS feature is iPhone app only. Encourage field members to use the app for best situational awareness.</div>
+
+  <!-- SECTION 5 -->
+  <h2 class="section">5. Managing Member Check-Ins</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">Members check in via the web portal at <code>[team].certcommand.org/member</code> or via the iPhone app. They appear in your Members list within seconds.</p>
 
   <div class="step-block">
     <div class="step-num">✏️</div>
     <div class="step-body">
       <strong>Editing a member's name</strong>
-      Click the member's name to edit it — useful if someone checked in with a typo.
+      Click the member's name to edit it inline — useful if someone checked in with a typo or used a nickname.
     </div>
   </div>
 
   <div class="step-block">
     <div class="step-num">🗑</div>
     <div class="step-body">
-      <strong>Removing a member</strong>
-      Use the remove/delete option on a member card if they've checked out or need to be removed.
+      <strong>Checking out a member remotely</strong>
+      Use the remove/check-out button on a member card to check them out from the dashboard. The member is <strong>immediately notified</strong> — their phone shows an alert saying "Your Team Leader has checked you out" and their session ends automatically. This works for both web and iPhone app users.
     </div>
   </div>
 
-  <!-- SECTION 4 -->
-  <h2 class="section">4. Creating Sub-Teams</h2>
+  <div class="info">Remote check-out notification is delivered within 10 seconds. The member does not need to do anything — their screen returns to the check-in page automatically.</div>
+
+  <!-- SECTION 6 -->
+  <h2 class="section">6. Creating Sub-Teams</h2>
 
   <div class="step-block">
     <div class="step-num">1</div>
     <div class="step-body">
       <strong>Click "Create Sub-Team"</strong>
-      Enter a name for the sub-team (e.g., "Alpha", "Medical Unit", "Search Team 1").
+      Choose a color for the sub-team (Red, Blue, Green, Orange, Purple, Teal, Yellow, Pink). The color becomes the team's visual identifier across the dashboard and members' phones.
     </div>
   </div>
 
@@ -195,28 +260,34 @@
     <div class="step-num">2</div>
     <div class="step-body">
       <strong>Assign members to the sub-team</strong>
-      Click on a member card and select which sub-team to assign them to. Members can only be in one sub-team at a time.
+      Select which checked-in members belong to this sub-team. A member can only be in one sub-team at a time.
     </div>
   </div>
 
   <div class="step-block">
     <div class="step-num">3</div>
     <div class="step-body">
-      <strong>Reassign or move members</strong>
-      You can reassign a member to a different sub-team at any time from their member card.
+      <strong>Member badge updates automatically</strong>
+      Within 10 seconds, each assigned member's phone shows a colored badge: <em>"Red Team"</em>, <em>"Blue Team"</em>, etc. No action needed from members.
     </div>
   </div>
 
-  <div class="tip">Sub-team names appear on the member's phone automatically — they'll know their assignment within 10 seconds of you making it.</div>
+  <div class="step-block">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <strong>Reassign or move members</strong>
+      You can reassign a member to a different sub-team at any time from their member card. Their badge updates on their phone automatically.
+    </div>
+  </div>
 
-  <!-- SECTION 5 -->
-  <h2 class="section">5. Creating and Assigning Tasks</h2>
+  <!-- SECTION 7 -->
+  <h2 class="section">7. Creating and Assigning Tasks</h2>
 
   <div class="step-block">
     <div class="step-num">1</div>
     <div class="step-body">
       <strong>Click "Create Task"</strong>
-      Enter the task title, description, and priority level.
+      Enter the task title, description, and priority level (Low / Medium / High / Critical).
     </div>
   </div>
 
@@ -224,7 +295,7 @@
     <div class="step-num">2</div>
     <div class="step-body">
       <strong>Assign to a member or sub-team</strong>
-      Select who the task goes to. Members see their assigned task on their phone immediately.
+      Select who the task goes to. Members see their task on their phone within 10 seconds.
     </div>
   </div>
 
@@ -232,7 +303,7 @@
     <div class="step-num">3</div>
     <div class="step-body">
       <strong>Track task status</strong>
-      Tasks progress through: <span class="badge-pill badge-orange">Pending</span> → <span class="badge-pill badge-blue">In Progress</span> → <span class="badge-pill badge-green">Completed</span>. Members can update their own task status from their phone.
+      Tasks progress through: <span class="badge-pill badge-orange">Open</span> → <span class="badge-pill badge-blue">Assigned</span> → <span class="badge-pill badge-green">Completed</span>. Members can add comments to tasks from their phone.
     </div>
   </div>
 
@@ -240,20 +311,20 @@
     <div class="step-num">4</div>
     <div class="step-body">
       <strong>Edit or cancel a task</strong>
-      Click on any task in the Tasks section to edit its details, reassign it, or cancel it.
+      Click on any task to edit, reassign, or cancel it.
     </div>
   </div>
 
-  <!-- SECTION 6 -->
-  <h2 class="section">6. Viewing and Replying to Reports</h2>
+  <!-- SECTION 8 -->
+  <h2 class="section">8. Viewing and Replying to Reports</h2>
 
-  <p style="line-height:1.6; margin-bottom:16px;">Members submit ICS-213 General Message reports from their phones. These appear in the Reports section of your dashboard.</p>
+  <p style="line-height:1.6; margin-bottom:12px;">Members submit ICS-213 General Message reports from their phones or the web portal. These appear in the Reports section.</p>
 
   <div class="step-block">
     <div class="step-num">1</div>
     <div class="step-body">
       <strong>Click on any report to open it</strong>
-      The report detail shows all ICS-213 fields: Subject, From (member name + position), Incident Type, Severity, Location, and Description.
+      The detail shows all ICS-213 fields: Subject, From, Incident Type, Severity, Location, and Description.
     </div>
   </div>
 
@@ -261,7 +332,7 @@
     <div class="step-num">2</div>
     <div class="step-body">
       <strong>Send a reply</strong>
-      Type your response in the Reply field and click <strong>Send Reply</strong>. The member sees your reply on their phone within 10 seconds.
+      Type your response in the Reply field and click <strong>Send Reply</strong>. The member sees it on their phone within 10 seconds.
     </div>
   </div>
 
@@ -269,7 +340,15 @@
     <div class="step-num">3</div>
     <div class="step-body">
       <strong>Acknowledge or escalate</strong>
-      Use the <strong>Acknowledge</strong> button to mark a report as reviewed. Use <strong>Escalate to County</strong> to forward it to the county coordination dashboard.
+      Use <strong>Acknowledge</strong> to mark as reviewed. Use <strong>Escalate to County</strong> to forward to the county coordination dashboard.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">4</div>
+    <div class="step-body">
+      <strong>Export the report as ICS-213</strong>
+      Every report has a <strong>📋 ICS-213</strong> button in the action row at the bottom of the detail view. Clicking it opens a new tab with a fully formatted, printable FEMA ICS-213 General Message form, pre-filled with the report data, reply, and county acknowledgment status.
     </div>
   </div>
 
@@ -281,16 +360,17 @@
     <tr><td><span class="badge-green badge-pill">Low</span></td><td>FYI / informational</td></tr>
   </table>
 
-  <!-- SECTION 7 -->
-  <h2 class="section">7. Escalating to County</h2>
+  <div class="info">ICS-213 forms can be exported from both the team leader's dashboard and the county EOC dashboard. Use them for after-action documentation, insurance records, or incident filing.</div>
 
-  <p style="line-height:1.6; margin-bottom:16px;">For incidents requiring county-level coordination, escalate directly from the report detail view.</p>
+  <!-- SECTION 9 -->
+  <h2 class="section">9. Escalating to County</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">For incidents requiring county-level coordination, escalate from the report detail view.</p>
 
   <div class="step-block">
     <div class="step-num">1</div>
     <div class="step-body">
       <strong>Open the report</strong>
-      Click the report that needs county attention.
     </div>
   </div>
 
@@ -298,58 +378,85 @@
     <div class="step-num">2</div>
     <div class="step-body">
       <strong>Click "Escalate to County"</strong>
-      The report is forwarded to the County dashboard at <a href="https://county.certassist.us">county.certassist.us</a> instantly. The report is flagged as escalated on your dashboard.
+      The report is forwarded to the County EOC dashboard at <a href="https://county.certcommand.org">county.certcommand.org</a> instantly. The report is flagged as escalated on your dashboard.
     </div>
   </div>
 
   <div class="info">
-    <strong>County Dashboard PIN:</strong> CY2027..! — Share this only with authorized county coordinators.
+    <strong>County Dashboard URL:</strong> https://county.certcommand.org<br>
+    The county coordinator's PIN is provided separately — do not include it in member-facing materials.
   </div>
 
-  <!-- SECTION 8 -->
-  <h2 class="section">8. Quick Reference — Keyboard Actions</h2>
+  <!-- SECTION 10 -->
+  <h2 class="section">10. Incident Log &amp; ICS-214 Export</h2>
+
+  <p style="line-height:1.6; margin-bottom:12px;">Every significant event during an activation is automatically logged: check-ins, check-outs, status changes, reports, task assignments, replies, and sub-team creation.</p>
+
+  <div class="step-block">
+    <div class="step-num">📄</div>
+    <div class="step-body">
+      <strong>View the Incident Log</strong>
+      The Incident Log panel on the dashboard shows a timestamped event history for the current activation.
+    </div>
+  </div>
+
+  <div class="step-block">
+    <div class="step-num">🖨</div>
+    <div class="step-body">
+      <strong>Export ICS-214</strong>
+      Click "Export ICS-214" to generate a FEMA/NIMS-compliant Activity Log in printable format. Includes the ICS-211 Check-In/Check-Out roster.
+    </div>
+  </div>
+
+  <div class="info">The incident log is stored permanently in the database and survives server restarts. You can export the ICS-214 at any time, even after the activation ends.</div>
+
+  <!-- SECTION 10 -->
+  <h2 class="section">10. Quick Reference</h2>
 
   <table>
     <tr><th>Action</th><th>How To</th></tr>
-    <tr><td>Open a member detail</td><td>Click on the member card</td></tr>
-    <tr><td>Create sub-team</td><td>"Create Sub-Team" button, top of Sub-Teams section</td></tr>
-    <tr><td>Create task</td><td>"Create Task" button, top of Tasks section</td></tr>
+    <tr><td>Edit member name</td><td>Click the member's name text → edit inline</td></tr>
+    <tr><td>Check out a member remotely</td><td>Member card → check-out / remove button</td></tr>
+    <tr><td>Zoom map to a member</td><td>Members list → tap 📍 button next to their name</td></tr>
+    <tr><td>Create sub-team</td><td>"Create Sub-Team" button → choose color → assign members</td></tr>
+    <tr><td>Create task</td><td>"Create Task" button → fill in details → assign</td></tr>
     <tr><td>Reply to report</td><td>Click report → type in Reply field → Send Reply</td></tr>
     <tr><td>Escalate to county</td><td>Click report → Escalate to County button</td></tr>
-    <tr><td>Edit member name</td><td>Click member name text → edit inline</td></tr>
-    <tr><td>Remove member</td><td>Member card → delete/remove option</td></tr>
+    <tr><td>Export ICS-214</td><td>Incident Log panel → Export ICS-214</td></tr>
   </table>
 
-  <!-- SECTION 9 -->
-  <h2 class="section">9. Troubleshooting</h2>
+  <!-- SECTION 11 -->
+  <h2 class="section">11. Troubleshooting</h2>
 
   <table>
     <tr><th>Problem</th><th>Solution</th></tr>
     <tr><td>Member checked in but not showing</td><td>Hard refresh the dashboard (Shift+Refresh). If the server restarted, the member needs to re-check in.</td></tr>
-    <tr><td>Dashboard shows no data after restart</td><td>All in-memory data is cleared on restart. Have all members re-check in.</td></tr>
-    <tr><td>WebSocket disconnected (no live updates)</td><td>Refresh the page and re-enter your PIN. This reconnects the WebSocket.</td></tr>
-    <tr><td>Report not showing county escalation</td><td>Check that county server is running: county.certassist.us should load.</td></tr>
+    <tr><td>Dashboard shows no data after restart</td><td>In-memory data is cleared on restart. Have all members re-check in. The ICS-214 log is preserved.</td></tr>
+    <tr><td>WebSocket disconnected (no live updates)</td><td>Refresh the page and re-enter your PIN — this reconnects the WebSocket.</td></tr>
+    <tr><td>Member not appearing on map</td><td>Member may be using the web browser (no GPS). Ask them to use the iPhone app and enable location sharing.</td></tr>
+    <tr><td>Report not showing county escalation</td><td>Check that county.certcommand.org loads. If it doesn't, the county server may be down.</td></tr>
     <tr><td>Locked out after wrong PIN</td><td>Wait 1 hour for automatic unlock, or contact the system administrator.</td></tr>
   </table>
 
-  <!-- SECTION 10 -->
-  <h2 class="section">10. Activation Checklist</h2>
+  <!-- SECTION 12 -->
+  <h2 class="section">12. Activation Checklist</h2>
 
   <table>
     <tr><th>Step</th><th>Action</th><th>Done?</th></tr>
     <tr><td>1</td><td>Open dashboard on laptop/tablet</td><td>☐</td></tr>
-    <tr><td>2</td><td>Confirm all members have the member portal URL and PIN</td><td>☐</td></tr>
+    <tr><td>2</td><td>Confirm all members have the portal URL, member PIN, and CERT Command app (if using)</td><td>☐</td></tr>
     <tr><td>3</td><td>Verify members are checking in and appearing on dashboard</td><td>☐</td></tr>
-    <tr><td>4</td><td>Create sub-teams as needed</td><td>☐</td></tr>
-    <tr><td>5</td><td>Assign members to sub-teams</td><td>☐</td></tr>
+    <tr><td>4</td><td>Check live map — confirm iPhone app users are sharing location</td><td>☐</td></tr>
+    <tr><td>5</td><td>Create sub-teams and assign members</td><td>☐</td></tr>
     <tr><td>6</td><td>Create and assign initial tasks</td><td>☐</td></tr>
     <tr><td>7</td><td>Monitor Reports section for incoming field reports</td><td>☐</td></tr>
     <tr><td>8</td><td>Reply to reports promptly — members are waiting for guidance</td><td>☐</td></tr>
     <tr><td>9</td><td>Escalate critical incidents to county as needed</td><td>☐</td></tr>
+    <tr><td>10</td><td>At end of activation: export ICS-214 from Incident Log panel</td><td>☐</td></tr>
   </table>
 
   <footer>
-    CERT Assist &nbsp;·&nbsp; certassist.us &nbsp;·&nbsp; Team Leader Edition &nbsp;·&nbsp; 2026
+    CERT Command &nbsp;·&nbsp; certcommand.org &nbsp;·&nbsp; Team Leader Edition &nbsp;·&nbsp; v1.3 &nbsp;·&nbsp; 2026
   </footer>
 
 </div>

@@ -23,6 +23,9 @@ Backend/.swiftpm/
 # Logs
 *.log
 
+# Private admin notes
+ADMIN.md
+
 # Credentials / local config
 Backend/config/pins.json
 CountyServer/config/pins.json

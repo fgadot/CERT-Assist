@@ -1,6 +1,6 @@
 //
 //  SplashView.swift
-//  CERT Assist
+//  CERT Command
 //
 
 import SwiftUI
@@ -27,7 +27,7 @@ struct SplashView: View {
                     .foregroundStyle(Color(red: 0.224, green: 0.710, blue: 0.290))
                     .padding(.bottom, 24)
 
-                Text("CERT Assist")
+                Text("CERT Command")
                     .font(.system(size: 42, weight: .bold))
                     .foregroundStyle(.white)
 

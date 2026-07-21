@@ -40,7 +40,7 @@ Field Members (iPhone / member.html)
 
 ## Current Implementation — Feature Status (v0.9)
 
-### iOS App (`/CERT Assist/`)
+### iOS App (`/CERT Command/`)
 - Check-in with name, role, ICS position, equipment list
 - Field report submission (type, severity, location, notes)
 - Task view and status updates
@@ -254,7 +254,7 @@ See `SECURITY-STATUS.md` for full details.
 
 ```bash
 # Start all 3 services (county + team-alpha + team-beta)
-cd "CERT Assist"
+cd "CERT Command"
 docker compose -f docker-compose.local.yml up --build
 
 # Check in to team alpha (port 8080, memberPin 0000)

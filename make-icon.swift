@@ -127,7 +127,7 @@ func makeIcon(size: Int, dark: Bool, tinted: Bool) -> Data? {
 
 // ─── Generate all variants ────────────────────────────────────────────────────
 
-let appiconset = "/Users/frank/Library/Mobile Documents/com~apple~CloudDocs/DEV/XCODE/CERT Assist/CERT Assist/Assets.xcassets/AppIcon.appiconset"
+let appiconset = "/Users/frank/Library/Mobile Documents/com~apple~CloudDocs/DEV/XCODE/CERT Command/CERT Command/Assets.xcassets/AppIcon.appiconset"
 
 let variants: [(name: String, dark: Bool, tinted: Bool)] = [
     ("AppIcon.png",        false, false),

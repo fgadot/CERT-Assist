@@ -1,6 +1,6 @@
 //
 //  IncidentManager.swift
-//  CERT Assist
+//  CERT Command
 //
 //  Created by frank gadot on 2026.06.09.
 //
@@ -357,17 +357,61 @@ class IncidentManager {
         request.setValue(memberPIN, forHTTPHeaderField: "X-CERT-Token")
         request.timeoutInterval = 8
 
-        struct MeResponse: Decodable { var checkedOutByLeader: Bool }
+        struct RemoteTask: Decodable {
+            var id: UUID?
+            var title: String
+            var description: String
+            var assignedTo: [UUID]
+            var status: TaskStatus
+            var priority: String
+            var notes: String
+            var createdAt: Date?
+            var completedAt: Date?
+        }
+        struct MeResponse: Decodable {
+            var checkedOutByLeader: Bool
+            var subTeamName: String?
+            var subTeamColor: String?
+            var assignedTasks: [RemoteTask]?
+        }
         guard let (data, response) = try? await URLSession.shared.data(for: request),
               let http = response as? HTTPURLResponse, http.statusCode == 200 else { return }
 
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
         guard let result = try? decoder.decode(MeResponse.self, from: data) else { return }
 
         if result.checkedOutByLeader {
             remoteCheckoutMessage = "Your Team Leader has checked you out."
             performLocalCheckout()
+        } else {
+            if var member = currentMember,
+               member.subTeamName != result.subTeamName || member.subTeamColor != result.subTeamColor {
+                member.subTeamName = result.subTeamName
+                member.subTeamColor = result.subTeamColor
+                currentMember = member
+                if let idx = members.firstIndex(where: { $0.id == member.id }) {
+                    members[idx] = member
+                }
+                saveCurrentMember()
+            }
+            if let remoteTasks = result.assignedTasks {
+                tasks = remoteTasks.compactMap { remote in
+                    guard let taskId = remote.id else { return nil }
+                    return Task(
+                        id: taskId,
+                        title: remote.title,
+                        description: remote.description,
+                        assignedTo: remote.assignedTo,
+                        status: remote.status,
+                        priority: Severity(rawValue: remote.priority) ?? .medium,
+                        createdAt: remote.createdAt ?? Date(),
+                        completedAt: remote.completedAt,
+                        notes: remote.notes
+                    )
+                }
+            }
         }
     }
 

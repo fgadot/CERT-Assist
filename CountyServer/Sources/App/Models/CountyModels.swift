@@ -11,6 +11,7 @@ import Vapor
 struct TeamSummary: Content {
     var teamId: String
     var teamName: String
+    var isActivated: Bool
     var location: String?
     var endpoint: String?          // e.g. "https://oakdale.cert.w6fgc.com"
     var memberCount: Int

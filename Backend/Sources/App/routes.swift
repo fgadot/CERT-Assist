@@ -44,6 +44,7 @@ actor DataStore {
         log("🚀 DataStore initialized - Audit logging started")
         loadPins()
         loadVersions()
+        loadActivation()
     }
 
     private func log(_ message: String) {
@@ -78,6 +79,33 @@ actor DataStore {
 
     private var pinConfigURL: URL { URL(fileURLWithPath: "/app/config/pins.json") }
     private var versionConfigURL: URL { URL(fileURLWithPath: "/app/config/versions.json") }
+    private var activationURL: URL { URL(fileURLWithPath: "/app/data/activation.json") }
+
+    // ── CERT Activation state ─────────────────────────────────────────────────────
+    var isActivated: Bool = false
+
+    func loadActivation() {
+        struct ActivationState: Decodable { var isActivated: Bool }
+        if let data = try? Data(contentsOf: activationURL),
+           let state = try? JSONDecoder().decode(ActivationState.self, from: data) {
+            isActivated = state.isActivated
+        }
+        log("🟢 Activation state loaded: \(isActivated ? "ACTIVATED" : "INACTIVE")")
+    }
+
+    func saveActivation() {
+        let json = "{\"isActivated\":\(isActivated)}"
+        let dir = URL(fileURLWithPath: "/app/data")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? json.data(using: .utf8)?.write(to: activationURL, options: .atomic)
+    }
+
+    func setActivated(_ value: Bool) async {
+        isActivated = value
+        saveActivation()
+        log(value ? "🟢 CERT ACTIVATED — team is now visible to county EOC" : "🔴 CERT DEACTIVATED — team removed from county EOC view")
+        await broadcastUpdate()
+    }
 
     private var minimumVersion: String = "1.2"
     private var latestVersion: String = "1.2"
@@ -175,6 +203,7 @@ actor DataStore {
         return TeamSummary(
             teamID: teamID,
             teamName: teamName,
+            isActivated: isActivated,
             location: teamLocation,
             endpoint: teamEndpoint,
             memberCount: members.count,
@@ -252,6 +281,15 @@ actor DataStore {
 
     func checkAndClearForceCheckoutByID(_ id: UUID) -> Bool {
         return forceCheckedOutMemberIDs.remove(id) != nil
+    }
+
+    func memberByDeviceToken(_ token: String) -> CERTMember? {
+        members.values.first { $0.deviceToken == token }
+    }
+
+    func subTeamForMember(_ member: CERTMember) -> SubTeam? {
+        guard let id = member.subTeamId else { return nil }
+        return subTeams[id]
     }
 
     func setLoanable(_ id: UUID, loanable: Bool) async {
@@ -506,6 +544,7 @@ actor DataStore {
             subTeams: Array(subTeams.values),
             loanableMembers: Array(loanableMembers),
             countyInbox: countyInbox,
+            isActivated: isActivated,
             lastUpdate: Date()
         )
     }
@@ -708,7 +747,31 @@ func routes(_ app: Application) throws {
            await dataStore.checkAndClearForceCheckoutByID(id) {
             return MeResponse(checkedOutByLeader: true)
         }
-        return MeResponse(checkedOutByLeader: false)
+
+        // Resolve the caller's member record to return current sub-team assignment
+        var member: CERTMember? = nil
+        if let token = query.deviceToken, !token.isEmpty {
+            member = await dataStore.memberByDeviceToken(token)
+        } else if let idString = query.memberId, let id = UUID(uuidString: idString) {
+            member = await dataStore.members[id]
+        }
+
+        var subTeamName: String? = nil
+        var subTeamColor: String? = nil
+        if let m = member, let subTeam = await dataStore.subTeamForMember(m) {
+            subTeamName = "\(subTeam.color.rawValue) Team"
+            subTeamColor = subTeam.color.rawValue
+        }
+
+        var memberTasks: [CERTTask]? = nil
+        if let m = member, let memberId = m.id {
+            let assigned = await dataStore.tasks.values.filter {
+                ($0.status == .open || $0.status == .assigned) && $0.assignedTo.contains(memberId)
+            }
+            memberTasks = Array(assigned)
+        }
+
+        return MeResponse(checkedOutByLeader: false, subTeamName: subTeamName, subTeamColor: subTeamColor, assignedTasks: memberTasks)
     }
 
     memberApi.post("reports") { req async throws -> IncidentReport in
@@ -770,6 +833,22 @@ func routes(_ app: Application) throws {
             details: ["role": member.role, "status_at_checkout": member.status.rawValue, "checked_out_by": "Team Leader"]
         )
         return .noContent
+    }
+
+    // ── CERT Activation / Deactivation ───────────────────────────────────────────
+
+    adminApi.post("activate") { req async throws -> HTTPStatus in
+        await dataStore.setActivated(true)
+        try? await req.logAudit(action: "cert_activate", actorName: "Team Leader",
+            targetType: "team", details: ["status": "activated"])
+        return .ok
+    }
+
+    adminApi.post("deactivate") { req async throws -> HTTPStatus in
+        await dataStore.setActivated(false)
+        try? await req.logAudit(action: "cert_deactivate", actorName: "Team Leader",
+            targetType: "team", details: ["status": "deactivated"])
+        return .ok
     }
 
     adminApi.put("reports", ":id") { req async throws -> IncidentReport in

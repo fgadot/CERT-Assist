@@ -1,6 +1,6 @@
 //
 //  Models.swift
-//  CERT Assist
+//  CERT Command
 //
 //  Created by frank gadot on 2026.06.09.
 //
@@ -19,7 +19,9 @@ struct CERTMember: Identifiable, Codable, Hashable {
     var location: LocationData?
     var equipment: [Equipment]
     var lastUpdated: Date
-    
+    var subTeamName: String?
+    var subTeamColor: String?
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -27,7 +29,9 @@ struct CERTMember: Identifiable, Codable, Hashable {
         status: MemberStatus = .unavailable,
         location: LocationData? = nil,
         equipment: [Equipment] = [],
-        lastUpdated: Date = Date()
+        lastUpdated: Date = Date(),
+        subTeamName: String? = nil,
+        subTeamColor: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -36,6 +40,8 @@ struct CERTMember: Identifiable, Codable, Hashable {
         self.location = location
         self.equipment = equipment
         self.lastUpdated = lastUpdated
+        self.subTeamName = subTeamName
+        self.subTeamColor = subTeamColor
     }
 }
 

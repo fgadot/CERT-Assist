@@ -1,6 +1,6 @@
 //
 //  ReportsListView.swift
-//  CERT Assist
+//  CERT Command
 //
 //  Created by frank gadot on 2026.06.09.
 //
@@ -119,7 +119,7 @@ struct NewReportSheet: View {
     @State private var locationManager = LocationManager.shared
     
     @State private var reportType: ReportType = .other
-    @State private var severity: Severity = .medium
+    @State private var severity: Severity = .low
     @State private var notes = ""
     @State private var useCurrentLocation = true
     

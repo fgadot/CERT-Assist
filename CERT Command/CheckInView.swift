@@ -1,6 +1,6 @@
 //
 //  CheckInView.swift
-//  CERT Assist
+//  CERT Command
 //
 //  Created by frank gadot on 2026.06.09.
 //
@@ -15,6 +15,7 @@ struct CheckInView: View {
     @State private var pendingStatus: MemberStatus? = nil
     @State private var showStatusConfirmation = false
     @State private var isPushingLocation = false
+    @State private var showCheckOutConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -35,6 +36,17 @@ struct CheckInView: View {
                             Text(member.role)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
+
+                            if let teamName = member.subTeamName {
+                                Text(teamName)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 5)
+                                    .background(subTeamBadgeColor(member.subTeamColor))
+                                    .clipShape(Capsule())
+                            }
 
                             // Status grid — 2×2, tap to activate, tap again to deactivate (with confirmation)
                             let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 2)
@@ -189,12 +201,20 @@ struct CheckInView: View {
 
                         // Check Out Button
                         Button(role: .destructive) {
-                            manager.checkOut()
+                            showCheckOutConfirmation = true
                         } label: {
                             Label("Check Out", systemImage: "rectangle.portrait.and.arrow.right")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.bordered)
+                        .confirmationDialog("Check Out", isPresented: $showCheckOutConfirmation) {
+                            Button("Check Out", role: .destructive) {
+                                manager.checkOut()
+                            }
+                            Button("Cancel", role: .cancel) {}
+                        } message: {
+                            Text("End your session and check out?")
+                        }
                     }
                     .padding()
                 }
@@ -397,6 +417,20 @@ struct CheckInSheet: View {
         } message: {
             Text(manager.checkInError ?? "Unknown error")
         }
+    }
+}
+
+private func subTeamBadgeColor(_ colorName: String?) -> Color {
+    switch colorName?.lowercased() {
+    case "red":    return Color(red: 0.863, green: 0.208, blue: 0.271)
+    case "blue":   return Color(red: 0.051, green: 0.431, blue: 0.992)
+    case "green":  return Color(red: 0.098, green: 0.529, blue: 0.329)
+    case "yellow": return Color(red: 1.000, green: 0.753, blue: 0.027)
+    case "purple": return Color(red: 0.435, green: 0.259, blue: 0.757)
+    case "orange": return Color(red: 0.992, green: 0.494, blue: 0.078)
+    case "teal":   return Color(red: 0.125, green: 0.788, blue: 0.592)
+    case "pink":   return Color(red: 0.839, green: 0.200, blue: 0.518)
+    default:       return Color(.systemGray)
     }
 }
 

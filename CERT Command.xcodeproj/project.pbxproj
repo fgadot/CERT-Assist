@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		0111BDA12FF71151008C1D85 /* CERT Assist.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "CERT Assist.xcodeproj"; sourceTree = "<group>"; };
 		0111BDA22FF71151008C1D85 /* CountyServer */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = CountyServer; sourceTree = "<group>"; };
 		0111BDA32FF71151008C1D85 /* docker-compose.local.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = "docker-compose.local.yml"; sourceTree = "<group>"; };
 		0111BDA42FF71151008C1D85 /* pins.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = pins.json; sourceTree = "<group>"; };
@@ -20,16 +19,17 @@
 		0111BDCC30099558008C1D85 /* docker-compose.prod.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = "docker-compose.prod.yml"; sourceTree = "<group>"; };
 		0111BDCE300997E2008C1D85 /* member-manual.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "member-manual.html"; sourceTree = "<group>"; };
 		0111BDCF300997E2008C1D85 /* teamleader-manual.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "teamleader-manual.html"; sourceTree = "<group>"; };
-		0150D2C92FD89590003A00CC /* CERT Assist.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CERT Assist.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0150D2C92FD89590003A00CC /* CERT Command.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CERT Command.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0159ABC5300FAE3000ADEFDB /* ADMIN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ADMIN.md; sourceTree = "<group>"; };
 		01C583782FDCC69A007BE0B1 /* Backend */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Backend; sourceTree = "<group>"; };
 		01D28180300D1B5C00828086 /* certassist.conf */ = {isa = PBXFileReference; lastKnownFileType = text; path = certassist.conf; sourceTree = "<group>"; };
 		01D28181300D1B5C00828086 /* maintenance.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = maintenance.html; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0150D2CB2FD89590003A00CC /* CERT Assist */ = {
+		0150D2CB2FD89590003A00CC /* CERT Command */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "CERT Assist";
+			path = "CERT Command";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -101,11 +101,6 @@
 			path = "local-test";
 			sourceTree = "<group>";
 		};
-		0111BDAD2FF71151008C1D85 /* Products */ = {
-			isa = PBXGroup;
-			name = Products;
-			sourceTree = "<group>";
-		};
 		0111BDC230099493008C1D85 /* server-config */ = {
 			isa = PBXGroup;
 			children = (
@@ -127,20 +122,20 @@
 		0150D2C02FD89590003A00CC = {
 			isa = PBXGroup;
 			children = (
+				0159ABC5300FAE3000ADEFDB /* ADMIN.md */,
 				01D28182300D1B5C00828086 /* nginx */,
 				0111BDD0300997E2008C1D85 /* docs */,
 				0111BDCC30099558008C1D85 /* docker-compose.prod.yml */,
 				0111BDC63009953E008C1D85 /* build-push.sh */,
 				0111BDC73009953E008C1D85 /* DEPLOY-STATUS.md */,
 				0111BDC83009953E008C1D85 /* setup-server.sh */,
-				0111BDA12FF71151008C1D85 /* CERT Assist.xcodeproj */,
 				0111BDA22FF71151008C1D85 /* CountyServer */,
 				0111BDA32FF71151008C1D85 /* docker-compose.local.yml */,
 				0111BDAB2FF71151008C1D85 /* local-test */,
 				0111BDAC2FF71151008C1D85 /* runall.test */,
 				0111BDC230099493008C1D85 /* server-config */,
 				01C583782FDCC69A007BE0B1 /* Backend */,
-				0150D2CB2FD89590003A00CC /* CERT Assist */,
+				0150D2CB2FD89590003A00CC /* CERT Command */,
 				0150D2CA2FD89590003A00CC /* Products */,
 			);
 			sourceTree = "<group>";
@@ -148,7 +143,7 @@
 		0150D2CA2FD89590003A00CC /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0150D2C92FD89590003A00CC /* CERT Assist.app */,
+				0150D2C92FD89590003A00CC /* CERT Command.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -165,9 +160,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0150D2C82FD89590003A00CC /* CERT Assist */ = {
+		0150D2C82FD89590003A00CC /* CERT Command */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0150D2D42FD89591003A00CC /* Build configuration list for PBXNativeTarget "CERT Assist" */;
+			buildConfigurationList = 0150D2D42FD89591003A00CC /* Build configuration list for PBXNativeTarget "CERT Command" */;
 			buildPhases = (
 				0150D2C52FD89590003A00CC /* Sources */,
 				0150D2C62FD89590003A00CC /* Frameworks */,
@@ -178,13 +173,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				0150D2CB2FD89590003A00CC /* CERT Assist */,
+				0150D2CB2FD89590003A00CC /* CERT Command */,
 			);
-			name = "CERT Assist";
+			name = "CERT Command";
 			packageProductDependencies = (
 			);
 			productName = "CERT Assist";
-			productReference = 0150D2C92FD89590003A00CC /* CERT Assist.app */;
+			productReference = 0150D2C92FD89590003A00CC /* CERT Command.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -202,7 +197,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 0150D2C42FD89590003A00CC /* Build configuration list for PBXProject "CERT Assist" */;
+			buildConfigurationList = 0150D2C42FD89590003A00CC /* Build configuration list for PBXProject "CERT Command" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -214,15 +209,9 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0150D2CA2FD89590003A00CC /* Products */;
 			projectDirPath = "";
-			projectReferences = (
-				{
-					ProductGroup = 0111BDAD2FF71151008C1D85 /* Products */;
-					ProjectRef = 0111BDA12FF71151008C1D85 /* CERT Assist.xcodeproj */;
-				},
-			);
 			projectRoot = "";
 			targets = (
-				0150D2C82FD89590003A00CC /* CERT Assist */,
+				0150D2C82FD89590003A00CC /* CERT Command */,
 			);
 		};
 /* End PBXProject section */
@@ -379,7 +368,7 @@
 				DEVELOPMENT_TEAM = UXUD572N2N;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "CERT Assist uses your location to show your position to your team on the map and to attach coordinates to incident reports you submit.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "CERT Command uses your location to show your position to your team on the map and to attach coordinates to incident reports you submit.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -391,7 +380,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.2;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.universe-corrupted.CERT-Assist";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.universe-corrupted.CERT-Command";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -413,7 +402,7 @@
 				DEVELOPMENT_TEAM = UXUD572N2N;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "CERT Assist uses your location to show your position to your team on the map and to attach coordinates to incident reports you submit.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "CERT Command uses your location to show your position to your team on the map and to attach coordinates to incident reports you submit.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -425,7 +414,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.2;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.universe-corrupted.CERT-Assist";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.universe-corrupted.CERT-Command";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -440,7 +429,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0150D2C42FD89590003A00CC /* Build configuration list for PBXProject "CERT Assist" */ = {
+		0150D2C42FD89590003A00CC /* Build configuration list for PBXProject "CERT Command" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0150D2D22FD89591003A00CC /* Debug */,
@@ -449,7 +438,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0150D2D42FD89591003A00CC /* Build configuration list for PBXNativeTarget "CERT Assist" */ = {
+		0150D2D42FD89591003A00CC /* Build configuration list for PBXNativeTarget "CERT Command" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0150D2D52FD89591003A00CC /* Debug */,

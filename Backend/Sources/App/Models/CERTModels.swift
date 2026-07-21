@@ -195,6 +195,9 @@ struct CheckInResponse: Content {
 
 struct MeResponse: Content {
     var checkedOutByLeader: Bool
+    var subTeamName: String?
+    var subTeamColor: String?
+    var assignedTasks: [CERTTask]?
 }
 
 struct DashboardData: Content {
@@ -205,6 +208,7 @@ struct DashboardData: Content {
     var subTeams: [SubTeam]
     var loanableMembers: [UUID]
     var countyInbox: [CountyMessage]   // recent alert/info messages received from county
+    var isActivated: Bool
     var lastUpdate: Date
 }
 
@@ -213,6 +217,7 @@ struct DashboardData: Content {
 struct TeamSummary: Content {
     var teamID: String
     var teamName: String
+    var isActivated: Bool
     var location: String?
     var endpoint: String?
     var memberCount: Int

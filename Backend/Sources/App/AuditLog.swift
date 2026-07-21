@@ -217,7 +217,7 @@ func buildICS214HTML(teamName: String, incidentName: String, entries: [AuditLog]
     </table>
 
     <footer>
-      CERT Assist &nbsp;·&nbsp; certassist.us &nbsp;·&nbsp; ICS-214 Activity Log (v3.1 format)
+      CERT Command &nbsp;·&nbsp; certcommand.org &nbsp;·&nbsp; ICS-214 Activity Log (v3.1 format)
       &nbsp;·&nbsp; Retain all completed originals per NIMS documentation requirements.
     </footer>
     </body>
