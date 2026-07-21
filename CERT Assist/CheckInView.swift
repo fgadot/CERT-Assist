@@ -250,6 +250,16 @@ struct CheckInView: View {
                 }
             }
         }
+        .alert("Checked Out by Team Leader", isPresented: Binding(
+            get: { manager.remoteCheckoutMessage != nil },
+            set: { if !$0 { manager.remoteCheckoutMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {
+                manager.remoteCheckoutMessage = nil
+            }
+        } message: {
+            Text(manager.remoteCheckoutMessage ?? "")
+        }
     }
 }
 

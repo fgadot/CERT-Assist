@@ -233,6 +233,27 @@ actor DataStore {
 
     var loanableMembers: Set<UUID> = []
 
+    // ── Force Checkout ────────────────────────────────────────────────────────────
+    // Device tokens queued for "checked out by leader" notification (in-memory)
+
+    private var forceCheckedOutTokens: Set<String> = []   // iOS device tokens
+    private var forceCheckedOutMemberIDs: Set<UUID> = []  // web portal member UUIDs
+
+    func markForceCheckout(deviceToken: String?, memberID: UUID?) {
+        if let token = deviceToken, !token.isEmpty { forceCheckedOutTokens.insert(token) }
+        if let id = memberID { forceCheckedOutMemberIDs.insert(id) }
+        log("🚪 FORCE CHECKOUT QUEUED (device/member notification pending)")
+    }
+
+    // Returns true and removes the entry if it was queued; false otherwise
+    func checkAndClearForceCheckout(deviceToken: String) -> Bool {
+        return forceCheckedOutTokens.remove(deviceToken) != nil
+    }
+
+    func checkAndClearForceCheckoutByID(_ id: UUID) -> Bool {
+        return forceCheckedOutMemberIDs.remove(id) != nil
+    }
+
     func setLoanable(_ id: UUID, loanable: Bool) async {
         if loanable { loanableMembers.insert(id) } else { loanableMembers.remove(id) }
         log("🔄 LOANABLE: \(id) → \(loanable ? "available for transfer" : "not available")")
@@ -608,6 +629,17 @@ func routes(_ app: Application) throws {
     memberApi.post("checkin") { req async throws -> CheckInResponse in
         var member = try req.content.decode(CERTMember.self)
 
+        // Reject re-registration if a team leader force-checked-out this device
+        if let token = member.deviceToken, !token.isEmpty,
+           await dataStore.checkAndClearForceCheckout(deviceToken: token) {
+            return CheckInResponse(
+                success: false,
+                message: "You have been checked out by your Team Leader.",
+                memberID: nil,
+                checkedOutByLeader: true
+            )
+        }
+
         // Deduplicate: if a device token matches an existing member, resume that session
         if let token = member.deviceToken, !token.isEmpty {
             let all = await dataStore.getAllMembers()
@@ -663,6 +695,22 @@ func routes(_ app: Application) throws {
         return .noContent
     }
 
+    // Poll endpoint — iOS calls with deviceToken, web portal calls with memberId
+    memberApi.get("me") { req async throws -> MeResponse in
+        struct PollQuery: Decodable { var deviceToken: String?; var memberId: String? }
+        let query = (try? req.query.decode(PollQuery.self)) ?? PollQuery(deviceToken: nil, memberId: nil)
+
+        if let token = query.deviceToken, !token.isEmpty,
+           await dataStore.checkAndClearForceCheckout(deviceToken: token) {
+            return MeResponse(checkedOutByLeader: true)
+        }
+        if let idString = query.memberId, let id = UUID(uuidString: idString),
+           await dataStore.checkAndClearForceCheckoutByID(id) {
+            return MeResponse(checkedOutByLeader: true)
+        }
+        return MeResponse(checkedOutByLeader: false)
+    }
+
     memberApi.post("reports") { req async throws -> IncidentReport in
         var report = try req.content.decode(IncidentReport.self)
         if report.id == nil { report.id = UUID() }
@@ -710,6 +758,8 @@ func routes(_ app: Application) throws {
     adminApi.delete("members", ":id") { req async throws -> HTTPStatus in
         let id = try req.parameters.require("id", as: UUID.self)
         guard let member = await dataStore.members[id] else { throw Abort(.notFound) }
+        // Queue a force-checkout notification (iOS polls by device token, web polls by member ID)
+        await dataStore.markForceCheckout(deviceToken: member.deviceToken, memberID: id)
         await dataStore.removeMember(id: id)
         try? await req.logAudit(
             action: "member_checkout",
@@ -717,7 +767,7 @@ func routes(_ app: Application) throws {
             actorName: member.name,
             targetType: "member",
             targetID: id.uuidString,
-            details: ["role": member.role, "status_at_checkout": member.status.rawValue]
+            details: ["role": member.role, "status_at_checkout": member.status.rawValue, "checked_out_by": "Team Leader"]
         )
         return .noContent
     }

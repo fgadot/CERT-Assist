@@ -190,6 +190,11 @@ struct CheckInResponse: Content {
     var success: Bool
     var message: String
     var memberID: UUID?
+    var checkedOutByLeader: Bool?
+}
+
+struct MeResponse: Content {
+    var checkedOutByLeader: Bool
 }
 
 struct DashboardData: Content {

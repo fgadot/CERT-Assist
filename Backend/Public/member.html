@@ -811,6 +811,18 @@
                         </div>`;
                     }).join('');
             }
+            // ── Force-checkout detection ──────────────────────────────────────
+            if (memberID) {
+                try {
+                    const me = await api('GET', `/api/me?memberId=${encodeURIComponent(memberID)}`);
+                    if (me && me.checked_out_by_leader) {
+                        clearInterval(refreshTimer);
+                        refreshTimer = null;
+                        alert('Your Team Leader has checked you out.');
+                        checkOut();
+                    }
+                } catch (_) { /* silent — treat as no force-checkout */ }
+            }
         } catch (e) {
             // Silent fail — server might be temporarily unreachable
         }

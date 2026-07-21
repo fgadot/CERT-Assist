@@ -144,6 +144,8 @@ class IncidentManager {
 
     var checkInError: String?
     var isCheckingIn = false
+    var remoteCheckoutMessage: String? = nil
+    private var pollTimer: Timer?
 
     // Saved after a successful check-in so subsequent API calls can reach the server
     private(set) var serverURL: String = ""
@@ -187,6 +189,7 @@ class IncidentManager {
             var success: Bool
             var message: String
             var memberId: UUID?
+            var checkedOutByLeader: Bool?
         }
 
         let payload = Payload(
@@ -235,6 +238,11 @@ class IncidentManager {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let result = try decoder.decode(CheckInResponse.self, from: data)
+            if result.checkedOutByLeader == true {
+                checkInError = result.message
+                isCheckingIn = false
+                return
+            }
             let member = CERTMember(
                 id: result.memberId ?? UUID(),
                 name: name,
@@ -248,6 +256,7 @@ class IncidentManager {
             self.memberPIN = memberPIN
             saveCurrentMember()
             applyLocationMode(locationTrackingMode)
+            startServerPolling()
         } catch {
             checkInError = "Could not reach server — check URL and connection"
         }
@@ -304,17 +313,62 @@ class IncidentManager {
         }
     }
     
-    func checkOut() {
-        guard let member = currentMember else { return }
+    private func performLocalCheckout() {
         locationTimer?.invalidate()
         locationTimer = nil
+        stopServerPolling()
         locationManager.stopUpdating()
         cancelLocationReminder()
         currentMember = nil
         members = []
         saveCurrentMember()
+    }
+
+    func checkOut() {
+        guard let member = currentMember else { return }
         let id = member.id
+        performLocalCheckout()
         Swift.Task { await self.pushCheckOut(memberID: id) }
+    }
+
+    // MARK: - Server Polling (detects force-checkout by team leader)
+
+    private func startServerPolling() {
+        pollTimer?.invalidate()
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
+            Swift.Task { @MainActor [weak self] in await self?.pollServerStatus() }
+        }
+        Swift.Task { @MainActor [weak self] in await self?.pollServerStatus() }
+    }
+
+    private func stopServerPolling() {
+        pollTimer?.invalidate()
+        pollTimer = nil
+    }
+
+    @MainActor
+    private func pollServerStatus() async {
+        guard !serverURL.isEmpty, !memberPIN.isEmpty, isCheckedIn else { return }
+        let base = serverURL.trimmingCharacters(in: ["/"])
+        let tokenParam = deviceToken.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? deviceToken
+        guard let url = URL(string: "\(base)/api/me?deviceToken=\(tokenParam)") else { return }
+
+        var request = URLRequest(url: url)
+        request.setValue(memberPIN, forHTTPHeaderField: "X-CERT-Token")
+        request.timeoutInterval = 8
+
+        struct MeResponse: Decodable { var checkedOutByLeader: Bool }
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let http = response as? HTTPURLResponse, http.statusCode == 200 else { return }
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        guard let result = try? decoder.decode(MeResponse.self, from: data) else { return }
+
+        if result.checkedOutByLeader {
+            remoteCheckoutMessage = "Your Team Leader has checked you out."
+            performLocalCheckout()
+        }
     }
 
     @MainActor
@@ -524,6 +578,7 @@ class IncidentManager {
         struct ResumeResponse: Decodable {
             var success: Bool
             var memberId: UUID?
+            var checkedOutByLeader: Bool?
         }
 
         let payload = ResumePayload(
@@ -560,17 +615,24 @@ class IncidentManager {
             guard http.statusCode == 200 else { return }
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
-            if let result = try? decoder.decode(ResumeResponse.self, from: data),
-               let newId = result.memberId, newId != member.id {
-                // Server assigned a new ID (e.g. after a restart) — update locally
-                let updated = CERTMember(id: newId, name: member.name, role: member.role,
-                                        status: member.status, location: member.location,
-                                        equipment: member.equipment)
-                currentMember = updated
-                members = [updated]
-                saveCurrentMember()
+            if let result = try? decoder.decode(ResumeResponse.self, from: data) {
+                if result.checkedOutByLeader == true {
+                    remoteCheckoutMessage = "Your Team Leader checked you out while you were away."
+                    performLocalCheckout()
+                    return
+                }
+                if let newId = result.memberId, newId != member.id {
+                    // Server assigned a new ID (e.g. after a restart) — update locally
+                    let updated = CERTMember(id: newId, name: member.name, role: member.role,
+                                            status: member.status, location: member.location,
+                                            equipment: member.equipment)
+                    currentMember = updated
+                    members = [updated]
+                    saveCurrentMember()
+                }
             }
             applyLocationMode(locationTrackingMode)
+            startServerPolling()
         } catch {
             // Network failure — keep local state; user can still see their status
         }

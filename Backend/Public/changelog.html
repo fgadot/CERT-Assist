@@ -106,6 +106,41 @@
     <p>CERT Assist — Release history and updates</p>
   </div>
 
+  <!-- v1.3 -->
+  <div class="version-block">
+    <div class="version-header">
+      <div>
+        <div class="version-tag">v1.3</div>
+        <div class="version-date">July 21, 2026</div>
+      </div>
+      <span class="version-badge">Update</span>
+    </div>
+    <div class="change-list">
+
+      <div class="change-group">
+        <div class="change-group-label">Remote Check-Out Notification</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Members are now notified within 10 seconds when a team leader checks them out from the dashboard</div>
+        <div class="change-item"><span class="change-icon">🆕</span>iPhone app displays an alert: "Your Team Leader has checked you out" and returns to check-in screen automatically</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Web member portal detects the same event and shows the message, then clears the session</div>
+        <div class="change-item"><span class="change-icon">🆕</span>If the app was in the background or killed, the notification is shown on next launch</div>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label">Version Enforcement</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Server now publishes a minimum required app version — outdated clients are blocked at check-in</div>
+        <div class="change-item"><span class="change-icon">🆕</span>App displays a full-screen "Update Required" message when the server requires a newer version</div>
+        <div class="change-item"><span class="change-icon">🆕</span>Version requirement is configurable via <code>config/versions.json</code> without redeploying</div>
+      </div>
+
+      <div class="change-group">
+        <div class="change-group-label">Fixes</div>
+        <div class="change-item"><span class="change-icon">🔧</span>Server address field now defaults to <code>http://</code> — local IP addresses work without typing a prefix</div>
+        <div class="change-item"><span class="change-icon">🔧</span>Explicit <code>https://</code> addresses still pass through unchanged (production unaffected)</div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- v1.2 -->
   <div class="version-block">
     <div class="version-header">
