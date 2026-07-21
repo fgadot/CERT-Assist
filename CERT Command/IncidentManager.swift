@@ -79,7 +79,12 @@ class IncidentManager {
             members = [member]
         }
         serverURL = UserDefaults.standard.string(forKey: "certServerURL") ?? ""
-        memberPIN = UserDefaults.standard.string(forKey: "certMemberPIN") ?? ""
+        // Migrate PIN from UserDefaults to Keychain on first launch after upgrade
+        if let legacyPIN = UserDefaults.standard.string(forKey: "certMemberPIN"), !legacyPIN.isEmpty {
+            KeychainHelper.set(legacyPIN, forKey: "certMemberPIN")
+            UserDefaults.standard.removeObject(forKey: "certMemberPIN")
+        }
+        memberPIN = KeychainHelper.get("certMemberPIN") ?? ""
     }
     
     // MARK: - Incident Management

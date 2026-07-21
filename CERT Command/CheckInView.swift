@@ -294,7 +294,6 @@ struct CheckInSheet: View {
 
     // Connection — pre-populated from last saved values
     @AppStorage("certServerURL") private var savedServerURL = ""
-    @AppStorage("certMemberPIN") private var savedMemberPIN = ""
     @State private var serverURL = ""
     @State private var memberPIN = ""
 
@@ -342,7 +341,7 @@ struct CheckInSheet: View {
                                 showError = true
                             } else {
                                 savedServerURL = serverURL
-                                savedMemberPIN = memberPIN
+                                KeychainHelper.set(memberPIN, forKey: "certMemberPIN")
                                 dismiss()
                             }
                         }
@@ -410,7 +409,7 @@ struct CheckInSheet: View {
             if url.hasPrefix("https://") { url = String(url.dropFirst(8)) }
             else if url.hasPrefix("http://") { url = String(url.dropFirst(7)) }
             serverURL = url.lowercased()
-            memberPIN = savedMemberPIN
+            memberPIN = KeychainHelper.get("certMemberPIN") ?? ""
         }
         .alert("Check-In Failed", isPresented: $showError) {
             Button("OK", role: .cancel) {}
