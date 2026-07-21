@@ -1048,16 +1048,27 @@ func routes(_ app: Application) throws {
         let id = try req.parameters.require("id", as: UUID.self)
         var subTeam = try req.content.decode(SubTeam.self)
         subTeam.id = id
-        await dataStore.updateSubTeam(subTeam)
-        let allMembers = await dataStore.getAllMembers()
-        let memberNames = allMembers.filter { m in m.id.map { subTeam.memberIDs.contains($0) } ?? false }.map { $0.name }
-        try? await req.logAudit(
-            action: "subteam_updated",
-            actorName: "Team Leader",
-            targetType: "subteam",
-            targetID: id.uuidString,
-            details: ["color": subTeam.color.rawValue, "members": memberNames.joined(separator: ", ")]
-        )
+        if subTeam.memberIDs.isEmpty {
+            await dataStore.deleteSubTeam(id)
+            try? await req.logAudit(
+                action: "subteam_dissolved",
+                actorName: "Team Leader",
+                targetType: "subteam",
+                targetID: id.uuidString,
+                details: ["color": subTeam.color.rawValue, "reason": "last member removed"]
+            )
+        } else {
+            await dataStore.updateSubTeam(subTeam)
+            let allMembers = await dataStore.getAllMembers()
+            let memberNames = allMembers.filter { m in m.id.map { subTeam.memberIDs.contains($0) } ?? false }.map { $0.name }
+            try? await req.logAudit(
+                action: "subteam_updated",
+                actorName: "Team Leader",
+                targetType: "subteam",
+                targetID: id.uuidString,
+                details: ["color": subTeam.color.rawValue, "members": memberNames.joined(separator: ", ")]
+            )
+        }
         return subTeam
     }
 
