@@ -8,6 +8,8 @@ services:
       - ENVIRONMENT=production
       - COUNTY_PIN=Les equipes CERT servent et protegent notre communaute
       - COUNTY_API_TOKEN=cert-api-f3a7b2c9-d8e4-4f1a-b5c6-d3e9f2a8b4c1
+    volumes:
+      - ./public/county:/app/Public
 
   team-sapphire:
     image: cert-backend:latest
@@ -26,6 +28,7 @@ services:
     volumes:
       - ./data/sapphire:/app/data
       - ./config/sapphire:/app/config
+      - ./public/backend:/app/Public
     depends_on:
       - county
 
@@ -46,6 +49,7 @@ services:
     volumes:
       - ./data/glenn:/app/data
       - ./config/glenn:/app/config
+      - ./public/backend:/app/Public
     depends_on:
       - county
 
@@ -66,6 +70,7 @@ services:
     volumes:
       - ./data/lakewood:/app/data
       - ./config/lakewood:/app/config
+      - ./public/backend:/app/Public
     depends_on:
       - county
 
@@ -86,6 +91,7 @@ services:
     volumes:
       - ./data/lorraine:/app/data
       - ./config/lorraine:/app/config
+      - ./public/backend:/app/Public
     depends_on:
       - county
 
@@ -106,5 +112,6 @@ services:
     volumes:
       - ./data/bayview:/app/data
       - ./config/bayview:/app/config
+      - ./public/backend:/app/Public
     depends_on:
       - county

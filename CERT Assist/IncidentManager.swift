@@ -6,7 +6,9 @@
 //
 
 import Foundation
+import CoreLocation
 import Observation
+import UserNotifications
 
 /// Main data manager for the CERT Field Board app
 /// Handles all incidents, members, reports, and tasks
@@ -56,10 +58,28 @@ class IncidentManager {
         tasks.filter { $0.status == .cancelled }
     }
     
+    // MARK: - Device Token
+
+    // Stable UUID that identifies this device across app launches
+    var deviceToken: String {
+        if let token = UserDefaults.standard.string(forKey: "certDeviceToken") { return token }
+        let token = UUID().uuidString
+        UserDefaults.standard.set(token, forKey: "certDeviceToken")
+        return token
+    }
+
     // MARK: - Init
-    
+
     private init() {
-        clearAllData()
+        // Restore previous check-in state so users don't lose their session on relaunch
+        let decoder = JSONDecoder()
+        if let data = UserDefaults.standard.data(forKey: "currentMember"),
+           let member = try? decoder.decode(CERTMember.self, from: data) {
+            currentMember = member
+            members = [member]
+        }
+        serverURL = UserDefaults.standard.string(forKey: "certServerURL") ?? ""
+        memberPIN = UserDefaults.standard.string(forKey: "certMemberPIN") ?? ""
     }
     
     // MARK: - Incident Management
@@ -74,6 +94,52 @@ class IncidentManager {
         currentIncident?.endDate = Date()
     }
     
+    // MARK: - Version Enforcement
+
+    var requiresUpdate = false
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+    }
+
+    private func isVersion(_ version: String, atLeast minimum: String) -> Bool {
+        let v = version.split(separator: ".").compactMap { Int($0) }
+        let m = minimum.split(separator: ".").compactMap { Int($0) }
+        for i in 0..<max(v.count, m.count) {
+            let vi = i < v.count ? v[i] : 0
+            let mi = i < m.count ? m[i] : 0
+            if vi < mi { return false }
+            if vi > mi { return true }
+        }
+        return true
+    }
+
+    // Returns false if the server explicitly requires a newer version.
+    // Network errors are treated as pass (don't block on connectivity issues).
+    @MainActor
+    func checkVersion(serverURL: String) async -> Bool {
+        let base = serverURL.trimmingCharacters(in: ["/"])
+        guard let url = URL(string: base + "/api/version") else { return true }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 5
+
+        struct VersionResponse: Decodable { var minimumVersion: String }
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            return true  // can't reach server — don't block
+        }
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        guard let versionInfo = try? decoder.decode(VersionResponse.self, from: data) else { return true }
+
+        if !isVersion(appVersion, atLeast: versionInfo.minimumVersion) {
+            requiresUpdate = true
+            return false
+        }
+        return true
+    }
+
     // MARK: - Check-in State
 
     var checkInError: String?
@@ -90,10 +156,20 @@ class IncidentManager {
         isCheckingIn = true
         checkInError = nil
 
-        let base = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        var base = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
                             .trimmingCharacters(in: ["/"])
+        if !base.hasPrefix("http://") && !base.hasPrefix("https://") {
+            base = "http://" + base
+        }
         guard let url = URL(string: base + "/api/checkin") else {
-            checkInError = "Invalid server URL"
+            checkInError = "Invalid server address"
+            isCheckingIn = false
+            return
+        }
+
+        let versionOK = await checkVersion(serverURL: base)
+        guard versionOK else {
+            checkInError = nil  // UpdateRequiredView handles the messaging
             isCheckingIn = false
             return
         }
@@ -104,6 +180,7 @@ class IncidentManager {
             var status: String
             var equipment: [String]
             var lastUpdated: Date
+            var deviceToken: String
         }
 
         struct CheckInResponse: Decodable {
@@ -117,7 +194,8 @@ class IncidentManager {
             role: role,
             status: "Available",
             equipment: equipment.map(\.rawValue),
-            lastUpdated: Date()
+            lastUpdated: Date(),
+            deviceToken: deviceToken
         )
 
         var request = URLRequest(url: url)
@@ -165,9 +243,11 @@ class IncidentManager {
                 equipment: equipment
             )
             currentMember = member
-            members.append(member)
-            self.serverURL = serverURL
+            members = [member]
+            self.serverURL = base
             self.memberPIN = memberPIN
+            saveCurrentMember()
+            applyLocationMode(locationTrackingMode)
         } catch {
             checkInError = "Could not reach server — check URL and connection"
         }
@@ -208,6 +288,7 @@ class IncidentManager {
             members[index] = member
         }
 
+        saveCurrentMember()
         let memberID = member.id
         Swift.Task { await self.pushStatusUpdate(memberID: memberID, status: status) }
     }
@@ -224,16 +305,141 @@ class IncidentManager {
     }
     
     func checkOut() {
-        guard var member = currentMember else { return }
-        member.status = .unavailable
-        member.lastUpdated = Date()
-        
-        if let index = members.firstIndex(where: { $0.id == member.id }) {
-            members[index] = member
-        }
+        guard let member = currentMember else { return }
+        locationTimer?.invalidate()
+        locationTimer = nil
+        locationManager.stopUpdating()
+        cancelLocationReminder()
         currentMember = nil
+        members = []
+        saveCurrentMember()
+        let id = member.id
+        Swift.Task { await self.pushCheckOut(memberID: id) }
+    }
+
+    @MainActor
+    private func pushCheckOut(memberID: UUID) async {
+        guard !serverURL.isEmpty, !memberPIN.isEmpty else { return }
+        guard let url = URL(string: serverURL.trimmingCharacters(in: ["/"])  + "/api/checkout") else { return }
+
+        struct Body: Encodable { var memberId: UUID }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(memberPIN, forHTTPHeaderField: "X-CERT-Token")
+        request.timeoutInterval = 8
+
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        guard let body = try? encoder.encode(Body(memberId: memberID)) else { return }
+        request.httpBody = body
+
+        _ = try? await URLSession.shared.data(for: request)
     }
     
+    // MARK: - Location Tracking
+
+    enum LocationTrackingMode: String {
+        case automatic = "automatic"
+        case manual    = "manual"
+    }
+
+    private let locationManager = LocationManager.shared
+    private var locationTimer: Timer?
+
+    var locationTrackingMode: LocationTrackingMode {
+        get {
+            let raw = UserDefaults.standard.string(forKey: "certLocationMode") ?? "manual"
+            return LocationTrackingMode(rawValue: raw) ?? .manual
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: "certLocationMode")
+            applyLocationMode(newValue)
+        }
+    }
+
+    func applyLocationMode(_ mode: LocationTrackingMode) {
+        locationTimer?.invalidate()
+        locationTimer = nil
+        cancelLocationReminder()
+        guard isCheckedIn else { return }
+
+        locationManager.requestPermissionAndStart()
+
+        switch mode {
+        case .automatic:
+            locationTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+                Swift.Task { @MainActor [weak self] in await self?.pushCurrentLocation() }
+            }
+            // Push immediately on activation
+            Swift.Task { @MainActor [weak self] in await self?.pushCurrentLocation() }
+        case .manual:
+            scheduleLocationReminder()
+        }
+    }
+
+    @MainActor
+    func pushCurrentLocation() async {
+        guard let clLocation = locationManager.currentLocation,
+              let member = currentMember else { return }
+        let locationData = LocationData(coordinate: clLocation.coordinate)
+        await pushLocationToServer(locationData, memberID: member.id)
+        // Update local state so the map reflects it immediately
+        var updated = member
+        updated.location = locationData
+        updated.lastUpdated = Date()
+        currentMember = updated
+        if let idx = members.firstIndex(where: { $0.id == member.id }) {
+            members[idx] = updated
+        }
+    }
+
+    @MainActor
+    private func pushLocationToServer(_ location: LocationData, memberID: UUID) async {
+        guard !serverURL.isEmpty, !memberPIN.isEmpty else { return }
+        let base = serverURL.trimmingCharacters(in: ["/"])
+        guard let url = URL(string: "\(base)/api/members/\(memberID)/location") else { return }
+
+        struct LocationPayload: Encodable {
+            var latitude: Double
+            var longitude: Double
+            var address: String?
+            var timestamp: Date
+        }
+        let payload = LocationPayload(latitude: location.latitude, longitude: location.longitude,
+                                      address: location.address, timestamp: location.timestamp)
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(memberPIN, forHTTPHeaderField: "X-CERT-Token")
+        request.timeoutInterval = 8
+
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.dateEncodingStrategy = .iso8601
+        guard let body = try? encoder.encode(payload) else { return }
+        request.httpBody = body
+        _ = try? await URLSession.shared.data(for: request)
+    }
+
+    private func scheduleLocationReminder() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "CERT Location Reminder"
+            content.body = "Your team leader needs your location. Tap to update."
+            content.sound = .default
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 30 * 60, repeats: true)
+            let req = UNNotificationRequest(identifier: "certLocationReminder", content: content, trigger: trigger)
+            UNUserNotificationCenter.current().add(req)
+        }
+    }
+
+    private func cancelLocationReminder() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["certLocationReminder"])
+    }
+
     // MARK: - Report Management
     
     func addReport(_ report: IncidentReport) {
@@ -286,7 +492,90 @@ class IncidentManager {
     }
     
     // MARK: - Data Persistence
-    
+
+    // Saves only the fields needed to resume a check-in session across launches
+    private func saveCurrentMember() {
+        let encoder = JSONEncoder()
+        if let member = currentMember, let data = try? encoder.encode(member) {
+            UserDefaults.standard.set(data, forKey: "currentMember")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "currentMember")
+        }
+    }
+
+    // Re-registers with the server on launch so the member entry survives server restarts
+    @MainActor
+    func autoResume() async {
+        guard let member = currentMember, !serverURL.isEmpty, !memberPIN.isEmpty else { return }
+
+        let versionOK = await checkVersion(serverURL: serverURL)
+        guard versionOK else { return }  // requiresUpdate already set; UI will block
+
+        guard let checkInURL = URL(string: serverURL.trimmingCharacters(in: ["/"])  + "/api/checkin") else { return }
+
+        struct ResumePayload: Encodable {
+            var name: String
+            var role: String
+            var status: String
+            var equipment: [String]
+            var lastUpdated: Date
+            var deviceToken: String
+        }
+        struct ResumeResponse: Decodable {
+            var success: Bool
+            var memberId: UUID?
+        }
+
+        let payload = ResumePayload(
+            name: member.name,
+            role: member.role,
+            status: member.status.rawValue,
+            equipment: member.equipment.map(\.rawValue),
+            lastUpdated: Date(),
+            deviceToken: deviceToken
+        )
+
+        var request = URLRequest(url: checkInURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(memberPIN, forHTTPHeaderField: "X-CERT-Token")
+        request.timeoutInterval = 10
+
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.dateEncodingStrategy = .iso8601
+        guard let body = try? encoder.encode(payload) else { return }
+        request.httpBody = body
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else { return }
+            if http.statusCode == 401 {
+                // PIN rejected — clear session so user is prompted to check in again
+                currentMember = nil
+                members = []
+                saveCurrentMember()
+                return
+            }
+            guard http.statusCode == 200 else { return }
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            if let result = try? decoder.decode(ResumeResponse.self, from: data),
+               let newId = result.memberId, newId != member.id {
+                // Server assigned a new ID (e.g. after a restart) — update locally
+                let updated = CERTMember(id: newId, name: member.name, role: member.role,
+                                        status: member.status, location: member.location,
+                                        equipment: member.equipment)
+                currentMember = updated
+                members = [updated]
+                saveCurrentMember()
+            }
+            applyLocationMode(locationTrackingMode)
+        } catch {
+            // Network failure — keep local state; user can still see their status
+        }
+    }
+
     private func saveData() {
         let encoder = JSONEncoder()
         

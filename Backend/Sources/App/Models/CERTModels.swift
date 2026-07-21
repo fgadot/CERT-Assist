@@ -55,6 +55,7 @@ struct CERTMember: Content {
     var lastUpdated: Date
     var lentToTeam: String?       // team ID of the team that borrowed this member
     var lentRequestId: String?    // transfer request UUID — needed for recall
+    var deviceToken: String?      // stable per-device identifier for session resumption
 
     enum MemberStatus: String, Codable {
         case available   = "Available"

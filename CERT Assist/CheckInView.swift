@@ -10,9 +10,11 @@ import SwiftUI
 struct CheckInView: View {
 
     @State private var manager = IncidentManager.shared
+    @State private var locationManager = LocationManager.shared
     @State private var showingCheckIn = false
     @State private var pendingStatus: MemberStatus? = nil
     @State private var showStatusConfirmation = false
+    @State private var isPushingLocation = false
 
     var body: some View {
         NavigationStack {
@@ -93,6 +95,59 @@ struct CheckInView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
 
+                        // Location Sharing
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Label("Location Sharing", systemImage: "location.fill")
+                                    .font(.headline)
+                                Spacer()
+                                Picker("", selection: Binding(
+                                    get: { manager.locationTrackingMode },
+                                    set: { manager.locationTrackingMode = $0 }
+                                )) {
+                                    Text("Auto").tag(IncidentManager.LocationTrackingMode.automatic)
+                                    Text("Manual").tag(IncidentManager.LocationTrackingMode.manual)
+                                }
+                                .pickerStyle(.segmented)
+                                .frame(width: 130)
+                            }
+
+                            if manager.locationTrackingMode == .automatic {
+                                Label("Updating every 30 seconds", systemImage: "arrow.clockwise")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    if let ts = member.location?.timestamp {
+                                        Label("Last update: \(ts.formatted(.relative(presentation: .named)))",
+                                              systemImage: "clock")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    } else {
+                                        Label("Location not shared yet", systemImage: "location.slash")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Button {
+                                        isPushingLocation = true
+                                        Swift.Task {
+                                            await manager.pushCurrentLocation()
+                                            isPushingLocation = false
+                                        }
+                                    } label: {
+                                        Label(isPushingLocation ? "Updating…" : "Share My Location Now",
+                                              systemImage: "location.fill")
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(isPushingLocation || locationManager.currentLocation == nil)
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(Color(.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
                         // Team Members
                         if manager.members.count > 1 {
                             VStack(alignment: .leading, spacing: 12) {
@@ -158,13 +213,19 @@ struct CheckInView: View {
             } else {
                 // Not checked in yet
                 VStack(spacing: 24) {
+                    Text("Check In")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 16)
+
                     Image(systemName: "person.badge.shield.checkmark.fill")
                         .font(.system(size: 80))
                         .foregroundStyle(.blue)
 
                     Text("CERT Field Board")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
+                        .font(.title2)
+                        .fontWeight(.semibold)
 
                     Text("Check in to activate your CERT status and begin coordinating with your team")
                         .font(.body)
@@ -183,7 +244,7 @@ struct CheckInView: View {
                     .controlSize(.large)
                     .padding(.horizontal, 40)
                 }
-                .navigationTitle("Check In")
+                .navigationTitle("")
                 .sheet(isPresented: $showingCheckIn) {
                     CheckInSheet()
                 }
@@ -224,40 +285,41 @@ struct CheckInSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Custom navigation bar — avoids SwiftUI toolbar overload ambiguity
-            HStack {
-                Button("Cancel") {
-                    dismiss()
-                }
-                .disabled(manager.isCheckingIn)
-
-                Spacer()
-
+            // Custom navigation bar — ZStack keeps title truly centered regardless of button widths
+            ZStack {
                 Text("Check In")
                     .font(.headline)
+                    .frame(maxWidth: .infinity)
 
-                Spacer()
+                HStack {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .disabled(manager.isCheckingIn)
 
-                Button(manager.isCheckingIn ? "Checking In…" : "Check In") {
-                    Swift.Task {
-                        await manager.checkIn(
-                            name: name,
-                            role: role,
-                            equipment: Array(selectedEquipment),
-                            serverURL: serverURL,
-                            memberPIN: memberPIN
-                        )
-                        if manager.checkInError != nil {
-                            showError = true
-                        } else {
-                            savedServerURL = serverURL
-                            savedMemberPIN = memberPIN
-                            dismiss()
+                    Spacer()
+
+                    Button(manager.isCheckingIn ? "Checking In…" : "Check In") {
+                        Swift.Task {
+                            await manager.checkIn(
+                                name: name,
+                                role: role,
+                                equipment: Array(selectedEquipment),
+                                serverURL: serverURL,
+                                memberPIN: memberPIN
+                            )
+                            if manager.checkInError != nil {
+                                showError = true
+                            } else {
+                                savedServerURL = serverURL
+                                savedMemberPIN = memberPIN
+                                dismiss()
+                            }
                         }
                     }
+                    .fontWeight(.semibold)
+                    .disabled(!canCheckIn)
                 }
-                .fontWeight(.semibold)
-                .disabled(!canCheckIn)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
@@ -268,16 +330,20 @@ struct CheckInSheet: View {
 
             Form {
                 Section {
-                    TextField("https://sapphire.certassist.us", text: $serverURL)
+                    TextField("server", text: $serverURL)
                         .keyboardType(.URL)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
-                    SecureField("Member PIN", text: $memberPIN)
+                        .onChange(of: serverURL) { _, newValue in
+                            let lower = newValue.lowercased()
+                            if lower != newValue { serverURL = lower }
+                        }
+                    SecureField("PIN", text: $memberPIN)
                         .keyboardType(.default)
                 } header: {
                     Text("Server Connection")
                 } footer: {
-                    Text("Your team leader will provide the server URL and PIN.")
+                    Text("Your team leader will provide the server address and PIN.")
                 }
 
                 Section("Your Information") {
@@ -310,7 +376,10 @@ struct CheckInSheet: View {
             }
         }
         .onAppear {
-            serverURL = savedServerURL
+            var url = savedServerURL
+            if url.hasPrefix("https://") { url = String(url.dropFirst(8)) }
+            else if url.hasPrefix("http://") { url = String(url.dropFirst(7)) }
+            serverURL = url.lowercased()
             memberPIN = savedMemberPIN
         }
         .alert("Check-In Failed", isPresented: $showError) {

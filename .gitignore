@@ -22,3 +22,11 @@ Backend/.swiftpm/
 
 # Logs
 *.log
+
+# Credentials / local config
+Backend/config/pins.json
+CountyServer/config/pins.json
+local-test/*/config/pins.json
+
+# Local test runtime data (SQLite databases, etc.)
+local-test/*/data/

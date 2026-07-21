@@ -561,6 +561,8 @@
             align-items: center;
         }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 </head>
 <body>
     <header>
@@ -1807,6 +1809,15 @@
                            title="Check out this member">✕ Out</button>`
                     : '';
 
+                const locationBtn = member.location
+                    ? `<button class="btn-sm" style="color:#007AFF;border-color:#b3d7ff;font-size:10px;margin-left:4px;"
+                           onclick="focusMemberOnMap(${member.location.latitude}, ${member.location.longitude}, '${esc(member.name)}', '${member.status}')"
+                           title="View on map">📍</button>`
+                    : '';
+                const locationMeta = member.location
+                    ? `<span style="color:#aaa;font-size:11px;margin-left:6px;">📍 ${relativeTime(member.location.timestamp)}</span>`
+                    : '';
+
                 const statusKey = member.status.toLowerCase().replace(' ', '');
                 const urgentLabel = member.status === 'Need Help'
                     ? `<div style="font-size:13px;font-weight:700;color:#FF9500;margin-top:4px;">⚠️ NEEDS HELP</div>`
@@ -1819,11 +1830,11 @@
                     ${equip}
                     <div class="item-header" style="display:flex;justify-content:space-between;align-items:center;">
                         <span>${teamBadge}${esc(member.name)}</span>
-                        <span style="display:flex;align-items:center;gap:4px;">${actionEl}${checkoutBtn}</span>
+                        <span style="display:flex;align-items:center;gap:4px;">${locationBtn}${actionEl}${checkoutBtn}</span>
                     </div>
                     <div class="item-meta">
                         <span class="badge ${isLent ? 'lent' : statusKey}">${isLent ? 'On Loan' : esc(member.status)}</span>
-                        ${esc(member.role)}
+                        ${esc(member.role)}${locationMeta}
                     </div>
                     ${urgentLabel}
                 </div>`;
@@ -1862,7 +1873,7 @@
             }
 
             container.innerHTML = ownHtml + borrowHtml;
-            console.log('Member list HTML updated');
+            updateMemberMap(members);
         }
         
         function updateReportList(reports, subTeams) {
@@ -2776,8 +2787,146 @@
     </div>
 </div>
 
+<!-- ── Member Map Panel ────────────────────────────────────────────────────── -->
+<div id="memberMapPanel" style="background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);margin:20px 0;overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;cursor:pointer;border-bottom:1px solid #f0f0f0;" onclick="toggleMemberMap()">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <h2 style="margin:0;font-size:18px;">📍 Member Map</h2>
+            <span id="mapMemberCount" style="background:#e8f4fd;color:#0051D5;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;"></span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <button onclick="event.stopPropagation();showAllOnMap()" style="background:#007AFF;color:white;border:none;padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;">Show All</button>
+            <span id="memberMapToggleArrow" style="font-size:20px;color:#aaa;transition:transform 0.2s;">›</span>
+        </div>
+    </div>
+    <div id="memberMapBody" style="display:block;">
+        <div id="memberMapContainer" style="height:420px;width:100%;"></div>
+    </div>
+</div>
+
 <footer style="text-align:center;padding:20px;color:#aaa;font-size:12px;">
-  CERT Assist v1.1 &nbsp;·&nbsp; <a href="/changelog.html" style="color:#007AFF;text-decoration:none;">What's new</a>
+  CERT Assist v1.2 &nbsp;·&nbsp; <a href="/changelog" style="color:#007AFF;text-decoration:none;">What's new</a>
 </footer>
+
+<script>
+// ── Member Map (Leaflet) ───────────────────────────────────────────────────────
+let memberMap = null;
+let memberMapMarkers = {};
+let memberMapOpen = true;
+let latestMemberData = [];
+
+const STATUS_COLORS = {
+    'available':  '#34C759',
+    'on task':    '#007AFF',
+    'unavailable':'#8E8E93',
+    'need help':  '#FF9500',
+    'injured':    '#FF3B30',
+    'on loan':    '#AF52DE'
+};
+
+function statusColor(status) {
+    return STATUS_COLORS[(status || '').toLowerCase()] || '#8E8E93';
+}
+
+function relativeTime(isoString) {
+    if (!isoString) return '';
+    const diff = Math.floor((Date.now() - new Date(isoString)) / 1000);
+    if (diff < 60)  return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    return `${Math.floor(diff/3600)}h ago`;
+}
+
+// Auto-initialize when the page loads (map starts open)
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => { initMemberMap(); }, 300);
+});
+
+function initMemberMap() {
+    if (memberMap) return;
+    memberMap = L.map('memberMapContainer').setView([27.5, -82.5], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19
+    }).addTo(memberMap);
+}
+
+function makeMemberIcon(status) {
+    const color = statusColor(status);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="12" fill="${color}" stroke="white" stroke-width="2.5"/>
+        <text x="14" y="19" text-anchor="middle" font-size="13" fill="white">👤</text>
+    </svg>`;
+    return L.divIcon({
+        html: svg, className: '', iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -16]
+    });
+}
+
+function updateMemberMap(members) {
+    latestMemberData = members || [];
+    const located = members.filter(m => m.location && m.location.latitude);
+    document.getElementById('mapMemberCount').textContent =
+        located.length > 0 ? `${located.length} located` : 'no locations yet';
+
+    if (!memberMap) return;
+
+    // Remove markers for members no longer present
+    Object.keys(memberMapMarkers).forEach(id => {
+        if (!members.find(m => m.id === id)) {
+            memberMap.removeLayer(memberMapMarkers[id]);
+            delete memberMapMarkers[id];
+        }
+    });
+
+    // Add / update markers
+    located.forEach(m => {
+        const lat = m.location.latitude, lng = m.location.longitude;
+        const popup = `<b>${m.name}</b><br>${m.role}<br>
+            <span style="color:${statusColor(m.status)};font-weight:600;">${m.status}</span><br>
+            <small>📍 ${relativeTime(m.location.timestamp)}</small>`;
+        if (memberMapMarkers[m.id]) {
+            memberMapMarkers[m.id].setLatLng([lat, lng]).setPopupContent(popup);
+        } else {
+            memberMapMarkers[m.id] = L.marker([lat, lng], { icon: makeMemberIcon(m.status) })
+                .bindPopup(popup)
+                .addTo(memberMap);
+        }
+    });
+}
+
+function showAllOnMap() {
+    if (!memberMapOpen) toggleMemberMap();
+    const located = latestMemberData.filter(m => m.location && m.location.latitude);
+    if (!located.length) return;
+    if (!memberMap) { setTimeout(showAllOnMap, 200); return; }
+    const bounds = L.latLngBounds(located.map(m => [m.location.latitude, m.location.longitude]));
+    memberMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+}
+
+function focusMemberOnMap(lat, lng, name, status) {
+    if (!memberMapOpen) toggleMemberMap();
+    if (!memberMap) { setTimeout(() => focusMemberOnMap(lat, lng, name, status), 200); return; }
+    memberMap.setView([lat, lng], 16);
+    const marker = Object.values(memberMapMarkers).find(mk => {
+        const p = mk.getLatLng();
+        return Math.abs(p.lat - lat) < 0.0001 && Math.abs(p.lng - lng) < 0.0001;
+    });
+    if (marker) marker.openPopup();
+}
+
+function toggleMemberMap() {
+    const body = document.getElementById('memberMapBody');
+    const arrow = document.getElementById('memberMapToggleArrow');
+    memberMapOpen = !memberMapOpen;
+    body.style.display = memberMapOpen ? 'block' : 'none';
+    arrow.style.transform = memberMapOpen ? 'rotate(90deg)' : '';
+    if (memberMapOpen) {
+        initMemberMap();
+        setTimeout(() => {
+            memberMap.invalidateSize();
+            updateMemberMap(latestMemberData);
+        }, 50);
+    }
+}
+</script>
 </body>
 </html>

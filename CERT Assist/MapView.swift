@@ -10,27 +10,29 @@ import MapKit
 import CoreLocation
 
 struct MapView: View {
-    
+
     @State private var manager = IncidentManager.shared
-    @State private var position: MapCameraPosition = .automatic
+    @State private var locationManager = LocationManager.shared
+    @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var selectedReport: IncidentReport?
-    
+
     var reportAnnotations: [ReportAnnotation] {
-        manager.reports.map { report in
-            ReportAnnotation(report: report)
-        }
+        manager.reports.map { ReportAnnotation(report: $0) }
     }
-    
+
     var memberAnnotations: [MemberAnnotation] {
         manager.members.compactMap { member in
             guard let location = member.location else { return nil }
             return MemberAnnotation(member: member, location: location)
         }
     }
-    
+
     var body: some View {
         NavigationStack {
             Map(position: $position, selection: $selectedReport) {
+                // User's own location blue dot
+                UserAnnotation()
+
                 // Report markers
                 ForEach(reportAnnotations) { annotation in
                     Annotation(annotation.report.type.rawValue, coordinate: annotation.coordinate) {
@@ -38,8 +40,8 @@ struct MapView: View {
                     }
                     .tag(annotation.report)
                 }
-                
-                // Member markers
+
+                // Team member markers (only those who have shared location)
                 ForEach(memberAnnotations) { annotation in
                     Annotation(annotation.member.name, coordinate: annotation.coordinate) {
                         MemberMarker(member: annotation.member)
@@ -52,6 +54,9 @@ struct MapView: View {
                 MapScaleView()
             }
             .navigationTitle("Map")
+            .onAppear {
+                locationManager.requestPermissionAndStart()
+            }
             .sheet(item: $selectedReport) { report in
                 ReportDetailSheet(report: report)
             }

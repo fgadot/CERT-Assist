@@ -26,18 +26,23 @@ struct ContentView: View {
                     .transition(.opacity)
                     .zIndex(2)
             }
-        }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
-                withAnimation(.easeOut(duration: 0.4)) {
-                    showSplash = false
-                }
-                if !hasCompletedOnboarding {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        showOnboarding = true
-                    }
-                }
+
+            if manager.requiresUpdate {
+                UpdateRequiredView()
+                    .zIndex(3)
             }
+        }
+        .task {
+            await manager.autoResume()
+        }
+        .task {
+            try? await Swift.Task.sleep(nanoseconds: 2_200_000_000)
+            withAnimation(.easeOut(duration: 0.4)) {
+                showSplash = false
+            }
+            guard !hasCompletedOnboarding else { return }
+            try? await Swift.Task.sleep(nanoseconds: 500_000_000)
+            showOnboarding = true
         }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingView {

@@ -116,7 +116,7 @@ struct NewReportSheet: View {
     
     @Environment(\.dismiss) private var dismiss
     @State private var manager = IncidentManager.shared
-    @State private var locationManager = LocationManager()
+    @State private var locationManager = LocationManager.shared
     
     @State private var reportType: ReportType = .other
     @State private var severity: Severity = .medium

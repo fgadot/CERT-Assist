@@ -43,6 +43,7 @@ actor DataStore {
 
         log("🚀 DataStore initialized - Audit logging started")
         loadPins()
+        loadVersions()
     }
 
     private func log(_ message: String) {
@@ -76,6 +77,25 @@ actor DataStore {
     }
 
     private var pinConfigURL: URL { URL(fileURLWithPath: "/app/config/pins.json") }
+    private var versionConfigURL: URL { URL(fileURLWithPath: "/app/config/versions.json") }
+
+    private var minimumVersion: String = "1.2"
+    private var latestVersion: String = "1.2"
+
+    func loadVersions() {
+        struct VersionConfig: Decodable { var minimumVersion: String; var latestVersion: String }
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        if let data = try? Data(contentsOf: versionConfigURL),
+           let config = try? decoder.decode(VersionConfig.self, from: data) {
+            minimumVersion = config.minimumVersion
+            latestVersion  = config.latestVersion
+        }
+        log("📱 App versions: minimum=\(minimumVersion), latest=\(latestVersion)")
+    }
+
+    func getMinimumVersion() -> String { minimumVersion }
+    func getLatestVersion()  -> String { latestVersion  }
 
     func loadPins() {
         if let data = try? Data(contentsOf: pinConfigURL),
@@ -532,6 +552,20 @@ func routes(_ app: Application) throws {
     let memberApi = app.grouped(MemberPINMiddleware()).grouped("api")
     let adminApi  = app.grouped(DashboardPINMiddleware()).grouped("api")
 
+    // ── Version check (unprotected — must be reachable by outdated clients) ──────
+
+    struct VersionInfo: Content {
+        var minimumVersion: String
+        var latestVersion: String
+    }
+
+    api.get("version") { req async -> VersionInfo in
+        VersionInfo(
+            minimumVersion: await dataStore.getMinimumVersion(),
+            latestVersion:  await dataStore.getLatestVersion()
+        )
+    }
+
     // ── Setup (unprotected) ───────────────────────────────────────────────────────
 
     api.get("setup", "status") { req async throws -> [String: Bool] in
@@ -573,6 +607,29 @@ func routes(_ app: Application) throws {
 
     memberApi.post("checkin") { req async throws -> CheckInResponse in
         var member = try req.content.decode(CERTMember.self)
+
+        // Deduplicate: if a device token matches an existing member, resume that session
+        if let token = member.deviceToken, !token.isEmpty {
+            let all = await dataStore.getAllMembers()
+            if let existing = all.first(where: { $0.deviceToken == token }) {
+                var resumed = member
+                resumed.id = existing.id
+                resumed.subTeamId = existing.subTeamId
+                resumed.lentToTeam = existing.lentToTeam
+                resumed.lentRequestId = existing.lentRequestId
+                await dataStore.updateMember(resumed)
+                try? await req.logAudit(
+                    action: "member_checkin",
+                    actorID: resumed.id?.uuidString,
+                    actorName: resumed.name,
+                    targetType: "member",
+                    targetID: resumed.id?.uuidString,
+                    details: ["role": resumed.role, "equipment": resumed.equipment.joined(separator: ", "), "resumed": "true"]
+                )
+                return CheckInResponse(success: true, message: "Session resumed", memberID: resumed.id)
+            }
+        }
+
         if member.id == nil { member.id = UUID() }
         await dataStore.addMember(member)
         try? await req.logAudit(
@@ -588,6 +645,22 @@ func routes(_ app: Application) throws {
 
     api.get("members") { req async throws -> [CERTMember] in
         return await dataStore.getAllMembers()
+    }
+
+    memberApi.post("checkout") { req async throws -> HTTPStatus in
+        struct CheckoutBody: Decodable { var memberId: UUID }
+        let body = try req.content.decode(CheckoutBody.self)
+        guard let member = await dataStore.members[body.memberId] else { return .noContent }
+        await dataStore.removeMember(id: body.memberId)
+        try? await req.logAudit(
+            action: "member_checkout",
+            actorID: body.memberId.uuidString,
+            actorName: member.name,
+            targetType: "member",
+            targetID: body.memberId.uuidString,
+            details: ["role": member.role, "status_at_checkout": member.status.rawValue]
+        )
+        return .noContent
     }
 
     memberApi.post("reports") { req async throws -> IncidentReport in
@@ -908,6 +981,25 @@ func routes(_ app: Application) throws {
             targetID: id.uuidString,
             details: ["from": oldStatus.rawValue, "to": update.status.rawValue]
         )
+        return .ok
+    }
+
+    memberApi.patch("members", ":id", "location") { req async throws -> HTTPStatus in
+        let id = try req.parameters.require("id", as: UUID.self)
+        struct LocationUpdate: Content {
+            var latitude: Double
+            var longitude: Double
+            var address: String?
+            var timestamp: Date
+        }
+        let update = try req.content.decode(LocationUpdate.self)
+        guard var member = await dataStore.getAllMembers().first(where: { $0.id == id }) else {
+            return .noContent
+        }
+        member.location = LocationData(latitude: update.latitude, longitude: update.longitude,
+                                       address: update.address, timestamp: update.timestamp)
+        member.lastUpdated = Date()
+        await dataStore.updateMember(member)
         return .ok
     }
 
