@@ -100,10 +100,25 @@ struct TeamFlag: Content {
     var acknowledgedAt: Date?
 }
 
+// MARK: - Broadcast Banner (persistent, shown on all team dashboards)
+
+struct BroadcastBanner: Content {
+    var text: String
+    var type: BannerType
+    var setAt: Date
+
+    enum BannerType: String, Codable {
+        case info      = "info"       // blue
+        case important = "important"  // orange
+        case emergency = "emergency"  // red
+    }
+}
+
 // MARK: - County Dashboard (sent via WebSocket)
 
 struct CountyDashboardData: Content {
     var teams: [TeamSummary]
     var pendingMessageCounts: [String: Int]   // teamId → count of unconfirmed messages
     var lastUpdate: Date
+    var activeBanner: BroadcastBanner?
 }

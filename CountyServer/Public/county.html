@@ -402,6 +402,14 @@
     </div>
 </div>
 
+<!-- Active Banner Status Bar -->
+<div style="padding:8px 30px;background:#12102a;border-bottom:1px solid #0f3460;display:flex;align-items:center;gap:12px;">
+    <div style="font-size:11px;color:#666;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;">Active Banner:</div>
+    <div id="bannerStatusText" style="flex:1;font-size:13px;color:#555;font-style:italic;">None</div>
+    <button id="bannerClearBtn" onclick="clearBanner()" style="display:none;padding:4px 12px;background:#FF3B30;color:white;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">✕ Clear</button>
+    <button onclick="openBannerModal()" style="padding:4px 12px;background:#0d6efd;color:white;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">📺 Set Banner</button>
+</div>
+
 <div class="team-grid" id="teamGrid">
     <div class="empty-county">
         <h2>Waiting for teams…</h2>
@@ -442,6 +450,36 @@
                 <button class="msg-send-btn" style="flex:1;" onclick="sendBroadcast()">📢 Send to All Teams</button>
                 <button onclick="closeBroadcastModal()"
                     style="padding:10px 18px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#ccc;cursor:pointer;">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Banner Modal -->
+<div class="modal" id="bannerModal">
+    <div class="modal-box" style="max-width:480px;">
+        <div class="modal-header">
+            <h2>📺 Set Dashboard Banner</h2>
+            <button class="close-btn" onclick="closeBannerModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:13px;color:#aaa;margin-bottom:14px;">This message will scroll permanently across all team dashboards until cleared.</p>
+            <div style="margin-bottom:12px;">
+                <div style="font-size:12px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Banner Type</div>
+                <select id="bannerType" style="width:100%;padding:10px 12px;background:#0f3460;border:1px solid #1a4a8a;border-radius:8px;color:#e0e0e0;font-size:14px;font-family:inherit;">
+                    <option value="info">ℹ️ Information — blue background</option>
+                    <option value="important">⚠️ Important — orange background</option>
+                    <option value="emergency">🚨 Emergency — red background</option>
+                </select>
+            </div>
+            <div>
+                <div style="font-size:12px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Message</div>
+                <textarea id="bannerText" rows="3" placeholder="Scrolling message across all team dashboards…" maxlength="200"
+                    style="width:100%;padding:10px 14px;background:#0f3460;border:1px solid #1a4a8a;border-radius:8px;color:#e0e0e0;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+            </div>
+            <div style="margin-top:16px;display:flex;gap:8px;">
+                <button class="msg-send-btn" style="flex:1;" onclick="saveBanner()">📺 Activate Banner</button>
+                <button onclick="closeBannerModal()" style="padding:10px 18px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#ccc;cursor:pointer;">Cancel</button>
             </div>
         </div>
     </div>
@@ -617,6 +655,7 @@
         document.getElementById('statHigh').textContent    = totalHigh;
         document.getElementById('statUnacked').textContent = totalUnacked;
         document.getElementById('statTime').textContent    = new Date().toLocaleTimeString();
+        updateActiveBannerStatus(data.active_banner || null);
 
         const grid = document.getElementById('teamGrid');
 
@@ -898,6 +937,56 @@
                 alert('Failed to send broadcast: ' + await res.text());
             }
         } catch (e) { alert('Network error: ' + e.message); }
+    }
+
+    // ── Persistent Dashboard Banner ──────────────────────────────────────────────
+
+    function openBannerModal() {
+        document.getElementById('bannerModal').classList.add('show');
+        setTimeout(() => document.getElementById('bannerText').focus(), 50);
+    }
+    function closeBannerModal() {
+        document.getElementById('bannerModal').classList.remove('show');
+    }
+
+    async function saveBanner() {
+        const type = document.getElementById('bannerType').value;
+        const text = document.getElementById('bannerText').value.trim();
+        if (!text) { alert('Please enter a message.'); return; }
+        try {
+            const res = await countyApiCall('POST', '/api/banner', { type, text });
+            if (res.ok) {
+                document.getElementById('bannerText').value = '';
+                closeBannerModal();
+            } else {
+                alert('Failed to set banner: ' + await res.text());
+            }
+        } catch (e) { alert('Network error: ' + e.message); }
+    }
+
+    async function clearBanner() {
+        if (!confirm('Clear the active banner from all team dashboards?')) return;
+        try {
+            await countyApiCall('DELETE', '/api/banner');
+        } catch (e) { alert('Network error: ' + e.message); }
+    }
+
+    function updateActiveBannerStatus(banner) {
+        const statusText = document.getElementById('bannerStatusText');
+        const clearBtn   = document.getElementById('bannerClearBtn');
+        if (!banner || !banner.text) {
+            statusText.style.color = '#555';
+            statusText.style.fontStyle = 'italic';
+            statusText.textContent = 'None';
+            clearBtn.style.display = 'none';
+        } else {
+            const labels = { info: 'ℹ️ Info', important: '⚠️ Important', emergency: '🚨 Emergency' };
+            const colors = { info: '#007AFF', important: '#FF9500', emergency: '#FF3B30' };
+            statusText.style.color = colors[banner.type] || '#007AFF';
+            statusText.style.fontStyle = 'normal';
+            statusText.textContent = `${labels[banner.type] || 'ℹ️'}: ${banner.text}`;
+            clearBtn.style.display = 'inline';
+        }
     }
 
     // ── Team Flags ───────────────────────────────────────────────────────────────

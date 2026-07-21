@@ -222,6 +222,12 @@ actor DataStore {
 
     // Inbox of received county alert/info messages, kept for dashboard display (last 50)
     var countyInbox: [CountyMessage] = []
+    var countyBanner: BroadcastBanner? = nil
+
+    func setCountyBanner(_ banner: BroadcastBanner?) async {
+        countyBanner = banner
+        await broadcastUpdate()
+    }
 
     func applyCountyMessage(_ message: CountyMessage) {
         switch message.type {
@@ -544,6 +550,7 @@ actor DataStore {
             subTeams: Array(subTeams.values),
             loanableMembers: Array(loanableMembers),
             countyInbox: countyInbox,
+            countyBanner: countyBanner,
             isActivated: isActivated,
             lastUpdate: Date()
         )

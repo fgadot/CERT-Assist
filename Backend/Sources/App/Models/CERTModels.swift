@@ -200,6 +200,20 @@ struct MeResponse: Content {
     var assignedTasks: [CERTTask]?
 }
 
+// MARK: - County Broadcast Banner
+
+struct BroadcastBanner: Content {
+    var text: String
+    var type: BannerType
+    var setAt: Date
+
+    enum BannerType: String, Codable {
+        case info      = "info"
+        case important = "important"
+        case emergency = "emergency"
+    }
+}
+
 struct DashboardData: Content {
     var incident: Incident?
     var members: [CERTMember]
@@ -208,6 +222,7 @@ struct DashboardData: Content {
     var subTeams: [SubTeam]
     var loanableMembers: [UUID]
     var countyInbox: [CountyMessage]   // recent alert/info messages received from county
+    var countyBanner: BroadcastBanner? // persistent scrolling banner set by county EOC
     var isActivated: Bool
     var lastUpdate: Date
 }

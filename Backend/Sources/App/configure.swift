@@ -58,12 +58,36 @@ public func configure(_ app: Application) throws {
             while true {
                 try? await Task.sleep(nanoseconds: 30_000_000_000)
                 await pollCountyMessages(countyEndpoint: countyEndpoint, teamID: teamID)
+                await pollCountyBanner(countyEndpoint: countyEndpoint)
             }
         }
     }
 
     print("✅ CERT Field Board Backend configured successfully")
     print("📁 Team ID: \(Environment.get("TEAM_ID") ?? "not set")")
+}
+
+// Polls county server for the active dashboard banner and syncs to DataStore.
+private func pollCountyBanner(countyEndpoint: String) async {
+    guard let url = URL(string: "\(countyEndpoint)/api/banner") else { return }
+    var req = URLRequest(url: url)
+    req.timeoutInterval = 5
+    if let token = Environment.get("COUNTY_API_TOKEN"), !token.isEmpty {
+        req.setValue(token, forHTTPHeaderField: "X-CERT-API-Token")
+    }
+    let fetched: Data? = await withCheckedContinuation { continuation in
+        URLSession.shared.dataTask(with: req) { data, _, _ in
+            continuation.resume(returning: data)
+        }.resume()
+    }
+    guard let fetched else { return }
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .iso8601
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
+    struct BannerStatus: Decodable { var banner: BroadcastBanner? }
+    if let status = try? decoder.decode(BannerStatus.self, from: fetched) {
+        await dataStore.setCountyBanner(status.banner)
+    }
 }
 
 // Polls county server for messages addressed to this team, processes them, then confirms.

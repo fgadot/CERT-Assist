@@ -13,6 +13,7 @@ actor CountyDataStore {
     var availableMembers: [UUID: AvailableMember] = [:]    // memberId → available member record
     var transferRequests: [UUID: TransferRequest] = [:]    // requestId → transfer request
     var teamFlags: [UUID: TeamFlag] = [:]                  // flags raised by teams for county review
+    var activeBanner: BroadcastBanner? = nil               // persistent scrolling banner on all team dashboards
 
     func updateTeamSummary(_ summary: TeamSummary) async {
         teams[summary.teamId] = summary
@@ -50,6 +51,20 @@ actor CountyDataStore {
     func removeWebSocket(_ ws: WebSocket) {
         connectedWebSockets.removeAll { $0 === ws }
     }
+
+    // MARK: - Persistent Dashboard Banner
+
+    func setActiveBanner(_ banner: BroadcastBanner) async {
+        activeBanner = banner
+        await broadcastUpdate()
+    }
+
+    func clearActiveBanner() async {
+        activeBanner = nil
+        await broadcastUpdate()
+    }
+
+    func getActiveBanner() -> BroadcastBanner? { activeBanner }
 
     // MARK: - Broadcast (county → all registered teams)
 
@@ -221,7 +236,8 @@ actor CountyDataStore {
         return CountyDashboardData(
             teams: sorted,
             pendingMessageCounts: pendingCounts,
-            lastUpdate: Date()
+            lastUpdate: Date(),
+            activeBanner: activeBanner
         )
     }
 
@@ -448,6 +464,26 @@ func routes(_ app: Application) throws {
         }
 
         throw Abort(.conflict, reason: "Cannot update a transfer in \(request.status.rawValue) status")
+    }
+
+    // ── Persistent dashboard banner (scrolls across all team dashboards) ──────────
+    app.post("api", "banner") { req async throws -> BroadcastBanner in
+        struct BannerBody: Content { var text: String; var type: BroadcastBanner.BannerType }
+        let body = try req.content.decode(BannerBody.self)
+        let banner = BroadcastBanner(text: body.text, type: body.type, setAt: Date())
+        await countyStore.setActiveBanner(banner)
+        return banner
+    }
+
+    app.delete("api", "banner") { req async throws -> HTTPStatus in
+        await countyStore.clearActiveBanner()
+        return .ok
+    }
+
+    // Teams poll this — GETs pass through auth middleware unauthenticated
+    struct BannerStatus: Content { var banner: BroadcastBanner? }
+    app.get("api", "banner") { req async throws -> BannerStatus in
+        BannerStatus(banner: await countyStore.getActiveBanner())
     }
 
     // ── Broadcast message to all registered teams ────────────────────────────────
