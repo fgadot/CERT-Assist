@@ -71,13 +71,7 @@ class IncidentManager {
     // MARK: - Init
 
     private init() {
-        // Restore previous check-in state so users don't lose their session on relaunch
-        let decoder = JSONDecoder()
-        if let data = UserDefaults.standard.data(forKey: "currentMember"),
-           let member = try? decoder.decode(CERTMember.self, from: data) {
-            currentMember = member
-            members = [member]
-        }
+        loadData()
         serverURL = UserDefaults.standard.string(forKey: "certServerURL") ?? ""
         // Migrate PIN from UserDefaults to Keychain on first launch after upgrade
         if let legacyPIN = UserDefaults.standard.string(forKey: "certMemberPIN"), !legacyPIN.isEmpty {
@@ -326,7 +320,12 @@ class IncidentManager {
         cancelLocationReminder()
         currentMember = nil
         members = []
+        reports = []
+        tasks = []
         saveCurrentMember()
+        UserDefaults.standard.removeObject(forKey: "reports")
+        UserDefaults.standard.removeObject(forKey: "tasks")
+        UserDefaults.standard.removeObject(forKey: "members")
     }
 
     func checkOut() {
@@ -416,6 +415,7 @@ class IncidentManager {
                         notes: remote.notes
                     )
                 }
+                saveData()
             }
         }
     }
@@ -547,12 +547,14 @@ class IncidentManager {
     
     func addReport(_ report: IncidentReport) {
         reports.append(report)
+        saveData()
     }
-    
+
     func updateReport(_ report: IncidentReport) {
         if let index = reports.firstIndex(where: { $0.id == report.id }) {
             reports[index] = report
-            }
+            saveData()
+        }
     }
     
     func deleteReport(_ report: IncidentReport) {
@@ -682,8 +684,29 @@ class IncidentManager {
             }
             applyLocationMode(locationTrackingMode)
             startServerPolling()
+            await fetchMyReports()
         } catch {
             // Network failure — keep local state; user can still see their status
+        }
+    }
+
+    private func fetchMyReports() async {
+        guard let member = currentMember,
+              !serverURL.isEmpty, !memberPIN.isEmpty else { return }
+        let memberId = member.id
+        let base = serverURL.trimmingCharacters(in: ["/"])
+        guard let url = URL(string: "\(base)/api/members/\(memberId)/reports") else { return }
+        var request = URLRequest(url: url)
+        request.setValue(memberPIN, forHTTPHeaderField: "X-CERT-Token")
+        request.timeoutInterval = 10
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let http = response as? HTTPURLResponse, http.statusCode == 200 else { return }
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
+        if let fetched = try? decoder.decode([IncidentReport].self, from: data) {
+            reports = fetched
+            saveData()
         }
     }
 

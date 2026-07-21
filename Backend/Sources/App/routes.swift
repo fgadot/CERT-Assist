@@ -811,6 +811,13 @@ func routes(_ app: Application) throws {
         return await dataStore.getAllReports()
     }
 
+    memberApi.get("members", ":id", "reports") { req async throws -> [IncidentReport] in
+        let id = try req.parameters.require("id", as: UUID.self)
+        return await dataStore.reports.values
+            .filter { $0.reportedBy == id }
+            .sorted { $0.reportedAt > $1.reportedAt }
+    }
+
     // ── Admin API (dashboard PIN) ─────────────────────────────────────────────────
 
     adminApi.post("members") { req async throws -> CERTMember in
