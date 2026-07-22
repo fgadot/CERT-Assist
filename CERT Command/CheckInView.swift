@@ -291,6 +291,7 @@ struct CheckInSheet: View {
     @State private var name = ""
     @State private var role = "CERT Member"
     @State private var selectedEquipment: Set<Equipment> = []
+    @State private var showHelp = false
 
     // Connection — pre-populated from last saved values
     @AppStorage("certServerURL") private var savedServerURL = ""
@@ -325,6 +326,13 @@ struct CheckInSheet: View {
                         dismiss()
                     }
                     .disabled(manager.isCheckingIn)
+
+                    Button {
+                        showHelp = true
+                    } label: {
+                        Image(systemName: "questionmark.circle")
+                    }
+                    .padding(.leading, 8)
 
                     Spacer()
 
@@ -415,6 +423,9 @@ struct CheckInSheet: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(manager.checkInError ?? "Unknown error")
+        }
+        .sheet(isPresented: $showHelp) {
+            HelpView()
         }
     }
 }

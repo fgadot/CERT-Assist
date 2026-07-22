@@ -30,7 +30,7 @@ struct HelpView: View {
 
                 Section("Support") {
                     Button {
-                        if let url = URL(string: "mailto:frank@w6fgc.com?subject=CERT%20Assist%20Feedback") {
+                        if let url = URL(string: "mailto:frank@w6fgc.com?subject=CERT%20Command%20Feedback") {
                             openURL(url)
                         }
                     } label: {
@@ -40,7 +40,7 @@ struct HelpView: View {
                 }
 
                 Section("About") {
-                    LabeledContent("Version", value: "1.0")
+                    LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—")
                     LabeledContent("Developer", value: "Frank Gadot")
                     LabeledContent("Contact", value: "frank@w6fgc.com")
                 }
