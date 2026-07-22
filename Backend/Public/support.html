@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CERT Command — Support</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    padding: 40px 20px 80px;
+  }
+  .container { max-width: 680px; margin: 0 auto; }
+  .page-header {
+    background: linear-gradient(135deg, #007AFF, #0051D5);
+    color: white;
+    padding: 32px;
+    border-radius: 14px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 16px rgba(0,122,255,0.3);
+  }
+  .page-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+  .page-header p  { font-size: 14px; opacity: 0.85; }
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+  .card-body { padding: 20px 24px; }
+  .faq-item { margin-bottom: 20px; }
+  .faq-item:last-child { margin-bottom: 0; }
+  .faq-q {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 6px;
+    color: #1a1a1a;
+  }
+  .faq-a {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.6;
+  }
+  .contact-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 15px;
+  }
+  .contact-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .contact-label { color: #888; font-size: 13px; min-width: 80px; }
+  .contact-value { font-weight: 500; }
+  .contact-value a { color: #007AFF; text-decoration: none; }
+  .note {
+    background: #f0f7ff;
+    border-left: 3px solid #007AFF;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #0051D5;
+    margin-top: 16px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <h1>CERT Command Support</h1>
+    <p>Emergency response coordination for CERT field teams</p>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Frequently Asked Questions</div>
+    <div class="card-body">
+
+      <div class="faq-item">
+        <div class="faq-q">I can't check in — what's wrong?</div>
+        <div class="faq-a">Verify the server address and PIN with your team leader. The server address should be the URL they provided (e.g., <code>sapphire.certcommand.org</code>). Make sure you have a working internet connection. If the problem persists, have your team leader confirm the server is running.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">My location isn't updating on the dashboard.</div>
+        <div class="faq-a">Open Settings → Privacy & Security → Location Services → CERT Command and make sure it is set to "While Using the App". Then switch to Manual mode in the app's Status tab and tap "Share My Location Now", or switch back to Automatic mode to resume 30-second updates.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">I was checked out by my team leader — how do I rejoin?</div>
+        <div class="faq-a">Tap Check In again on the main screen and re-enter your information. Your previous server address and PIN will be pre-filled.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">My reports disappeared after the app was closed.</div>
+        <div class="faq-a">Reports are saved locally and synced from the server when you reopen the app. If reports are missing after reopening, ensure you have a network connection so the app can sync with the server.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">I don't see other team members in the Team Members section.</div>
+        <div class="faq-a">The app fetches the team roster from the server every 30 seconds. If a member checked in recently, wait up to 30 seconds for them to appear. If they still don't show, confirm both devices are connected to the same server.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">The app says my version is out of date.</div>
+        <div class="faq-a">Update CERT Command from the App Store. The team's server requires a minimum app version to ensure compatibility. You cannot check in until the app is updated.</div>
+      </div>
+
+      <div class="note">
+        CERT Command is a closed system used by authorized CERT teams during activations. Access requires a server address and PIN provided by your team leader. This app is not intended for general public use.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Contact</div>
+    <div class="card-body">
+      <div class="contact-row">
+        <span class="contact-label">Developer</span>
+        <span class="contact-value">Frank Gadot</span>
+      </div>
+      <div class="contact-row">
+        <span class="contact-label">Email</span>
+        <span class="contact-value"><a href="mailto:frank@w6fgc.com">frank@w6fgc.com</a></span>
+      </div>
+      <div class="contact-row">
+        <span class="contact-label">App</span>
+        <span class="contact-value">CERT Command — iOS</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">For Operational Issues</div>
+    <div class="card-body">
+      <p style="font-size:14px;color:#555;line-height:1.6;">
+        During an active CERT deployment, contact your <strong>Team Leader</strong> or <strong>County EOC</strong> directly for operational questions. Do not contact the app developer for activation-related issues — they have no visibility into your team's live data.
+      </p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

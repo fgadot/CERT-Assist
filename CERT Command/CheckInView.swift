@@ -360,7 +360,7 @@ struct CheckInSheet: View {
                             if manager.checkInError != nil {
                                 showError = true
                             } else {
-                                savedServerURL = serverURL
+                                savedServerURL = manager.serverURL
                                 KeychainHelper.set(memberPIN, forKey: "certMemberPIN")
                                 dismiss()
                             }
@@ -388,7 +388,7 @@ struct CheckInSheet: View {
                             if lower != newValue { serverURL = lower }
                         }
                     SecureField("PIN", text: $memberPIN)
-                        .keyboardType(.default)
+                        .keyboardType(.numberPad)
                 } header: {
                     Text("Server Connection")
                 } footer: {

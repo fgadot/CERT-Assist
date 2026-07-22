@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CERT Command — Privacy Policy</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #f5f5f5;
+    color: #1a1a1a;
+    padding: 40px 20px 80px;
+  }
+  .container { max-width: 680px; margin: 0 auto; }
+  .page-header {
+    background: linear-gradient(135deg, #007AFF, #0051D5);
+    color: white;
+    padding: 32px;
+    border-radius: 14px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 16px rgba(0,122,255,0.3);
+  }
+  .page-header h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+  .page-header p  { font-size: 14px; opacity: 0.85; }
+  .card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+  .card-body {
+    padding: 20px 24px;
+    font-size: 14px;
+    color: #444;
+    line-height: 1.7;
+  }
+  .card-body p { margin-bottom: 14px; }
+  .card-body p:last-child { margin-bottom: 0; }
+  .data-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  .data-table th {
+    text-align: left;
+    padding: 10px 12px;
+    background: #f5f5f5;
+    font-weight: 600;
+    color: #555;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: top;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .highlight {
+    background: #f0f7ff;
+    border-left: 3px solid #007AFF;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: #0051D5;
+    margin: 14px 0;
+    line-height: 1.5;
+  }
+  .effective { font-size: 12px; color: #999; margin-top: 6px; }
+  .contact-link { color: #007AFF; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="page-header">
+    <h1>Privacy Policy</h1>
+    <p>CERT Command — iOS App</p>
+    <div class="effective">Effective date: July 2026</div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Overview</div>
+    <div class="card-body">
+      <p>CERT Command is a closed emergency response coordination tool used exclusively by authorized Community Emergency Response Team (CERT) members during official activations. It is not a general-purpose app and does not serve the public.</p>
+      <p>This policy explains what data the app collects, how it is used, and who can see it.</p>
+      <div class="highlight">CERT Command does not use data for advertising, analytics, or any purpose outside of real-time team coordination during a CERT activation. No data is sold or shared with third parties.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Data Collected</div>
+    <div class="card-body">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Purpose</th>
+            <th>Where it goes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Full name</strong></td>
+            <td>Identifies you to your team leader and teammates on the coordination dashboard</td>
+            <td>Your team's server only</td>
+          </tr>
+          <tr>
+            <td><strong>Role &amp; equipment</strong></td>
+            <td>Helps the team leader assign tasks appropriate to your skills and resources</td>
+            <td>Your team's server only</td>
+          </tr>
+          <tr>
+            <td><strong>Precise location</strong></td>
+            <td>Displays your position on the team map; attached to incident reports you file</td>
+            <td>Your team's server only</td>
+          </tr>
+          <tr>
+            <td><strong>Device token</strong> (anonymous UUID)</td>
+            <td>Identifies your device across sessions so the server can route remote checkout notifications to the correct device</td>
+            <td>Your team's server only</td>
+          </tr>
+          <tr>
+            <td><strong>Status updates</strong></td>
+            <td>Available, Assigned, Injured, etc. — visible to your team leader for coordination</td>
+            <td>Your team's server only</td>
+          </tr>
+          <tr>
+            <td><strong>Incident reports</strong></td>
+            <td>Field observations (type, severity, location, description) submitted during activation</td>
+            <td>Your team's server only; high/life-safety reports escalate to County EOC</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>The app does not collect email addresses, phone numbers, payment information, browsing history, contacts, photos, or any biometric data.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">How Data Is Stored</div>
+    <div class="card-body">
+      <p>All data transmitted by the app is sent to the server URL you enter at check-in. This is a server operated by your CERT team or county emergency management program — not a server operated by the app developer.</p>
+      <p><strong>Server-side:</strong> Member data (name, role, location, status) is held in memory for the duration of the activation. It is not written to a persistent database. Data is automatically cleared when the server restarts or when you check out.</p>
+      <p><strong>On-device:</strong> Your name, role, status, and reports are cached locally in app storage so the app can function if briefly disconnected. Your authentication PIN is stored in the iOS Keychain. Your server address is stored in app preferences. This data is cleared when you check out.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Who Can See Your Data</div>
+    <div class="card-body">
+      <p>Within the app, your name, role, status, location, and reports are visible to:</p>
+      <ul style="margin: 10px 0 14px 20px; line-height:1.8;">
+        <li>Your <strong>Team Leader</strong> — via the web dashboard</li>
+        <li>Other <strong>checked-in team members</strong> — name, role, and status visible on their Team Members list</li>
+        <li><strong>County EOC staff</strong> — high-severity incident reports are escalated automatically</li>
+      </ul>
+      <p>The app developer has no access to any data on your team's server at any time.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Location Data</div>
+    <div class="card-body">
+      <p>CERT Command requests <strong>location access while the app is in use</strong> ("When In Use"). It does not request background location access.</p>
+      <p>Location is used to:</p>
+      <ul style="margin: 10px 0 14px 20px; line-height:1.8;">
+        <li>Show your position on the team coordination map visible to your team leader</li>
+        <li>Automatically attach GPS coordinates to incident reports you submit</li>
+      </ul>
+      <p>You can switch to Manual location mode at any time from the Status tab. In Manual mode, your location is only shared when you explicitly tap "Share My Location Now."</p>
+      <p>Location data is not shared outside your team's server and is cleared when you check out.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Data Retention &amp; Deletion</div>
+    <div class="card-body">
+      <p>When you check out of an activation, your member record is removed from the server and your locally cached data is deleted from the device.</p>
+      <p>Incident reports submitted during the activation are retained on the server in an audit log for after-action review by the team leader. This audit log is managed by your team's server operator (your team leader or county emergency management), not the app developer.</p>
+      <p>To request deletion of any data held on your team's server, contact your team leader or county emergency management program directly.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">No Third-Party Sharing</div>
+    <div class="card-body">
+      <p>CERT Command does not use any third-party analytics SDKs, advertising networks, crash reporting services, or tracking tools. No data is shared with Apple (beyond standard App Store operation), Google, Meta, or any other company.</p>
+      <p>The app makes no network requests other than to the server address you enter at check-in.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Children</div>
+    <div class="card-body">
+      <p>CERT Command is intended for adult CERT volunteers. It is not directed at children under 13 and does not knowingly collect data from minors.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Changes to This Policy</div>
+    <div class="card-body">
+      <p>If this privacy policy changes materially, the updated version will be posted here and the effective date will be updated. Continued use of the app after a policy change constitutes acceptance of the new policy.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Contact</div>
+    <div class="card-body">
+      <p>Questions about this privacy policy or your data:</p>
+      <p style="margin-top:10px;"><strong>Frank Gadot</strong><br>
+      <a href="mailto:frank@w6fgc.com" class="contact-link">frank@w6fgc.com</a></p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

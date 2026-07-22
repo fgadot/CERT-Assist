@@ -145,6 +145,7 @@ class IncidentManager {
     var isCheckingIn = false
     var remoteCheckoutMessage: String? = nil
     private var pollTimer: Timer?
+    private var memberRosterTimer: Timer?
 
     // Saved after a successful check-in so subsequent API calls can reach the server
     private(set) var serverURL: String = ""
@@ -160,7 +161,13 @@ class IncidentManager {
         var base = serverURL.trimmingCharacters(in: .whitespacesAndNewlines)
                             .trimmingCharacters(in: ["/"])
         if !base.hasPrefix("http://") && !base.hasPrefix("https://") {
-            base = "http://" + base
+            if let resolved = await probeScheme(host: base) {
+                base = resolved
+            } else {
+                checkInError = "Cannot reach server — check the address"
+                isCheckingIn = false
+                return
+            }
         }
         guard let url = URL(string: base + "/api/checkin") else {
             checkInError = "Invalid server address"
@@ -252,6 +259,7 @@ class IncidentManager {
             currentMember = member
             members = [member]
             self.serverURL = base
+            UserDefaults.standard.set(base, forKey: "certServerURL")
             self.memberPIN = memberPIN
             saveCurrentMember()
             applyLocationMode(locationTrackingMode)
@@ -261,6 +269,20 @@ class IncidentManager {
         }
 
         isCheckingIn = false
+    }
+
+    private func probeScheme(host: String) async -> String? {
+        for scheme in ["https", "http"] {
+            let candidate = "\(scheme)://\(host)"
+            guard let url = URL(string: "\(candidate)/api/version") else { continue }
+            var req = URLRequest(url: url)
+            req.timeoutInterval = 5
+            if let (_, response) = try? await URLSession.shared.data(for: req),
+               (response as? HTTPURLResponse) != nil {
+                return candidate
+            }
+        }
+        return nil
     }
 
     @MainActor
@@ -343,11 +365,19 @@ class IncidentManager {
             Swift.Task { @MainActor [weak self] in await self?.pollServerStatus() }
         }
         Swift.Task { @MainActor [weak self] in await self?.pollServerStatus() }
+
+        memberRosterTimer?.invalidate()
+        memberRosterTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            Swift.Task { @MainActor [weak self] in await self?.pollMemberRoster() }
+        }
+        Swift.Task { @MainActor [weak self] in await self?.pollMemberRoster() }
     }
 
     private func stopServerPolling() {
         pollTimer?.invalidate()
         pollTimer = nil
+        memberRosterTimer?.invalidate()
+        memberRosterTimer = nil
     }
 
     @MainActor
@@ -417,6 +447,27 @@ class IncidentManager {
                 }
                 saveData()
             }
+        }
+    }
+
+    @MainActor
+    private func pollMemberRoster() async {
+        guard !serverURL.isEmpty, isCheckedIn else { return }
+        let base = serverURL.trimmingCharacters(in: ["/"])
+        guard let url = URL(string: "\(base)/api/members") else { return }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 8
+
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              let http = response as? HTTPURLResponse, http.statusCode == 200 else { return }
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .iso8601
+
+        if let fetched = try? decoder.decode([CERTMember].self, from: data) {
+            members = fetched
         }
     }
 
