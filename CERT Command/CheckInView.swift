@@ -12,6 +12,7 @@ struct CheckInView: View {
     @State private var manager = IncidentManager.shared
     @State private var locationManager = LocationManager.shared
     @State private var showingCheckIn = false
+    @State private var showHelp = false
     @State private var pendingStatus: MemberStatus? = nil
     @State private var showStatusConfirmation = false
     @State private var isPushingLocation = false
@@ -263,10 +264,21 @@ struct CheckInView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .padding(.horizontal, 40)
+
+                    Button {
+                        showHelp = true
+                    } label: {
+                        Label("Help", systemImage: "questionmark.circle")
+                            .font(.subheadline)
+                    }
+                    .foregroundStyle(.secondary)
                 }
                 .navigationTitle("")
                 .sheet(isPresented: $showingCheckIn) {
                     CheckInSheet()
+                }
+                .sheet(isPresented: $showHelp) {
+                    HelpView()
                 }
             }
         }
